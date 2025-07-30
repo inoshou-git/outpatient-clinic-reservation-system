@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "3334:3001"
+    volumes:
+      - ./backend/db.json:/app/db.json # Persist db.json
+    env_file:
+      - ./backend/.env.production
+    restart: always
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3333:80"
+    depends_on:
+      - backend
+    env_file:
+      - ./frontend/.env.production
+    restart: always
