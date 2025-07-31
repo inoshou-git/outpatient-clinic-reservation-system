@@ -85,6 +85,24 @@
       "consultation": "健康診断",
       "lastUpdatedBy": "システム管理者",
       "isDeleted": true
+    },
+    {
+      "id": 14,
+      "patientName": "村上　忍",
+      "date": "2025-08-06",
+      "time": "10:15",
+      "consultation": "発熱外来",
+      "lastUpdatedBy": "システム管理者",
+      "isDeleted": true
+    },
+    {
+      "id": 15,
+      "patientName": "佐藤　千尋",
+      "date": "2025-08-01",
+      "time": "10:30",
+      "consultation": "薬処方",
+      "lastUpdatedBy": "システム管理者",
+      "isDeleted": false
     }
   ],
   "blockedSlots": [

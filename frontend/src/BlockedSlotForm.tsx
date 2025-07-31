@@ -110,8 +110,8 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
     };
 
     const url = blockedSlot
-      ? `process.env.REACT_APP_API_BASE_URL/api/blocked-slots/${blockedSlot.id}`
-      : 'process.env.REACT_APP_API_BASE_URL/api/blocked-slots';
+      ? `/api/blocked-slots/${blockedSlot.id}`
+      : '/api/blocked-slots';
     const method = blockedSlot ? 'PUT' : 'POST';
 
     try {

@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (token) {
         try {
           // Assuming you have an endpoint to get user info from a token
-          const response = await fetch('process.env.REACT_APP_API_BASE_URL/api/me', {
+          const response = await fetch('/api/me', {
             headers: {
               'Authorization': `Bearer ${token}`,
             },

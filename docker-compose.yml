@@ -17,6 +17,4 @@ services:
       - "3333:80"
     depends_on:
       - backend
-    env_file:
-      - ./frontend/.env
     restart: always

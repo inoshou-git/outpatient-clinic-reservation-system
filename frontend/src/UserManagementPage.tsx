@@ -47,7 +47,7 @@ const UserManagementPage = () => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('process.env.REACT_APP_API_BASE_URL/api/users', {
+      const response = await fetch('/api/users', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -78,7 +78,7 @@ const UserManagementPage = () => {
   const handleDeleteUser = async (userId: string) => {
     if (window.confirm(`ユーザー ${userId} を削除してもよろしいですか？`)) {
       try {
-        const response = await fetch(`process.env.REACT_APP_API_BASE_URL/api/users/${userId}`, {
+        const response = await fetch(`/api/users/${userId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -110,7 +110,7 @@ const UserManagementPage = () => {
     };
 
     try {
-      const response = await fetch(`process.env.REACT_APP_API_BASE_URL/api/users/${editingUser.userId}`, {
+      const response = await fetch(`/api/users/${editingUser.userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

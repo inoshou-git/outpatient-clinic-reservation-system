@@ -44,7 +44,7 @@ const BlockedSlotManagementPage = () => {
   const fetchBlockedSlots = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('process.env.REACT_APP_API_BASE_URL/api/blocked-slots', {
+      const response = await fetch('/api/blocked-slots', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -76,7 +76,7 @@ const BlockedSlotManagementPage = () => {
   const handleDeleteBlockedSlot = async (id: number) => {
     if (window.confirm('この予約不可設定を削除してもよろしいですか？')) {
       try {
-        const response = await fetch(`process.env.REACT_APP_API_BASE_URL/api/blocked-slots/${id}`, {
+        const response = await fetch(`/api/blocked-slots/${id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,

@@ -80,8 +80,8 @@ const HomePage = () => {
   const fetchData = useCallback(() => {
     setLoading(true);
     Promise.all([
-      fetch('process.env.REACT_APP_API_BASE_URL/api/appointments').then(res => res.json()),
-      fetch('process.env.REACT_APP_API_BASE_URL/api/blocked-slots').then(res => res.json())
+      fetch('/api/appointments').then(res => res.json()),
+      fetch('/api/blocked-slots').then(res => res.json())
     ]).then(([appointmentData, blockedSlotData]) => {
       setAppointments(appointmentData);
       setBlockedSlots(blockedSlotData);
@@ -110,7 +110,7 @@ const HomePage = () => {
   const handleDeleteAppointment = async (id: number) => {
     if (window.confirm('この予約を削除してもよろしいですか？')) {
       try {
-        const response = await fetch(`process.env.REACT_APP_API_BASE_URL/api/appointments/${id}`, {
+        const response = await fetch(`/api/appointments/${id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,

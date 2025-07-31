@@ -108,8 +108,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
     };
 
     const url = appointment
-      ? `process.env.REACT_APP_API_BASE_URL/api/appointments/${appointment.id}`
-      : 'process.env.REACT_APP_API_BASE_URL/api/appointments';
+      ? `/api/appointments/${appointment.id}`
+      : '/api/appointments';
     const method = appointment ? 'PUT' : 'POST';
 
     try {
