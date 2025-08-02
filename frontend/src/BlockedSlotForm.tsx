@@ -18,6 +18,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
 import { useAuth } from './AuthContext';
+import { useUI } from './UIContext';
 
 interface BlockedSlot {
     id: number;
@@ -47,6 +48,7 @@ const generateTimeSlots = () => {
 
 const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blockedSlot }) => {
   const { token } = useAuth();
+  const { showLoader, hideLoader, closeBlockedSlotForm } = useUI();
   const [startDate, setStartDate] = useState<Dayjs | null>(dayjs());
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const [startTime, setStartTime] = useState<string | null>(null);
@@ -100,6 +102,9 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
       return;
     }
 
+    closeBlockedSlotForm(); // フォームを閉じる
+    showLoader(); // ローディング開始
+
     const blockedSlotData = {
       date: startDate.format('YYYY-MM-DD'),
       endDate: isAllDay && endDate ? endDate.format('YYYY-MM-DD') : null,
@@ -133,6 +138,8 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
     } catch (err) {
       setError('フォームの送信中にエラーが発生しました。');
       console.error('Error submitting form:', err);
+    } finally {
+      hideLoader(); // ローディング終了
     }
   };
 

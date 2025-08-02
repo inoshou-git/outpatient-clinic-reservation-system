@@ -18,16 +18,20 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import { useAuth } from './AuthContext';
+import { useUI } from './UIContext';
 
 dayjs.extend(isBetween);
 
 // --- Interfaces ---
 interface Appointment {
   id: number;
+  patientId: string;
   patientName: string;
   date: string;
   time: string;
   consultation: string;
+  lastUpdatedBy?: string;
+  isDeleted?: boolean;
 }
 
 interface BlockedSlot {
@@ -67,6 +71,8 @@ const generateTimeSlots = () => {
 // --- Component ---
 const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blockedSlots, appointment, initialDate, initialTime }) => {
   const { token } = useAuth();
+  const { showLoader, hideLoader, closeReservationForm } = useUI();
+  const [patientId, setPatientId] = useState('');
   const [patientName, setPatientName] = useState('');
   const [date, setDate] = useState<Dayjs | null>(dayjs());
   const [time, setTime] = useState('');
@@ -76,11 +82,13 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
 
   useEffect(() => {
     if (appointment) {
+      setPatientId(appointment.patientId);
       setPatientName(appointment.patientName);
       setDate(dayjs(appointment.date));
       setTime(appointment.time);
       setConsultation(appointment.consultation);
     } else {
+      setPatientId('');
       setPatientName('');
       setDate(initialDate || dayjs());
       setTime(initialTime || '');
@@ -94,12 +102,16 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-    if (!patientName || !date || !time || !consultation) {
-      setError('全ての項目を入力してください。');
+    if (!patientId || !patientName || !date || !time) {
+      setError('患者ID、患者名、日付、時間は必須項目です。');
       return;
     }
 
+    closeReservationForm(); // フォームを閉じる
+    showLoader(); // ローディング開始
+
     const appointmentData = {
+      patientId,
       patientName,
       date: date.format('YYYY-MM-DD'),
       time,
@@ -131,6 +143,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
     } catch (err) {
       setError('フォームの送信中にエラーが発生しました。');
       console.error('Error submitting form:', err);
+    } finally {
+      hideLoader(); // ローディング終了
     }
   };
 
@@ -164,6 +178,21 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box component="form" onSubmit={handleSubmit} noValidate>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        <TextField
+          label="患者ID"
+          value={patientId}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (/^\d*$/.test(value)) { // 数字のみを許可
+              setPatientId(value);
+            }
+          }}
+          fullWidth
+          required
+          sx={{ mb: 2 }}
+          error={!!error && error.includes('患者ID')}
+          helperText={!!error && error.includes('患者ID') ? error : ''}
+        />
         <TextField
           label="患者名"
           value={patientName}
@@ -199,7 +228,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
           value={consultation}
           onChange={(e) => setConsultation(e.target.value)}
           fullWidth
-          required
           sx={{ mb: 2 }}
         />
         <FormControlLabel

@@ -17,11 +17,20 @@
 
 ## 機能
 
-- ユーザー認証（ログイン、新規登録）
+- **管理者によるユーザー作成:**
+  - 管理者権限を持つユーザーのみが新しいユーザーを作成できます。
+  - 新規ユーザーには自動生成された初期パスワードが割り当てられ、指定されたメールアドレスに通知されます。
+  - 初回ログイン時にパスワードの変更が強制されます。
 - 予約の追加、更新、削除
+  - 予約更新時には、変更された項目がメール通知に明記されます（例: 日時: 2025-08-01 11:00 → 2025-08-01 10:30）。
+  - 予約操作中にローディングインジケーターが表示され、ユーザー体験が向上しました。
 - 予約不可時間帯の設定
+  - 予約不可設定の変更中にローディングインジケーターが表示され、ユーザー体験が向上しました。
 - ユーザー管理（管理者権限）
-- メール通知機能（予約、予約不可設定の変更時）
+  - ユーザーの作成、更新、削除操作中にローディングインジケーターが表示され、ユーザー体験が向上しました。
+  - 閲覧ユーザーには「一括操作」ボタンが表示されません。
+- メール通知機能（予約、予約不可設定の変更時、新規ユーザー作成時）
+- `patientId` の数字のみバリデーション（フロントエンド・バックエンド両方）
 
 ## 技術スタック
 
@@ -51,15 +60,29 @@
 
     -   **`backend/.env`**
         ```env
-        # SMTPサーバーの設定 (Mailtrapなどのテスト用SMTPサービスを推奨)
-        SMTP_HOST=smtp.mailtrap.io
-        SMTP_PORT=2525
-        SMTP_USER=YOUR_MAILTRAP_USERNAME
-        SMTP_PASS=YOUR_MAILTRAP_PASSWORD
+        # SMTPサーバーの設定 (Gmail, Yahoo!メールなどの実際のSMTPサービス、またはテスト用SMTPサービスを推奨)
+        # Gmailの場合:
+        # SMTP_HOST=smtp.gmail.com
+        # SMTP_PORT=465
+        # SMTP_USER=あなたのGmailアドレス@gmail.com
+        # SMTP_PASS=あなたのGmailアプリパスワード (通常のパスワードではありません)
+        #
+        # Yahoo!メールの場合:
+        # SMTP_HOST=smtp.mail.yahoo.co.jp
+        # SMTP_PORT=465
+        # SMTP_USER=あなたのYahooメールアドレス@yahoo.co.jp
+        # SMTP_PASS=あなたのYahooメールアプリパスワード (通常のパスワードではありません)
+        #
+        # テスト用SMTPサービス (例: Ethereal.email) の場合:
+        # SMTP_HOST=smtp.ethereal.email
+        # SMTP_PORT=587 # または465
+        # SMTP_USER=your_ethereal_username
+        # SMTP_PASS=your_ethereal_password
+
         # システムのURL (フロントエンドのURLと合わせる)
         SYSTEM_URL=http://localhost:3333
         ```
-        `YOUR_MAILTRAP_USERNAME` と `YOUR_MAILTRAP_PASSWORD` は、[Mailtrap](https://mailtrap.io/) などで取得した実際の情報に置き換えてください。
+        `SMTP_USER` と `SMTP_PASS` は、ご利用のメールサービスで生成した**アプリパスワード**に置き換えてください。GmailやYahoo!メールでは、通常のログインパスワードは使用できません。
 
     -   **`frontend/.env`**
         ```env
@@ -99,7 +122,8 @@
         -   ユーザーID: `user2`
         -   パスワード: `user2`
 
-    ログイン後、管理者アカウントで「ユーザー管理」画面から各ユーザーのメールアドレスを設定してください。予約や予約不可設定の変更時にメールが送信されると、バックエンドのDockerログにEthereal.emailのプレビューURLが表示されます。
+    **重要:**
+    ログイン後、管理者アカウントで「ユーザー管理」画面から新しいユーザーを作成し、メールアドレスを設定してください。新規ユーザー作成時、予約や予約不可設定の変更時にメールが送信されます。バックエンドのDockerログにEthereal.emailのプレビューURLが表示されるか、設定したメールアドレスに実際にメールが届くか確認してください。
 
     ```bash
     docker logs outpatient-clinic-reservation-system-backend-1

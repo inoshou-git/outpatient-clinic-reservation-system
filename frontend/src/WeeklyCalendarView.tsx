@@ -8,10 +8,12 @@ dayjs.extend(isBetween);
 // --- Interfaces ---
 interface Appointment {
   id: number;
+  patientId: string;
   patientName: string;
   date: string;
   time: string;
   consultation: string;
+  lastUpdatedBy?: string;
   isDeleted?: boolean;
 }
 
@@ -178,6 +180,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ appointments, b
                       >
                         {!isWeekend && !blockedSlot && appointment ? (
                           <Box sx={{ fontSize: '0.75rem' }}>
+                            <strong>{appointment.patientId}</strong><br/>
                             <strong>{appointment.patientName}</strong><br/>
                             {appointment.consultation}
                           </Box>
@@ -197,6 +200,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ appointments, b
         <DialogContent>
           {selectedAppointment && (
             <Box>
+              <Typography variant="subtitle1"><strong>患者ID:</strong> {selectedAppointment.patientId}</Typography>
               <Typography variant="subtitle1"><strong>患者名:</strong> {selectedAppointment.patientName}</Typography>
               <Typography variant="subtitle1"><strong>日付:</strong> {selectedAppointment.date}</Typography>
               <Typography variant="subtitle1"><strong>時間:</strong> {selectedAppointment.time}</Typography>

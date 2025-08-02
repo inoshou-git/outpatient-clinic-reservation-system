@@ -1,126 +1,536 @@
 {
-  "appointments": [
+  "appointments": [],
+  "blockedSlots": [
     {
       "id": 1,
-      "patientName": "山田 太郎",
-      "date": "2025-07-22",
-      "time": "10:00",
-      "consultation": "初診"
+      "date": "2024-01-01",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "元日",
+      "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 2,
-      "patientName": "鈴木 花子",
-      "date": "2025-07-23",
-      "time": "11:00",
-      "consultation": "定期健診"
+      "date": "2024-01-08",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "成人の日",
+      "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 3,
-      "patientName": "佐藤 次郎",
-      "date": "2025-07-24",
-      "time": "14:00",
-      "consultation": "予防接種"
+      "date": "2024-02-11",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "建国記念の日",
+      "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 4,
-      "patientName": "田中 三郎",
-      "date": "2025-07-25",
-      "time": "09:30",
-      "consultation": "風邪"
+      "date": "2024-02-12",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "建国記念の日 振替休日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 5,
+      "date": "2024-02-23",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "天皇誕生日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 6,
+      "date": "2024-03-20",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "春分の日",
+      "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 7,
-      "patientName": "渡辺 六郎",
-      "date": "2025-08-05",
-      "time": "15:00",
-      "consultation": "定期健診",
-      "isDeleted": true
+      "date": "2024-04-29",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "昭和の日",
+      "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 8,
-      "patientName": "山本 七郎",
-      "date": "2025-08-10",
-      "time": "11:30",
-      "consultation": "相談"
+      "date": "2024-05-03",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "憲法記念日",
+      "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 9,
-      "patientName": "中村 八郎",
-      "date": "2025-08-22",
-      "time": "13:00",
-      "consultation": "経過観察"
+      "date": "2024-05-04",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "みどりの日",
+      "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 10,
-      "patientName": "小林 九郎",
-      "date": "2025-09-01",
-      "time": "17:00",
-      "consultation": "初診",
-      "isDeleted": false,
+      "date": "2024-05-05",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "こどもの日",
       "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 11,
-      "patientName": "井上翔太",
-      "date": "2025-08-04",
-      "time": "15:00",
-      "consultation": "定期健診",
-      "lastUpdatedBy": "井上　翔太",
-      "isDeleted": false
+      "date": "2024-05-06",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "こどもの日 振替休日",
+      "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 12,
-      "patientName": "井上　翔太",
-      "date": "2025-08-05",
-      "time": "15:00",
-      "consultation": "検査結果通知",
-      "lastUpdatedBy": "井上　翔太",
-      "isDeleted": false
+      "date": "2024-07-15",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "海の日",
+      "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 13,
-      "patientName": "村上　忍",
-      "date": "2025-07-31",
-      "time": "10:45",
-      "consultation": "健康診断",
-      "lastUpdatedBy": "システム管理者",
-      "isDeleted": true
+      "date": "2024-08-11",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "山の日",
+      "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 14,
-      "patientName": "村上　忍",
-      "date": "2025-08-06",
-      "time": "10:15",
-      "consultation": "発熱外来",
-      "lastUpdatedBy": "システム管理者",
-      "isDeleted": true
+      "date": "2024-08-12",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "休日 山の日",
+      "lastUpdatedBy": "井上　翔太"
     },
     {
       "id": 15,
-      "patientName": "佐藤　千尋",
-      "date": "2025-08-01",
-      "time": "10:30",
-      "consultation": "薬処方",
-      "lastUpdatedBy": "システム管理者",
-      "isDeleted": false
-    }
-  ],
-  "blockedSlots": [
+      "date": "2024-09-16",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "敬老の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
     {
-      "id": 1,
+      "id": 16,
+      "date": "2024-09-22",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "秋分の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 17,
+      "date": "2024-09-23",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "秋分の日 振替休日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 18,
+      "date": "2024-10-14",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "スポーツの日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 19,
+      "date": "2024-11-03",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "文化の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 20,
+      "date": "2024-11-04",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "文化の日 振替休日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 21,
+      "date": "2024-11-23",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "勤労感謝の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 22,
+      "date": "2025-01-01",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "元日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 23,
+      "date": "2025-01-13",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "成人の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 24,
+      "date": "2025-02-11",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "建国記念の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 25,
+      "date": "2025-02-23",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "天皇誕生日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 26,
+      "date": "2025-02-24",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "天皇誕生日 振替休日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 27,
+      "date": "2025-03-20",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "春分の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 28,
+      "date": "2025-04-29",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "昭和の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 29,
+      "date": "2025-05-03",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "憲法記念日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 30,
+      "date": "2025-05-04",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "みどりの日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 31,
+      "date": "2025-05-05",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "こどもの日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 32,
+      "date": "2025-05-06",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "みどりの日 振替休日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 33,
+      "date": "2025-07-21",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "海の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 34,
+      "date": "2025-08-11",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "山の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 35,
+      "date": "2025-09-15",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "敬老の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 36,
+      "date": "2025-09-23",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "秋分の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 37,
+      "date": "2025-10-13",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "スポーツの日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 38,
+      "date": "2025-11-03",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "文化の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 39,
+      "date": "2025-11-23",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "勤労感謝の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 40,
+      "date": "2025-11-24",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "勤労感謝の日 振替休日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 41,
+      "date": "2026-01-01",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "元日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 42,
+      "date": "2026-01-12",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "成人の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 43,
+      "date": "2026-02-11",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "建国記念の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 44,
+      "date": "2026-02-23",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "天皇誕生日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 45,
+      "date": "2026-03-20",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "春分の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 46,
+      "date": "2026-04-29",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "昭和の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 47,
+      "date": "2026-05-03",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "憲法記念日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 48,
+      "date": "2026-05-04",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "みどりの日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 49,
+      "date": "2026-05-05",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "こどもの日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 50,
+      "date": "2026-05-06",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "憲法記念日 振替休日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 51,
+      "date": "2026-07-20",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "海の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 52,
+      "date": "2026-08-11",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "山の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 53,
+      "date": "2026-09-21",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "敬老の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 54,
+      "date": "2026-09-22",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "国民の休日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 55,
+      "date": "2026-09-23",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "秋分の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 56,
+      "date": "2026-10-12",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "スポーツの日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 57,
+      "date": "2026-11-03",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "文化の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 58,
+      "date": "2026-11-23",
+      "endDate": null,
+      "startTime": null,
+      "endTime": null,
+      "reason": "勤労感謝の日",
+      "lastUpdatedBy": "井上　翔太"
+    },
+    {
+      "id": 59,
       "date": "2025-08-12",
       "endDate": null,
       "startTime": null,
       "endTime": null,
-      "reason": "開院記念日"
-    },
-    {
-      "id": 2,
-      "date": "2025-08-20",
-      "endDate": null,
-      "startTime": "14:00",
-      "endTime": "16:00",
-      "reason": "院長会議"
+      "reason": "開院記念日",
+      "lastUpdatedBy": "井上　翔太"
     }
   ],
   "users": [
@@ -146,6 +556,16 @@
       "name": "閲覧用ユーザー",
       "department": "診療部",
       "role": "viewer"
+    },
+    {
+      "userId": "s_inoue",
+      "password": "ino141421356",
+      "name": "井上　翔太",
+      "department": "総務課",
+      "email": "inoshou19870213@yahoo.co.jp",
+      "role": "user",
+      "mustChangePassword": false,
+      "isDeleted": false
     }
   ]
 }

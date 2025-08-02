@@ -1,0 +1,29 @@
+{
+  "appointments": [],
+  "blockedSlots": [],
+  "users": [
+    {
+      "userId": "admin",
+      "password": "password",
+      "name": "システム管理者",
+      "department": "情報システム部",
+      "role": "admin",
+      "email": "admin@example.com"
+    },
+    {
+      "userId": "user1",
+      "password": "user1",
+      "name": "予約管理ユーザー",
+      "department": "総務課",
+      "role": "user",
+      "email": "s.inoue@example.com"
+    },
+    {
+      "userId": "user2",
+      "password": "user2",
+      "name": "閲覧用ユーザー",
+      "department": "診療部",
+      "role": "viewer"
+    }
+  ]
+}

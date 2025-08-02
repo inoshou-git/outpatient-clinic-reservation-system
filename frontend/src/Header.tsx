@@ -27,7 +27,7 @@ const Header = () => {
   };
 
   const handleOpenReservationForm = () => {
-    openReservationForm();
+    openReservationForm(); // 引数なしで呼び出す
     handleMenuClose();
   };
 
@@ -78,6 +78,13 @@ const Header = () => {
               )}
               {user?.role === 'admin' && (
                 <MenuItem onClick={handleUserManagement}>ユーザー管理</MenuItem>
+              )}
+              <MenuItem onClick={() => { navigate('/manual/general'); handleMenuClose(); }}>一般ユーザーマニュアル</MenuItem>
+              {user?.role === 'admin' && (
+                <MenuItem onClick={() => { navigate('/manual/admin'); handleMenuClose(); }}>管理者マニュアル</MenuItem>
+              )}
+              {user?.role === 'viewer' && (
+                <MenuItem onClick={() => { navigate('/manual/viewer'); handleMenuClose(); }}>閲覧ユーザーマニュアル</MenuItem>
               )}
               <MenuItem onClick={handleLogout}>ログアウト</MenuItem>
             </Menu>

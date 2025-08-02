@@ -26,6 +26,7 @@ import {
 } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
 import { useAuth } from './AuthContext';
+import { useUI } from './UIContext';
 
 interface User {
   userId: string;
@@ -38,14 +39,17 @@ interface User {
 
 const UserManagementPage = () => {
   const { token } = useAuth();
+  const { showLoader, hideLoader } = useUI();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<Partial<User> | null>(null);
+  const [isNewUser, setIsNewUser] = useState(false);
   const [openForm, setOpenForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
+    showLoader(); // ローディング開始
     try {
       const response = await fetch('/api/users', {
         headers: {
@@ -63,20 +67,24 @@ const UserManagementPage = () => {
       setError('ユーザーの取得中にエラーが発生しました。');
     } finally {
       setLoading(false);
+      hideLoader(); // ローディング終了
     }
-  }, [token]);
+  }, [token, hideLoader, showLoader]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  const handleEditUser = (user: User) => {
-    setEditingUser(user);
+  const handleOpenForm = (user: Partial<User> | null, isNew: boolean) => {
+    setCurrentUser(user || { userId: '', name: '', department: '', email: '', role: 'user' });
+    setIsNewUser(isNew);
     setOpenForm(true);
+    setError(null);
   };
 
   const handleDeleteUser = async (userId: string) => {
     if (window.confirm(`ユーザー ${userId} を削除してもよろしいですか？`)) {
+      showLoader(); // ローディング開始
       try {
         const response = await fetch(`/api/users/${userId}`, {
           method: 'DELETE',
@@ -93,6 +101,8 @@ const UserManagementPage = () => {
       } catch (error) {
         console.error('Failed to delete user', error);
         setError('ユーザーの削除中にエラーが発生しました。');
+      } finally {
+        hideLoader(); // ローディング終了
       }
     }
   };
@@ -100,36 +110,37 @@ const UserManagementPage = () => {
   const handleFormSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-    if (!editingUser) return;
+    if (!currentUser) return;
 
-    const userData = {
-      name: editingUser.name,
-      department: editingUser.department,
-      email: editingUser.email,
-      role: editingUser.role,
-    };
+    const url = isNewUser ? '/api/users/create' : `/api/users/${currentUser.userId}`;
+    const method = isNewUser ? 'POST' : 'PUT';
+
+    setOpenForm(false); // フォームを閉じる
+    showLoader(); // ローディング開始
 
     try {
-      const response = await fetch(`/api/users/${editingUser.userId}`, {
-        method: 'PUT',
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify(currentUser),
       });
 
       if (response.ok) {
         fetchUsers();
         setOpenForm(false);
-        setEditingUser(null);
+        setCurrentUser(null);
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'ユーザー情報の更新に失敗しました。');
+        setError(errorData.message || '操作に失敗しました。');
       }
     } catch (err) {
       setError('フォームの送信中にエラーが発生しました。');
       console.error('Error submitting form:', err);
+    } finally {
+      hideLoader(); // ローディング終了
     }
   };
 
@@ -137,6 +148,9 @@ const UserManagementPage = () => {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5">ユーザー管理</Typography>
+        <Button variant="contained" onClick={() => handleOpenForm(null, true)}>
+          新規ユーザー作成
+        </Button>
       </Box>
 
       {loading ? (
@@ -155,7 +169,7 @@ const UserManagementPage = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {users.filter(user => !user.isDeleted).map((user) => (
+              {users.map((user) => (
                 <TableRow key={user.userId}>
                   <TableCell>{user.userId}</TableCell>
                   <TableCell>{user.name}</TableCell>
@@ -163,7 +177,7 @@ const UserManagementPage = () => {
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.role}</TableCell>
                   <TableCell>
-                    <IconButton onClick={() => handleEditUser(user)}><Edit /></IconButton>
+                    <IconButton onClick={() => handleOpenForm(user, false)}><Edit /></IconButton>
                     <IconButton onClick={() => handleDeleteUser(user.userId)}><Delete /></IconButton>
                   </TableCell>
                 </TableRow>
@@ -174,65 +188,68 @@ const UserManagementPage = () => {
       )}
 
       <Dialog open={openForm} onClose={() => setOpenForm(false)}>
-        <DialogTitle>ユーザー編集</DialogTitle>
+        <DialogTitle>{isNewUser ? '新規ユーザー作成' : 'ユーザー編集'}</DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          {editingUser && (
+          {currentUser && (
             <Box component="form" onSubmit={handleFormSubmit} noValidate sx={{ mt: 1 }}>
               <TextField
                 margin="normal"
                 required
                 fullWidth
-                id="edit-userId"
+                id="userId"
                 label="ユーザーID"
                 name="userId"
-                value={editingUser.userId}
-                disabled
+                value={currentUser.userId}
+                onChange={(e) => setCurrentUser({ ...currentUser, userId: e.target.value })}
+                disabled={!isNewUser}
                 sx={{ mb: 2 }}
               />
               <TextField
                 margin="normal"
                 required
                 fullWidth
-                id="edit-name"
+                id="name"
                 label="氏名"
                 name="name"
-                value={editingUser.name}
-                onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                value={currentUser.name}
+                onChange={(e) => setCurrentUser({ ...currentUser, name: e.target.value })}
                 sx={{ mb: 2 }}
               />
               <TextField
                 margin="normal"
                 required
                 fullWidth
-                id="edit-department"
+                id="department"
                 label="所属部署"
                 name="department"
-                value={editingUser.department}
-                onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
+                value={currentUser.department}
+                onChange={(e) => setCurrentUser({ ...currentUser, department: e.target.value })}
                 sx={{ mb: 2 }}
               />
               <TextField
                 margin="normal"
                 required
                 fullWidth
-                id="edit-email"
+                id="email"
                 label="メールアドレス"
                 name="email"
-                value={editingUser.email}
-                onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                type="email"
+                value={currentUser.email}
+                onChange={(e) => setCurrentUser({ ...currentUser, email: e.target.value })}
                 sx={{ mb: 2 }}
               />
               <FormControl fullWidth margin="normal">
                 <InputLabel id="role-label">権限</InputLabel>
                 <Select
                   labelId="role-label"
-                  id="edit-role"
-                  value={editingUser.role}
+                  id="role"
+                  value={currentUser.role}
                   label="権限"
-                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as string })}
+                  onChange={(e) => setCurrentUser({ ...currentUser, role: e.target.value as string })}
                 >
-                  <MenuItem value="user">一般ユーザー</MenuItem>
+                  <MenuItem value="user">一般</MenuItem>
+                  <MenuItem value="viewer">閲覧</MenuItem>
                   <MenuItem value="admin">管理者</MenuItem>
                 </Select>
               </FormControl>
@@ -242,7 +259,7 @@ const UserManagementPage = () => {
                 variant="contained"
                 sx={{ mt: 3, mb: 2 }}
               >
-                更新
+                {isNewUser ? '作成' : '更新'}
               </Button>
             </Box>
           )}

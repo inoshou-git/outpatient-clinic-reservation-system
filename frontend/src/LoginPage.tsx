@@ -20,9 +20,13 @@ const LoginPage = () => {
         body: JSON.stringify({ userId, password }),
       });
       if (response.ok) {
-        const { user, token } = await response.json();
+        const { user, token, mustChangePassword } = await response.json();
         auth.login(user, token);
-        navigate('/');
+        if (mustChangePassword) {
+          navigate('/force-password-change');
+        } else {
+          navigate('/');
+        }
       } else {
         const { message } = await response.json();
         setError(message || 'Login failed');
@@ -79,9 +83,7 @@ const LoginPage = () => {
           >
             ログイン
           </Button>
-          <Link component={RouterLink} to="/register" variant="body2">
-            アカウントをお持ちでないですか？ 新規登録
-          </Link>
+          
         </Box>
       </Box>
     </Container>
