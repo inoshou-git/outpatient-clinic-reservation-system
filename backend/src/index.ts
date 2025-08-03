@@ -10,6 +10,43 @@ import axios from 'axios';
 import { parse } from 'csv-parse/sync';
 import Iconv from 'iconv-lite';
 
+interface Appointment {
+  id: number;
+  patientId?: string;
+  patientName?: string;
+  date: string;
+  time?: string;
+  consultation?: string;
+  lastUpdatedBy?: string;
+  isDeleted?: boolean;
+  reservationType: 'outpatient' | 'visit' | 'rehab';
+  facilityName?: string;
+  startTimeRange?: string;
+  endTimeRange?: string;
+}
+
+interface BlockedSlot {
+  id: number;
+  date: string;
+  endDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  reason: string;
+  lastUpdatedBy?: string;
+  isDeleted?: boolean;
+}
+
+interface User {
+  userId: string;
+  password?: string;
+  name: string;
+  department: string;
+  email: string;
+  role: 'admin' | 'general' | 'viewer';
+  mustChangePassword?: boolean;
+  isDeleted?: boolean;
+  lastUpdatedBy?: string;
+}
 
 const app = express();
 const port = 3001;
@@ -22,9 +59,9 @@ app.use(express.json());
 const dbPath = path.join(__dirname, '../db.json');
 
 // --- Data Store ---
-let appointments: any[] = [];
-let blockedSlots: any[] = [];
-let users: any[] = [];
+let appointments: Appointment[] = [];
+let blockedSlots: BlockedSlot[] = [];
+let users: User[] = [];
 
 const loadData = () => {
   try {
@@ -232,22 +269,74 @@ app.post('/api/appointments', authenticateToken, async (req: Request, res: Respo
   if ((req as any).user.role === 'viewer') {
     return res.status(403).json({ message: '閲覧ユーザーは予約を作成できません。' });
   }
-  const { patientId, patientName, date, time, consultation, sendNotification } = req.body;
+  const { reservationType, patientId, patientName, date, time, consultation, facilityName, startTimeRange, endTimeRange, sendNotification } = req.body;
   const lastUpdatedBy = (req as any).user.name;
 
-  if (!/^[0-9]+$/.test(patientId)) {
-    return res.status(400).json({ message: '患者IDは数字のみで入力してください。' });
+  if (!reservationType || !date) {
+    return res.status(400).json({ message: '予約種別と日付は必須項目です。' });
+  }
+
+  if (reservationType === 'outpatient') {
+    if (!patientId || !patientName || !time) {
+      return res.status(400).json({ message: '外来診療の場合、患者ID、患者名、時間は必須項目です。' });
+    }
+    if (!/^[0-9]+$/.test(patientId)) {
+      return res.status(400).json({ message: '患者IDは数字のみで入力してください。' });
+    }
+  } else if (reservationType === 'visit' || reservationType === 'rehab') {
+    if (!startTimeRange || !endTimeRange) {
+      return res.status(400).json({ message: '訪問診療または通所リハ会議の場合、開始時間と終了時間は必須項目です。' });
+    }
+    if (dayjs(startTimeRange, 'HH:mm').isAfter(dayjs(endTimeRange, 'HH:mm'))) {
+      return res.status(400).json({ message: '開始時間は終了時間より前に設定してください。' });
+    }
   }
 
   const newId = appointments.length > 0 ? Math.max(...appointments.map(a => a.id)) + 1 : 1;
-  const newAppointment = { id: newId, patientId, patientName, date, time, consultation, lastUpdatedBy, isDeleted: false };
+  const newAppointment: Appointment = {
+    id: newId,
+    date,
+    reservationType,
+    lastUpdatedBy,
+    isDeleted: false,
+  };
+
+  if (reservationType === 'outpatient') {
+    newAppointment.patientId = patientId;
+    newAppointment.patientName = patientName;
+    newAppointment.time = time;
+    newAppointment.consultation = consultation;
+  } else if (reservationType === 'visit') {
+    newAppointment.facilityName = facilityName;
+    newAppointment.startTimeRange = startTimeRange;
+    newAppointment.endTimeRange = endTimeRange;
+    newAppointment.consultation = consultation;
+  } else if (reservationType === 'rehab') {
+    newAppointment.startTimeRange = startTimeRange;
+    newAppointment.endTimeRange = endTimeRange;
+  }
+
   appointments.push(newAppointment);
   saveData();
 
   if (sendNotification) {
-    const subject = '新規予約登録のお知らせ';
-    const text = `新しい予約が登録されました。\n患者名: ${patientName}\n日時: ${date} ${time}\n担当: ${lastUpdatedBy}`;
-    const html = `<p>新しい予約が登録されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${time}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+    let subject = '';
+    let text = '';
+    let html = '';
+
+    if (reservationType === 'outpatient') {
+      subject = '新規予約登録のお知らせ (外来診療)';
+      text = `新しい外来診療の予約が登録されました。\n患者名: ${patientName}\n日時: ${date} ${time}\n担当: ${lastUpdatedBy}`;
+      html = `<p>新しい外来診療の予約が登録されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${time}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+    } else if (reservationType === 'visit') {
+      subject = '新規予約登録のお知らせ (訪問診療)';
+      text = `新しい訪問診療の予約が登録されました。\n施設名: ${facilityName || '未入力'}\n日時: ${date} ${startTimeRange} - ${endTimeRange}\n診察内容: ${consultation || '未入力'}\n担当: ${lastUpdatedBy}`;
+      html = `<p>新しい訪問診療の予約が登録されました。</p><ul><li>施設名: ${facilityName || '未入力'}</li><li>日時: ${date} ${startTimeRange} - ${endTimeRange}</li><li>診察内容: ${consultation || '未入力'}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+    } else if (reservationType === 'rehab') {
+      subject = '新規予約登録のお知らせ (通所リハ会議)';
+      text = `新しい通所リハ会議の予約が登録されました。\n日時: ${date} ${startTimeRange} - ${endTimeRange}\n担当: ${lastUpdatedBy}`;
+      html = `<p>新しい通所リハ会議の予約が登録されました。</p><ul><li>日時: ${date} ${startTimeRange} - ${endTimeRange}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+    }
     await notifyUsers(subject, text, html);
   }
 
@@ -260,32 +349,100 @@ app.put('/api/appointments/:id', authenticateToken, async (req: Request, res: Re
         return res.status(403).json({ message: '閲覧ユーザーは予約を更新できません。' });
     }
     const id = parseInt(req.params.id, 10);
-    const { patientId, patientName, date, time, consultation, sendNotification } = req.body;
+    const { reservationType, patientId, patientName, date, time, consultation, facilityName, startTimeRange, endTimeRange, sendNotification } = req.body;
     const lastUpdatedBy = (req as any).user.name;
-
-    if (!/^[0-9]+$/.test(patientId) && patientId !== '') {
-      return res.status(400).json({ message: '患者IDは数字のみで入力してください。' });
-    }
 
     const appointmentIndex = appointments.findIndex(a => a.id === id);
 
     if (appointmentIndex !== -1) {
         const oldAppointment = { ...appointments[appointmentIndex] }; // 更新前のデータをコピー
 
-        appointments[appointmentIndex] = { ...appointments[appointmentIndex], patientId, patientName, date, time, consultation, lastUpdatedBy };
+        const updatedAppointment: Appointment = {
+          ...appointments[appointmentIndex],
+          date,
+          reservationType,
+          lastUpdatedBy,
+        };
+
+        if (reservationType === 'outpatient') {
+          if (!patientId || !patientName || !time) {
+            return res.status(400).json({ message: '外来診療の場合、患者ID、患者名、時間は必須項目です。' });
+          }
+          if (!/^[0-9]+$/.test(patientId)) {
+            return res.status(400).json({ message: '患者IDは数字のみで入力してください。' });
+          }
+          updatedAppointment.patientId = patientId;
+          updatedAppointment.patientName = patientName;
+          updatedAppointment.time = time;
+          updatedAppointment.consultation = consultation;
+          updatedAppointment.facilityName = undefined; // Clear other types' fields
+          updatedAppointment.startTimeRange = undefined;
+          updatedAppointment.endTimeRange = undefined;
+        } else if (reservationType === 'visit') {
+          if (!startTimeRange || !endTimeRange) {
+            return res.status(400).json({ message: '訪問診療の場合、開始時間と終了時間は必須項目です。' });
+          }
+          if (dayjs(startTimeRange, 'HH:mm').isAfter(dayjs(endTimeRange, 'HH:mm'))) {
+            return res.status(400).json({ message: '開始時間は終了時間より前に設定してください。' });
+          }
+          updatedAppointment.facilityName = facilityName;
+          updatedAppointment.startTimeRange = startTimeRange;
+          updatedAppointment.endTimeRange = endTimeRange;
+          updatedAppointment.consultation = consultation;
+          updatedAppointment.patientId = undefined; // Clear other types' fields
+          updatedAppointment.patientName = undefined;
+          updatedAppointment.time = undefined;
+        } else if (reservationType === 'rehab') {
+          if (!startTimeRange || !endTimeRange) {
+            return res.status(400).json({ message: '通所リハ会議の場合、開始時間と終了時間は必須項目です。' });
+          }
+          if (dayjs(startTimeRange, 'HH:mm').isAfter(dayjs(endTimeRange, 'HH:mm'))) {
+            return res.status(400).json({ message: '開始時間は終了時間より前に設定してください。' });
+          }
+          updatedAppointment.startTimeRange = startTimeRange;
+          updatedAppointment.endTimeRange = endTimeRange;
+          updatedAppointment.patientId = undefined; // Clear other types' fields
+          updatedAppointment.patientName = undefined;
+          updatedAppointment.time = undefined;
+          updatedAppointment.facilityName = undefined;
+          updatedAppointment.consultation = undefined;
+        }
+
+        appointments[appointmentIndex] = updatedAppointment;
         saveData();
 
         if (sendNotification) {
+          let subject = '';
+          let text = '';
+          let html = '';
           let changes = '';
-          if (oldAppointment.patientId !== patientId) changes += `<li>患者ID: ${oldAppointment.patientId} → ${patientId}</li>`;
-          if (oldAppointment.patientName !== patientName) changes += `<li>患者名: ${oldAppointment.patientName} → ${patientName}</li>`;
-          if (oldAppointment.date !== date) changes += `<li>日付: ${oldAppointment.date} → ${date}</li>`;
-          if (oldAppointment.time !== time) changes += `<li>時間: ${oldAppointment.time} → ${time}</li>`;
-          if (oldAppointment.consultation !== consultation) changes += `<li>診察内容: ${oldAppointment.consultation} → ${consultation}</li>`;
 
-          const subject = '予約更新のお知らせ';
-          const text = `予約が更新されました。\n患者名: ${patientName}\n日時: ${date} ${time}\n担当: ${lastUpdatedBy}\n\n変更点:\n${changes.replace(/<li>/g, '').replace(/<\/li>/g, '\n')}`;
-          const html = `<p>予約が更新されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${time}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点:</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+          if (oldAppointment.reservationType !== reservationType) changes += `<li>予約種別: ${oldAppointment.reservationType} → ${reservationType}</li>`;
+
+          if (reservationType === 'outpatient') {
+            if (oldAppointment.patientId !== patientId) changes += `<li>患者ID: ${oldAppointment.patientId || '未入力'} → ${patientId || '未入力'}</li>`;
+            if (oldAppointment.patientName !== patientName) changes += `<li>患者名: ${oldAppointment.patientName || '未入力'} → ${patientName || '未入力'}</li>`;
+            if (oldAppointment.time !== time) changes += `<li>時間: ${oldAppointment.time || '未入力'} → ${time || '未入力'}</li>`;
+            if (oldAppointment.consultation !== consultation) changes += `<li>診察内容: ${oldAppointment.consultation || '未入力'} → ${consultation || '未入力'}</li>`;
+            subject = '予約更新のお知らせ (外来診療)';
+            text = `外来診療の予約が更新されました。\n患者名: ${patientName}\n日時: ${date} ${time}\n担当: ${lastUpdatedBy}\n\n変更点:\n${changes.replace(/<li>/g, '').replace(/<\/li>/g, '\n')}`;
+            html = `<p>外来診療の予約が更新されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${time}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+          } else if (reservationType === 'visit') {
+            if (oldAppointment.facilityName !== facilityName) changes += `<li>施設名: ${oldAppointment.facilityName || '未入力'} → ${facilityName || '未入力'}</li>`;
+            if (oldAppointment.startTimeRange !== startTimeRange) changes += `<li>開始時間: ${oldAppointment.startTimeRange || '未入力'} → ${startTimeRange || '未入力'}</li>`;
+            if (oldAppointment.endTimeRange !== endTimeRange) changes += `<li>終了時間: ${oldAppointment.endTimeRange || '未入力'} → ${endTimeRange || '未入力'}</li>`;
+            if (oldAppointment.consultation !== consultation) changes += `<li>診察内容: ${oldAppointment.consultation || '未入力'} → ${consultation || '未入力'}</li>`;
+            subject = '予約更新のお知らせ (訪問診療)';
+            text = `訪問診療の予約が更新されました。\n施設名: ${facilityName || '未入力'}\n日時: ${date} ${startTimeRange} - ${endTimeRange}\n診察内容: ${consultation || '未入力'}\n担当: ${lastUpdatedBy}\n\n変更点:\n${changes.replace(/<li>/g, '').replace(/<\/li>/g, '\n')}`;
+            html = `<p>訪問診療の予約が更新されました。</p><ul><li>施設名: ${facilityName || '未入力'}</li><li>日時: ${date} ${startTimeRange} - ${endTimeRange}</li><li>診察内容: ${consultation || '未入力'}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+          } else if (reservationType === 'rehab') {
+            if (oldAppointment.startTimeRange !== startTimeRange) changes += `<li>開始時間: ${oldAppointment.startTimeRange || '未入力'} → ${startTimeRange || '未入力'}</li>`;
+            if (oldAppointment.endTimeRange !== endTimeRange) changes += `<li>終了時間: ${oldAppointment.endTimeRange || '未入力'} → ${endTimeRange || '未入力'}</li>`;
+            subject = '予約更新のお知らせ (通所リハ会議)';
+            text = `通所リハ会議の予約が更新されました。\n日時: ${date} ${startTimeRange} - ${endTimeRange}\n担当: ${lastUpdatedBy}\n\n変更点:\n${changes.replace(/<li>/g, '').replace(/<\/li>/g, '\n')}`;
+            html = `<p>通所リハ会議の予約が更新されました。</p><ul><li>日時: ${date} ${startTimeRange} - ${endTimeRange}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+          }
+
           await notifyUsers(subject, text, html);
         }
 

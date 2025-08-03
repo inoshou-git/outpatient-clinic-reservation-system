@@ -8,13 +8,17 @@ dayjs.extend(isBetween);
 // --- Interfaces ---
 interface Appointment {
   id: number;
-  patientId: string;
-  patientName: string;
+  patientId?: string;
+  patientName?: string;
   date: string;
-  time: string;
-  consultation: string;
+  time?: string;
+  consultation?: string;
   lastUpdatedBy?: string;
   isDeleted?: boolean;
+  reservationType?: 'outpatient' | 'visit' | 'rehab';
+  facilityName?: string;
+  startTimeRange?: string;
+  endTimeRange?: string;
 }
 
 interface BlockedSlot {
@@ -75,7 +79,23 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ appointments, b
   const [openAppointmentDetails, setOpenAppointmentDetails] = useState(false);
 
   const getAppointmentForSlot = (day: Dayjs, time: string) => {
-    return appointments.find(app => !app.isDeleted && dayjs(app.date).isSame(day, 'day') && app.time === time);
+    const currentSlotDateTime = dayjs(`${day.format('YYYY-MM-DD')}T${time}`);
+
+    return appointments.find(app => {
+      if (app.isDeleted) return false;
+      if (!dayjs(app.date).isSame(day, 'day')) return false;
+
+      if (app.reservationType === 'outpatient') {
+        return app.time === time;
+      } else if (app.reservationType === 'visit' || app.reservationType === 'rehab') {
+        if (!app.startTimeRange || !app.endTimeRange) return false;
+        const startDateTime = dayjs(`${app.date}T${app.startTimeRange}`);
+        const endDateTime = dayjs(`${app.date}T${app.endTimeRange}`);
+        // Check if the current 15-minute slot falls within the appointment's time range
+        return currentSlotDateTime.isBetween(startDateTime, endDateTime, null, '[)');
+      }
+      return false;
+    });
   };
 
   const getBlockedSlotForSlot = (day: Dayjs, time: string) => {
@@ -203,9 +223,27 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ appointments, b
                       >
                         {!isWeekend && !blockedSlot && appointment ? (
                           <Box sx={{ fontSize: '0.75rem' }}>
-                            <strong>{appointment.patientId}</strong><br/>
-                            <strong>{appointment.patientName}</strong><br/>
-                            {appointment.consultation}
+                            {appointment.reservationType === 'outpatient' && (
+                              <>
+                                <strong>{appointment.patientId}</strong><br/>
+                                <strong>{appointment.patientName}</strong><br/>
+                                {appointment.consultation}
+                              </>
+                            )}
+                            {appointment.reservationType === 'visit' && (
+                              <>
+                                <strong>訪問診療</strong><br/>
+                                {appointment.facilityName && <>{appointment.facilityName}<br/></>}
+                                {appointment.startTimeRange} - {appointment.endTimeRange}<br/>
+                                {appointment.consultation}
+                              </>
+                            )}
+                            {appointment.reservationType === 'rehab' && (
+                              <>
+                                <strong>通所リハ会議</strong><br/>
+                                {appointment.startTimeRange} - {appointment.endTimeRange}
+                              </>
+                            )}
                           </Box>
                         ) : null}
                       </TableCell>
@@ -223,11 +261,31 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ appointments, b
         <DialogContent>
           {selectedAppointment && (
             <Box>
-              <Typography variant="subtitle1"><strong>患者ID:</strong> {selectedAppointment.patientId}</Typography>
-              <Typography variant="subtitle1"><strong>患者名:</strong> {selectedAppointment.patientName}</Typography>
+              <Typography variant="subtitle1"><strong>予約種別:</strong> {
+                selectedAppointment.reservationType === 'outpatient' ? '外来診療' :
+                selectedAppointment.reservationType === 'visit' ? '訪問診療' :
+                selectedAppointment.reservationType === 'rehab' ? '通所リハ会議' : '不明'
+              }</Typography>
+              {selectedAppointment.reservationType === 'outpatient' && (
+                <>
+                  <Typography variant="subtitle1"><strong>患者ID:</strong> {selectedAppointment.patientId}</Typography>
+                  <Typography variant="subtitle1"><strong>患者名:</strong> {selectedAppointment.patientName}</Typography>
+                  <Typography variant="subtitle1"><strong>時間:</strong> {selectedAppointment.time}</Typography>
+                </>
+              )}
+              {selectedAppointment.reservationType === 'visit' && (
+                <>
+                  {selectedAppointment.facilityName && <Typography variant="subtitle1"><strong>施設名:</strong> {selectedAppointment.facilityName}</Typography>}
+                  <Typography variant="subtitle1"><strong>時間帯:</strong> {selectedAppointment.startTimeRange} - {selectedAppointment.endTimeRange}</Typography>
+                </>
+              )}
+              {selectedAppointment.reservationType === 'rehab' && (
+                <Typography variant="subtitle1"><strong>時間帯:</strong> {selectedAppointment.startTimeRange} - {selectedAppointment.endTimeRange}</Typography>
+              )}
               <Typography variant="subtitle1"><strong>日付:</strong> {selectedAppointment.date}</Typography>
-              <Typography variant="subtitle1"><strong>時間:</strong> {selectedAppointment.time}</Typography>
-              <Typography variant="subtitle1"><strong>診察内容:</strong> {selectedAppointment.consultation}</Typography>
+              {(selectedAppointment.reservationType === 'outpatient' || selectedAppointment.reservationType === 'visit') && selectedAppointment.consultation && (
+                <Typography variant="subtitle1"><strong>診察内容:</strong> {selectedAppointment.consultation}</Typography>
+              )}
             </Box>
           )}
         </DialogContent>
