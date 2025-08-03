@@ -37,7 +37,10 @@ interface WeeklyCalendarViewProps {
 }
 
 // --- Time Slot Generation ---
-const generateTimeSlots = () => {
+type DisplayPeriod = 'morning' | 'afternoon' | 'all';
+
+// --- Time Slot Generation ---
+const generateTimeSlots = (displayPeriod: DisplayPeriod) => {
   const slots = [];
   let time = dayjs().hour(9).minute(30).second(0);
   const endTime = dayjs().hour(16).minute(30).second(0);
@@ -45,8 +48,17 @@ const generateTimeSlots = () => {
   const lunchEnd = dayjs().hour(13).minute(0).second(0);
 
   while (time.isBefore(endTime) || time.isSame(endTime)) {
+    const isMorning = time.hour() < 12 || (time.hour() === 12 && time.minute() === 0);
+    const isAfternoon = time.hour() >= 13 || (time.hour() === 12 && time.minute() > 0);
+
     if (time.isBefore(lunchStart) || time.isAfter(lunchEnd) || time.isSame(lunchEnd)) {
+      if (displayPeriod === 'morning' && isMorning) {
         slots.push(time.format('HH:mm'));
+      } else if (displayPeriod === 'afternoon' && isAfternoon) {
+        slots.push(time.format('HH:mm'));
+      } else if (displayPeriod === 'all') {
+        slots.push(time.format('HH:mm'));
+      }
     }
     time = time.add(15, 'minute');
   }
@@ -55,7 +67,8 @@ const generateTimeSlots = () => {
 
 // --- Component ---
 const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ appointments, blockedSlots, currentDate, onSlotClick, onEditAppointment, onDeleteAppointment, canEdit }) => {
-  const timeSlots = generateTimeSlots();
+  const [displayPeriod, setDisplayPeriod] = useState<DisplayPeriod>('all');
+  const timeSlots = generateTimeSlots(displayPeriod);
   const weekDays = Array.from({ length: 7 }).map((_, i) => currentDate.startOf('week').add(i, 'day'));
 
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
@@ -117,6 +130,16 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ appointments, b
           <TableHead>
             <TableRow>
               <TableCell sx={{ minWidth: 80, zIndex: 1100, backgroundColor: 'white' }}>診察時間</TableCell>
+              <TableCell colSpan={7} align="center" sx={{ zIndex: 1100, backgroundColor: 'white' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
+                  <Button variant={displayPeriod === 'morning' ? 'contained' : 'outlined'} size="small" onClick={() => setDisplayPeriod('morning')} sx={{ mr: 1 }}>午前診療</Button>
+                  <Button variant={displayPeriod === 'afternoon' ? 'contained' : 'outlined'} size="small" onClick={() => setDisplayPeriod('afternoon')} sx={{ mr: 1 }}>午後診療</Button>
+                  <Button variant={displayPeriod === 'all' ? 'contained' : 'outlined'} size="small" onClick={() => setDisplayPeriod('all')}>全て表示</Button>
+                </Box>
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell sx={{ minWidth: 80, zIndex: 1100, backgroundColor: 'white' }}>時間帯</TableCell> {/* Empty cell for alignment */}
               {weekDays.map(day => (
                 <TableCell key={day.toString()} align="center" sx={{ minWidth: 120 }}>
                   <Typography variant="subtitle1">{day.format('ddd')}</Typography>
