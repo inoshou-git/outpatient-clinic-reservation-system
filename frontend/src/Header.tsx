@@ -79,7 +79,9 @@ const Header = () => {
               {user?.role === 'admin' && (
                 <MenuItem onClick={handleUserManagement}>ユーザー管理</MenuItem>
               )}
-              <MenuItem onClick={() => { navigate('/manual/general'); handleMenuClose(); }}>一般ユーザーマニュアル</MenuItem>
+              {user?.role !== 'viewer' && user?.role !== 'admin' && (
+                <MenuItem onClick={() => { navigate('/manual/general'); handleMenuClose(); }}>一般ユーザーマニュアル</MenuItem>
+              )}
               {user?.role === 'admin' && (
                 <MenuItem onClick={() => { navigate('/manual/admin'); handleMenuClose(); }}>管理者マニュアル</MenuItem>
               )}
