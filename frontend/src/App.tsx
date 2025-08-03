@@ -44,13 +44,17 @@ import ManualPage from './ManualPage';
 // --- Interfaces ---
 interface Appointment {
   id: number;
-  patientId: string;
-  patientName: string;
+  patientId?: string;
+  patientName?: string;
   date: string;
-  time: string;
-  consultation: string;
+  time?: string;
+  consultation?: string;
   lastUpdatedBy?: string;
   isDeleted?: boolean;
+  reservationType?: 'outpatient' | 'visit' | 'rehab';
+  facilityName?: string;
+  startTimeRange?: string;
+  endTimeRange?: string;
 }
 
 interface BlockedSlot {
@@ -349,7 +353,8 @@ const HomePage = () => {
                           時間
                         </TableSortLabel>
                       </TableCell>
-                      <TableCell>患者ID</TableCell>
+                      <TableCell>予約種別</TableCell>
+                      <TableCell>患者ID/施設名</TableCell>
                       <TableCell>患者名</TableCell>
                       <TableCell>診察内容</TableCell>
                       {user?.role !== 'viewer' && <TableCell>最終更新者</TableCell>}
@@ -375,10 +380,20 @@ const HomePage = () => {
                             </TableCell>
                           )}
                           <TableCell>{row.date}</TableCell>
-                          <TableCell>{row.time}</TableCell>
-                          <TableCell>{row.patientId}</TableCell>
-                          <TableCell>{row.patientName}</TableCell>
-                          <TableCell>{row.consultation}</TableCell>
+                          <TableCell>
+                            {row.reservationType === 'outpatient' && row.time}
+                            {(row.reservationType === 'visit' || row.reservationType === 'rehab') && `${row.startTimeRange} - ${row.endTimeRange}`}
+                          </TableCell>
+                          <TableCell>
+                            {row.reservationType === 'outpatient' ? '外来診療' :
+                             row.reservationType === 'visit' ? '訪問診療' :
+                             row.reservationType === 'rehab' ? '通所リハ会議' : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {row.reservationType === 'outpatient' ? row.patientId : row.facilityName || '-'}
+                          </TableCell>
+                          <TableCell>{row.patientName || '-'}</TableCell>
+                          <TableCell>{row.consultation || '-'}</TableCell>
                           {user?.role !== 'viewer' && <TableCell>{row.lastUpdatedBy || '-'}</TableCell>}
                           {user?.role !== 'viewer' && (
                             <TableCell>

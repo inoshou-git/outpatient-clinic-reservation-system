@@ -21,14 +21,19 @@ import weekday from 'dayjs/plugin/weekday';
 dayjs.locale('ja');
 dayjs.extend(weekday);
 
-// --- Interfaces ---
 interface Appointment {
   id: number;
-  patientId: string;
-  patientName: string;
+  patientId?: string;
+  patientName?: string;
   date: string;
-  time: string;
-  consultation: string;
+  time?: string;
+  consultation?: string;
+  lastUpdatedBy?: string;
+  isDeleted?: boolean;
+  reservationType?: 'outpatient' | 'visit' | 'rehab';
+  facilityName?: string;
+  startTimeRange?: string;
+  endTimeRange?: string;
 }
 
 interface BlockedSlot {
@@ -65,7 +70,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots,
   }
 
   const getAppointmentsForDay = (date: Dayjs) => {
-    return appointments.filter(app => dayjs(app.date).isSame(date, 'day'));
+    return appointments.filter(app => {
+      if (app.isDeleted) return false;
+      return dayjs(app.date).isSame(date, 'day');
+    });
   };
 
   const getAllDayBlock = (date: Dayjs) => {
@@ -111,7 +119,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots,
           } else if (allDayBlock) {
             backgroundColor = '#ffebee'; // Light red for blocked day
           } else if (isWeekend) {
-            backgroundColor = '#f5f5f5'; // Grey for weekend
+            backgroundColor = '#f55f5f5'; // Grey for weekend
           }
 
           return (
@@ -156,8 +164,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots,
             {selectedDayAppointments.map(app => (
               <ListItem key={app.id}>
                 <ListItemText
-                  primary={`${app.time} - ${app.patientName} (${app.patientId})`}
-                  secondary={app.consultation}
+                  primary={
+                    app.reservationType === 'outpatient' ? `${app.time} - ${app.patientName} (${app.patientId})` :
+                    app.reservationType === 'visit' ? `訪問診療: ${app.startTimeRange} - ${app.endTimeRange} (${app.facilityName || ''})` :
+                    app.reservationType === 'rehab' ? `通所リハ会議: ${app.startTimeRange} - ${app.endTimeRange}` :
+                    '不明な予約種別'
+                  }
+                  secondary={
+                    app.reservationType === 'outpatient' ? app.consultation :
+                    app.reservationType === 'visit' ? app.consultation :
+                    null
+                  }
                 />
               </ListItem>
             ))}
