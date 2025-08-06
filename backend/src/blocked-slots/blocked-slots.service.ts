@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import axios from 'axios';
 import { sendEmail } from '../emailService';
 import { getAllUsers } from '../users/users.service';
+import { io } from '../index'; // Import the io instance
 
 const notifyUsers = async (subject: string, text: string, html: string) => {
     const users = await getAllUsers();
@@ -26,6 +27,9 @@ export const createBlockedSlot = async (slotData: any, lastUpdatedBy: string): P
     db.blockedSlots.push(newBlockedSlot);
     await writeDb(db);
 
+    // Emit WebSocket event
+    io.emit('blockedSlotCreated', newBlockedSlot);
+
     if (sendNotification) {
         const subject = '予約不可設定追加のお知らせ';
         const text = `新しい予約不可設定が追加されました。\n期間: ${date}${endDate ? '〜' + endDate : ''}\n時間: ${startTime || '終日'}${endTime ? '〜' + endTime : ''}\n理由: ${reason}\n担当: ${lastUpdatedBy}`;
@@ -43,6 +47,9 @@ export const updateBlockedSlot = async (id: number, slotData: any, lastUpdatedBy
     if (slotIndex !== -1) {
         db.blockedSlots[slotIndex] = { ...db.blockedSlots[slotIndex], ...slotData, lastUpdatedBy };
         await writeDb(db);
+
+        // Emit WebSocket event
+        io.emit('blockedSlotUpdated', db.blockedSlots[slotIndex]);
 
         if (slotData.sendNotification) {
             const { date, endDate, startTime, endTime, reason } = db.blockedSlots[slotIndex];
@@ -67,6 +74,9 @@ export const deleteBlockedSlot = async (id: number, lastUpdatedBy: string): Prom
         db.blockedSlots[slotIndex].isDeleted = true;
         db.blockedSlots[slotIndex].lastUpdatedBy = lastUpdatedBy;
         await writeDb(db);
+
+        // Emit WebSocket event
+        io.emit('blockedSlotDeleted', id);
 
         const subject = '予約不可設定削除のお知らせ';
         const text = `予約不可設定が削除されました。\n期間: ${deletedSlot.date}${deletedSlot.endDate ? '〜' + deletedSlot.endDate : ''}\n時間: ${deletedSlot.startTime || '終日'}${deletedSlot.endTime ? '〜' + deletedSlot.endTime : ''}\n理由: ${deletedSlot.reason}\n担当: ${lastUpdatedBy}`;

@@ -30,6 +30,10 @@ const callApi = async <T>(endpoint: string, token: string | null, config: Partia
     throw new Error(errorData.message || 'API call failed');
   }
 
+  if (response.status === 204) {
+    return {} as T; // または適切な空のオブジェクトを返す
+  }
+
   return response.json();
 };
 

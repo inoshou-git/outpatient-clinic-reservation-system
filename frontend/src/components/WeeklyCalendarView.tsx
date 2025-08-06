@@ -126,7 +126,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ appointments, b
       <TableContainer sx={{ maxHeight: 'calc(100vh - 250px)' }}>
         <Table stickyHeader sx={{ minWidth: 650 }}>
           <TableHead>
-            <TableRow>
+            <TableRow sx={{ position: 'sticky', top: 0, zIndex: 1101 }}>
               <TableCell sx={{ minWidth: 80, zIndex: 1100, backgroundColor: 'white' }}>診察時間</TableCell>
               <TableCell colSpan={7} align="center" sx={{ zIndex: 1100, backgroundColor: 'white' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
@@ -136,7 +136,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ appointments, b
                 </Box>
               </TableCell>
             </TableRow>
-            <TableRow>
+            <TableRow sx={{ position: 'sticky', top: 69, zIndex: 1101 }}>
               <TableCell sx={{ minWidth: 80, zIndex: 1100, backgroundColor: 'white' }}>時間帯</TableCell> {/* Empty cell for alignment */}
               {weekDays.map(day => (
                 <TableCell key={day.toString()} align="center" sx={{ minWidth: 120 }}>

@@ -36,7 +36,7 @@ interface SortConfig {
 
 const HomePage = () => {
   const { isAuthenticated, token, user } = useAuth();
-  const { isReservationFormOpen, closeReservationForm, isBlockedSlotFormOpen, closeBlockedSlotForm, openReservationForm, showLoader, hideLoader, reservationFormAppointment, reservationFormInitialDate, reservationFormInitialTime } = useUI();
+  const { isReservationFormOpen, closeReservationForm, isBlockedSlotFormOpen, closeBlockedSlotForm, openReservationForm, showLoader, hideLoader, reservationFormAppointment, reservationFormInitialDate, reservationFormInitialTime, registerAppointmentChangeCallback, unregisterAppointmentChangeCallback, registerBlockedSlotChangeCallback, unregisterBlockedSlotChangeCallback } = useUI();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -65,7 +65,17 @@ const HomePage = () => {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+
+    // Register the callback for appointment changes
+    registerAppointmentChangeCallback(fetchData);
+    registerBlockedSlotChangeCallback(fetchData);
+
+    return () => {
+      // Unregister the callback when the component unmounts
+      unregisterAppointmentChangeCallback();
+      unregisterBlockedSlotChangeCallback();
+    };
+  }, [fetchData, registerAppointmentChangeCallback, unregisterAppointmentChangeCallback, registerBlockedSlotChangeCallback, unregisterBlockedSlotChangeCallback]);
 
   const handleFormSubmit = () => {
     fetchData();
