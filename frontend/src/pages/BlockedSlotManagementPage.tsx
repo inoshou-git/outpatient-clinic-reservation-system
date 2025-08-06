@@ -21,19 +21,14 @@ import {
   Checkbox,
 } from '@mui/material';
 import { Edit, Delete, ArrowBackIos, ArrowForwardIos } from '@mui/icons-material';
-import BlockedSlotForm from './BlockedSlotForm';
-import { useUI } from './UIContext';
-import { useAuth } from './AuthContext';
+import BlockedSlotForm from '../components/BlockedSlotForm';
+import { useUI } from '../contexts/UIContext';
+import { useAuth } from '../contexts/AuthContext';
 import dayjs, { Dayjs } from 'dayjs';
 
-interface BlockedSlot {
-  id: number;
-  date: string;
-  endDate: string | null;
-  startTime: string | null;
-  endTime: string | null;
-  reason: string;
-}
+import { BlockedSlot } from '../types';
+
+import { getBlockedSlots, deleteBlockedSlot, registerHolidays } from '../services/api';
 
 const BlockedSlotManagementPage = () => {
   const { token, user } = useAuth();
@@ -50,12 +45,7 @@ const BlockedSlotManagementPage = () => {
   const fetchBlockedSlots = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/blocked-slots', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
+      const data = await getBlockedSlots(token);
       setBlockedSlots(data);
     } catch (error) {
       console.error('Error fetching blocked slots:', error);
@@ -81,22 +71,11 @@ const BlockedSlotManagementPage = () => {
   const handleDeleteBlockedSlot = async (id: number) => {
     if (window.confirm('この予約不可設定を削除してもよろしいですか？')) {
       try {
-        const response = await fetch(`/api/blocked-slots/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        if (response.ok) {
-          fetchBlockedSlots();
-        } else {
-          const errorData = await response.json();
-          console.error('Failed to delete blocked slot:', errorData.message);
-          alert(`予約不可設定の削除に失敗しました: ${errorData.message}`);
-        }
-      } catch (error) {
-        console.error('Failed to delete blocked slot', error);
-        alert('予約不可設定の削除中にエラーが発生しました。');
+        await deleteBlockedSlot(id, token);
+        fetchBlockedSlots();
+      } catch (error: any) {
+        console.error('Failed to delete blocked slot:', error.message);
+        alert(`予約不可設定の削除に失敗しました: ${error.message}`);
       }
     }
   };
@@ -133,22 +112,14 @@ const BlockedSlotManagementPage = () => {
     if (window.confirm(`${selectedBlockedSlots.length}件の予約不可設定を削除してもよろしいですか？`)) {
       try {
         const promises = selectedBlockedSlots.map(id =>
-          fetch(`/api/blocked-slots/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` },
-          })
+          deleteBlockedSlot(id, token)
         );
-        const responses = await Promise.all(promises);
-        const failedDeletes = responses.filter(res => !res.ok);
-
-        if (failedDeletes.length > 0) {
-          alert(`${failedDeletes.length}件の予約不可設定削除に失敗しました。`);
-        }
+        await Promise.all(promises);
         fetchBlockedSlots();
         setSelectedBlockedSlots([]);
         setBulkActionEnabled(false);
-      } catch (error) {
-        console.error('Failed to bulk delete blocked slots', error);
+      } catch (error: any) {
+        console.error('Failed to bulk delete blocked slots', error.message);
         alert('予約不可設定の一括削除中にエラーが発生しました。');
       }
     }
@@ -157,14 +128,10 @@ const BlockedSlotManagementPage = () => {
   const handleRegisterHolidays = async () => {
     if (window.confirm('日本の祝日を一括登録します。よろしいですか？')) {
       try {
-        const response = await fetch('/api/blocked-slots/register-holidays', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        const data = await response.json();
+        const data = await registerHolidays(token);
         alert(data.message);
         fetchBlockedSlots();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to register holidays', error);
         alert('祝日の一括登録中にエラーが発生しました。');
       }

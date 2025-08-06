@@ -25,17 +25,12 @@ import {
   Alert,
 } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
-import { useAuth } from './AuthContext';
-import { useUI } from './UIContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useUI } from '../contexts/UIContext';
 
-interface User {
-  userId: string;
-  name: string;
-  department: string;
-  role: string;
-  email: string;
-  isDeleted?: boolean;
-}
+import { User } from '../types';
+
+import { getAllUsers, createUser, updateUser, deleteUser } from '../services/api';
 
 const UserManagementPage = () => {
   const { token } = useAuth();
@@ -51,20 +46,11 @@ const UserManagementPage = () => {
     setLoading(true);
     showLoader(); // ローディング開始
     try {
-      const response = await fetch('/api/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.filter((user: User) => !user.isDeleted));
-      } else {
-        setError('ユーザーの取得に失敗しました。');
-      }
+      const data = await getAllUsers(token);
+      setUsers(data.filter((user: User) => !user.isDeleted));
     } catch (error) {
       console.error('Error fetching users:', error);
-      setError('ユーザーの取得中にエラーが発生しました。');
+      setError('ユーザーの取得に失敗しました。');
     } finally {
       setLoading(false);
       hideLoader(); // ローディング終了
@@ -76,7 +62,7 @@ const UserManagementPage = () => {
   }, [fetchUsers]);
 
   const handleOpenForm = (user: Partial<User> | null, isNew: boolean) => {
-    setCurrentUser(user || { userId: '', name: '', department: '', email: '', role: 'user' });
+    setCurrentUser(user || { userId: '', name: '', department: '', email: '', role: 'general' });
     setIsNewUser(isNew);
     setOpenForm(true);
     setError(null);
@@ -86,21 +72,11 @@ const UserManagementPage = () => {
     if (window.confirm(`ユーザー ${userId} を削除してもよろしいですか？`)) {
       showLoader(); // ローディング開始
       try {
-        const response = await fetch(`/api/users/${userId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        if (response.ok) {
-          fetchUsers();
-        } else {
-          const errorData = await response.json();
-          setError(errorData.message || 'ユーザーの削除に失敗しました。');
-        }
-      } catch (error) {
+        await deleteUser(userId, token);
+        fetchUsers();
+      } catch (error: any) {
         console.error('Failed to delete user', error);
-        setError('ユーザーの削除中にエラーが発生しました。');
+        setError(error.message || 'ユーザーの削除に失敗しました。');
       } finally {
         hideLoader(); // ローディング終了
       }
@@ -112,32 +88,20 @@ const UserManagementPage = () => {
     setError(null);
     if (!currentUser) return;
 
-    const url = isNewUser ? '/api/users/create' : `/api/users/${currentUser.userId}`;
-    const method = isNewUser ? 'POST' : 'PUT';
-
     setOpenForm(false); // フォームを閉じる
     showLoader(); // ローディング開始
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(currentUser),
-      });
-
-      if (response.ok) {
-        fetchUsers();
-        setOpenForm(false);
-        setCurrentUser(null);
+      if (isNewUser) {
+        await createUser(currentUser as User, token);
       } else {
-        const errorData = await response.json();
-        setError(errorData.message || '操作に失敗しました。');
+        await updateUser(currentUser.userId!, currentUser, token);
       }
-    } catch (err) {
-      setError('フォームの送信中にエラーが発生しました。');
+      fetchUsers();
+      setOpenForm(false);
+      setCurrentUser(null);
+    } catch (err: any) {
+      setError(err.message || '操作に失敗しました。');
       console.error('Error submitting form:', err);
     } finally {
       hideLoader(); // ローディング終了
@@ -246,7 +210,7 @@ const UserManagementPage = () => {
                   id="role"
                   value={currentUser.role}
                   label="権限"
-                  onChange={(e) => setCurrentUser({ ...currentUser, role: e.target.value as string })}
+                  onChange={(e) => setCurrentUser({ ...currentUser, role: e.target.value as User['role'] })}
                 >
                   <MenuItem value="user">一般</MenuItem>
                   <MenuItem value="viewer">閲覧</MenuItem>

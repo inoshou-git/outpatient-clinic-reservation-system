@@ -1,34 +1,12 @@
 import React, { useState } from 'react';
 import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Box, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+
+import { Appointment, BlockedSlot } from '../types';
+
 import dayjs, { Dayjs } from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 
 dayjs.extend(isBetween);
-
-// --- Interfaces ---
-interface Appointment {
-  id: number;
-  patientId?: string;
-  patientName?: string;
-  date: string;
-  time?: string;
-  consultation?: string;
-  lastUpdatedBy?: string;
-  isDeleted?: boolean;
-  reservationType?: 'outpatient' | 'visit' | 'rehab';
-  facilityName?: string;
-  startTimeRange?: string;
-  endTimeRange?: string;
-}
-
-interface BlockedSlot {
-  id: number;
-  date: string;
-  endDate: string | null; // Added endDate
-  startTime: string | null;
-  endTime: string | null;
-  reason: string;
-}
 
 interface WeeklyCalendarViewProps {
   appointments: Appointment[];
@@ -48,8 +26,8 @@ const generateTimeSlots = (displayPeriod: DisplayPeriod) => {
   const slots = [];
   let time = dayjs().hour(9).minute(30).second(0);
   const endTime = dayjs().hour(16).minute(30).second(0);
-  const lunchStart = dayjs().hour(12).minute(0).second(0);
-  const lunchEnd = dayjs().hour(13).minute(0).second(0);
+  const lunchStart = dayjs().hour(11).minute(45).second(0);
+  const lunchEnd = dayjs().hour(13).minute(30).second(0);
 
   while (time.isBefore(endTime) || time.isSame(endTime)) {
     const isMorning = time.hour() < 12 || (time.hour() === 12 && time.minute() === 0);

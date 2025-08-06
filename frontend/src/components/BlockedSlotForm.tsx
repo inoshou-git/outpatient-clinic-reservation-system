@@ -17,17 +17,10 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
-import { useAuth } from './AuthContext';
-import { useUI } from './UIContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useUI } from '../contexts/UIContext';
 
-interface BlockedSlot {
-    id: number;
-    date: string;
-    endDate: string | null;
-    startTime: string | null;
-    endTime: string | null;
-    reason: string;
-}
+import { BlockedSlot } from '../types';
 
 interface BlockedSlotFormProps {
   onFormSubmit: () => void;

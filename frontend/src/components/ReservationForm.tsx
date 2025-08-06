@@ -15,37 +15,17 @@ import {
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+
+import { useAuth } from '../contexts/AuthContext';
+import { useUI } from '../contexts/UIContext';
+
+import { Appointment, BlockedSlot } from '../types';
+
+
 import dayjs, { Dayjs } from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import { useAuth } from './AuthContext';
-import { useUI } from './UIContext';
 
 dayjs.extend(isBetween);
-
-// --- Interfaces ---
-interface Appointment {
-  id: number;
-  patientId?: string; // Make optional
-  patientName?: string; // Make optional
-  date: string;
-  time?: string; // Make optional
-  consultation?: string;
-  lastUpdatedBy?: string;
-  isDeleted?: boolean;
-  reservationType?: 'outpatient' | 'visit' | 'rehab';
-  facilityName?: string;
-  startTimeRange?: string;
-  endTimeRange?: string;
-}
-
-interface BlockedSlot {
-  id: number;
-  date: string;
-  endDate: string | null;
-  startTime: string | null;
-  endTime: string | null;
-  reason: string;
-}
 
 interface ReservationFormProps {
   onFormSubmit: () => void;
@@ -207,7 +187,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
   const availableTimeSlots = useMemo(() => {
     if (!date) return [];
     const dayBlockedSlots = blockedSlots.filter(slot => dayjs(slot.date).isSame(date, 'day') && slot.startTime !== null);
-    
+
     return allTimeSlots.filter(slotTime => {
       const currentSlotTime = dayjs(`${date.format('YYYY-MM-DD')}T${slotTime}`);
       return !dayBlockedSlots.some(blocked => {

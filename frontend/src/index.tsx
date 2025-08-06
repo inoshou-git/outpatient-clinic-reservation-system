@@ -2,9 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import { AuthProvider } from './AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { BrowserRouter } from 'react-router-dom';
-import { UIProvider } from './UIContext';
+import { UIProvider } from './contexts/UIContext';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

@@ -14,6 +14,9 @@ import {
   ListItem,
   ListItemText
 } from '@mui/material';
+
+import { Appointment, BlockedSlot } from '../types';
+
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/ja';
 import weekday from 'dayjs/plugin/weekday';
@@ -21,35 +24,27 @@ import weekday from 'dayjs/plugin/weekday';
 dayjs.locale('ja');
 dayjs.extend(weekday);
 
-interface Appointment {
-  id: number;
-  patientId?: string;
-  patientName?: string;
-  date: string;
-  time?: string;
-  consultation?: string;
-  lastUpdatedBy?: string;
-  isDeleted?: boolean;
-  reservationType?: 'outpatient' | 'visit' | 'rehab';
-  facilityName?: string;
-  startTimeRange?: string;
-  endTimeRange?: string;
-}
-
-interface BlockedSlot {
-  id: number;
-  date: string;
-  endDate: string | null; // Added endDate
-  startTime: string | null;
-  endTime: string | null;
-  reason: string;
-}
+const WEEK_DAYS = ['日', '月', '火', '水', '木', '金', '土'];
+const DAY_CELL_HEIGHT = 120;
 
 interface CalendarViewProps {
   appointments: Appointment[];
   blockedSlots: BlockedSlot[];
   currentMonth: Dayjs;
 }
+
+const formatAppointmentPrimaryText = (app: Appointment): string => {
+  switch (app.reservationType) {
+    case 'outpatient':
+      return `${app.time} - ${app.patientName} (${app.patientId})`;
+    case 'visit':
+      return `訪問診療: ${app.startTimeRange} - ${app.endTimeRange} (${app.facilityName || ''})`;
+    case 'rehab':
+      return `通所リハ会議: ${app.startTimeRange} - ${app.endTimeRange}`;
+    default:
+      return '不明な予約種別';
+  }
+};
 
 // --- Component ---
 const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots, currentMonth }) => {
@@ -102,7 +97,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots,
   return (
     <Box>
       <Grid container spacing={1}>
-        {['日', '月', '火', '水', '木', '金', '土'].map(dayName => (
+        {WEEK_DAYS.map(dayName => (
           <Grid item xs={12 / 7} key={dayName}>
             <Paper sx={{ p: 1, textAlign: 'center', fontWeight: 'bold' }}>{dayName}</Paper>
           </Grid>
@@ -128,8 +123,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots,
                 <Paper
                   sx={{
                     p: 1,
-                    minHeight: 120,
-                    height: 120, // 固定高さ
+                    minHeight: DAY_CELL_HEIGHT,
+                    height: DAY_CELL_HEIGHT, // 固定高さ
                     backgroundColor,
                     color: isCurrentMonth ? 'black' : '#a0a0a0',
                     cursor: allDayBlock ? 'not-allowed' : 'pointer',
@@ -164,12 +159,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots,
             {selectedDayAppointments.map(app => (
               <ListItem key={app.id}>
                 <ListItemText
-                  primary={
-                    app.reservationType === 'outpatient' ? `${app.time} - ${app.patientName} (${app.patientId})` :
-                    app.reservationType === 'visit' ? `訪問診療: ${app.startTimeRange} - ${app.endTimeRange} (${app.facilityName || ''})` :
-                    app.reservationType === 'rehab' ? `通所リハ会議: ${app.startTimeRange} - ${app.endTimeRange}` :
-                    '不明な予約種別'
-                  }
+                  primary={formatAppointmentPrimaryText(app)}
                   secondary={
                     app.reservationType === 'outpatient' ? app.consultation :
                     app.reservationType === 'visit' ? app.consultation :

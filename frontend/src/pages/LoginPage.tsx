@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Container, Box, TextField, Button, Typography, Alert, Link } from '@mui/material';
+
+import { loginUser } from '../services/api';
 
 const LoginPage = () => {
   const [userId, setUserId] = useState('');
@@ -14,25 +16,15 @@ const LoginPage = () => {
     e.preventDefault();
     setError('');
     try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, password }),
-      });
-      if (response.ok) {
-        const { user, token, mustChangePassword } = await response.json();
-        auth.login(user, token);
-        if (mustChangePassword) {
-          navigate('/force-password-change');
-        } else {
-          navigate('/');
-        }
+      const { user, token, mustChangePassword } = await loginUser(userId, password);
+      auth.login(user, token);
+      if (mustChangePassword) {
+        navigate('/force-password-change');
       } else {
-        const { message } = await response.json();
-        setError(message || 'Login failed');
+        navigate('/');
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
     }
   };
 
@@ -83,7 +75,7 @@ const LoginPage = () => {
           >
             ログイン
           </Button>
-          
+
         </Box>
       </Box>
     </Container>

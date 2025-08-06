@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useUI } from './UIContext';
+import { useUI } from '../contexts/UIContext';
 import { Container, Box, TextField, Button, Typography, Alert } from '@mui/material';
+
+import { setPassword } from '../services/api';
 
 const ForcePasswordChangePage = () => {
   const [newPassword, setNewPassword] = useState('');
@@ -30,26 +32,13 @@ const ForcePasswordChangePage = () => {
     showLoader(); // ローディング開始
 
     try {
-      const response = await fetch('/api/users/set-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ newPassword }),
-      });
-
-      if (response.ok) {
-        setSuccess('パスワードが正常に更新されました。ホームページにリダイレクトします。');
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
-      } else {
-        const { message } = await response.json();
-        setError(message || 'パスワードの更新に失敗しました。');
-      }
-    } catch (err) {
-      setError('エラーが発生しました。もう一度お試しください。');
+      await setPassword(newPassword, token);
+      setSuccess('パスワードが正常に更新されました。ホームページにリダイレクトします。');
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+    } catch (err: any) {
+      setError(err.message || 'パスワードの更新に失敗しました。');
     } finally {
       hideLoader(); // ローディング終了
     }

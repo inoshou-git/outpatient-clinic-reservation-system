@@ -1,12 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
-interface User {
-  userId: string;
-  name: string;
-  department: string;
-  role: string;
-  isDeleted?: boolean;
-}
+import { getCurrentUser } from '../services/api';
+import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -26,19 +21,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const fetchUser = async () => {
       if (token) {
         try {
-          // Assuming you have an endpoint to get user info from a token
-          const response = await fetch('/api/me', {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
-          } else {
-            // Token is invalid or expired
-            logout();
-          }
+          const userData = await getCurrentUser(token);
+          setUser(userData);
         } catch (error) {
           console.error('Failed to fetch user', error);
           logout();
