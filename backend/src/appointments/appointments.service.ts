@@ -3,6 +3,7 @@ import { readDb, writeDb } from '../data/db';
 import dayjs from 'dayjs';
 import { sendEmail } from '../emailService';
 import { getAllUsers } from '../users/users.service';
+import { io } from '../index'; // Import the io instance
 
 const notifyUsers = async (subject: string, text: string, html: string) => {
     const users = await getAllUsers();
@@ -67,6 +68,9 @@ export const createAppointment = async (appointmentData: any, lastUpdatedBy: str
 
     db.appointments.push(newAppointment);
     await writeDb(db);
+
+    // Emit WebSocket event
+    io.emit('appointmentCreated', newAppointment);
 
     if (sendNotification) {
         let subject = '';
@@ -134,6 +138,9 @@ export const updateAppointment = async (id: number, appointmentData: any, lastUp
         db.appointments[appointmentIndex] = updatedAppointment;
         await writeDb(db);
 
+        // Emit WebSocket event
+        io.emit('appointmentUpdated', updatedAppointment);
+
         if (appointmentData.sendNotification) {
             let subject = '';
             let text = '';
@@ -183,6 +190,9 @@ export const deleteAppointment = async (id: number, lastUpdatedBy: string): Prom
         db.appointments[appointmentIndex].isDeleted = true;
         db.appointments[appointmentIndex].lastUpdatedBy = lastUpdatedBy;
         await writeDb(db);
+
+        // Emit WebSocket event
+        io.emit('appointmentDeleted', id);
 
         const subject = '予約削除のお知らせ';
         const text = `予約が削除されました.\n患者名: ${deletedAppointment.patientName}\n日時: ${deletedAppointment.date} ${deletedAppointment.time}\n担当: ${lastUpdatedBy}`;
