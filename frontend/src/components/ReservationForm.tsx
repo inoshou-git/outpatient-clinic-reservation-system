@@ -35,6 +35,9 @@ interface ReservationFormProps {
   initialTime?: string | null;
 }
 
+// --- Constants ---
+const consultationOptions = ['新患', '定期処方', '生活習慣', '特定健診', '企業健診', '健康診断', 'その他'];
+
 // --- Time Slot Generation ---
 const generateTimeSlots = (startHour: number = 9, startMinute: number = 30, endHour: number = 16, endMinute: number = 30) => {
   const slots = [];
@@ -65,6 +68,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
   const [startTimeRange, setStartTimeRange] = useState('');
   const [endTimeRange, setEndTimeRange] = useState('');
   const [consultation, setConsultation] = useState('');
+  const [otherConsultation, setOtherConsultation] = useState('');
   const [sendNotification, setSendNotification] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,7 +82,19 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
       setTime(appointment.time || '');
       setStartTimeRange(appointment.startTimeRange || '');
       setEndTimeRange(appointment.endTimeRange || '');
-      setConsultation(appointment.consultation || '');
+
+      const existingConsultation = appointment.consultation || '';
+      if (consultationOptions.includes(existingConsultation)) {
+        setConsultation(existingConsultation);
+        setOtherConsultation('');
+      } else if (existingConsultation) {
+        setConsultation('その他');
+        setOtherConsultation(existingConsultation);
+      } else {
+        setConsultation('');
+        setOtherConsultation('');
+      }
+
     } else {
       setReservationType('outpatient');
       setPatientId('');
@@ -89,6 +105,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
       setStartTimeRange('');
       setEndTimeRange('');
       setConsultation('');
+      setOtherConsultation('');
     }
   }, [appointment, initialDate, initialTime]);
 
@@ -102,6 +119,18 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
     if (!date) {
       setError('日付は必須項目です。');
       return;
+    }
+
+    // Check for Wednesday afternoon
+    if (date.day() === 3) {
+      if (reservationType === 'outpatient' && time >= '13:00') {
+        setError('水曜日の午後は予約できません。');
+        return;
+      }
+      if ((reservationType === 'visit' || reservationType === 'rehab') && startTimeRange >= '13:00') {
+        setError('水曜日の午後は予約できません。');
+        return;
+      }
     }
 
     if (reservationType === 'outpatient') {
@@ -133,12 +162,12 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
       appointmentData.patientId = patientId;
       appointmentData.patientName = patientName;
       appointmentData.time = time;
-      appointmentData.consultation = consultation;
+      appointmentData.consultation = consultation === 'その他' ? otherConsultation : consultation;
     } else if (reservationType === 'visit') {
       appointmentData.facilityName = facilityName;
       appointmentData.startTimeRange = startTimeRange;
       appointmentData.endTimeRange = endTimeRange;
-      appointmentData.consultation = consultation;
+      appointmentData.consultation = consultation === 'その他' ? otherConsultation : consultation;
     } else if (reservationType === 'rehab') {
       appointmentData.startTimeRange = startTimeRange;
       appointmentData.endTimeRange = endTimeRange;
@@ -186,6 +215,12 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
 
   const availableTimeSlots = useMemo(() => {
     if (!date) return [];
+
+    // Filter out Wednesday afternoons
+    if (date.day() === 3) {
+      return allTimeSlots.filter(slotTime => slotTime < '13:00');
+    }
+
     const dayBlockedSlots = blockedSlots.filter(slot => dayjs(slot.date).isSame(date, 'day') && slot.startTime !== null);
 
     return allTimeSlots.filter(slotTime => {
@@ -197,6 +232,15 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
       });
     });
   }, [date, blockedSlots, allTimeSlots]);
+
+  const availableVisitRehabTimeSlots = useMemo(() => {
+    if (!date) return [];
+    // Filter out Wednesday afternoons
+    if (date.day() === 3) {
+      return allTimeSlots.filter(slotTime => slotTime < '13:00');
+    }
+    return allTimeSlots;
+  }, [date, allTimeSlots]);
 
   // --- Render ---
   return (
@@ -290,7 +334,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
                 label="開始時間"
                 onChange={(e: SelectChangeEvent) => setStartTimeRange(e.target.value)}
               >
-                {allTimeSlots.map((slot) => (
+                {availableVisitRehabTimeSlots.map((slot) => (
                   <MenuItem key={slot} value={slot}>
                     {slot}
                   </MenuItem>
@@ -304,7 +348,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
                 label="終了時間"
                 onChange={(e: SelectChangeEvent) => setEndTimeRange(e.target.value)}
               >
-                {allTimeSlots.map((slot) => (
+                {availableVisitRehabTimeSlots.map((slot) => (
                   <MenuItem key={slot} value={slot}>
                     {slot}
                   </MenuItem>
@@ -315,15 +359,33 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onFormSubmit, blocked
         )}
 
         {(reservationType === 'outpatient' || reservationType === 'visit') && (
-          <TextField
-            label="診察内容"
-            value={consultation}
-            onChange={(e) => setConsultation(e.target.value)}
-            fullWidth
-            multiline={reservationType === 'visit'} // 訪問診療の場合は複数行
-            rows={reservationType === 'visit' ? 4 : 1} // 訪問診療の場合は4行
-            sx={{ mb: 2 }}
-          />
+          <>
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>診察内容</InputLabel>
+              <Select
+                value={consultation}
+                label="診察内容"
+                onChange={(e: SelectChangeEvent) => setConsultation(e.target.value)}
+              >
+                {consultationOptions.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {consultation === 'その他' && (
+              <TextField
+                label="診察内容 (その他)"
+                value={otherConsultation}
+                onChange={(e) => setOtherConsultation(e.target.value)}
+                fullWidth
+                multiline
+                rows={4}
+                sx={{ mb: 2 }}
+              />
+            )}
+          </>
         )}
 
         <FormControlLabel

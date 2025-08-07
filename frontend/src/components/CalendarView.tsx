@@ -114,7 +114,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots,
           } else if (allDayBlock) {
             backgroundColor = '#ffebee'; // Light red for blocked day
           } else if (isWeekend) {
-            backgroundColor = '#f55f5f5'; // Grey for weekend
+            backgroundColor = '#f5f5f5'; // Grey for weekend
           }
 
           return (
@@ -126,7 +126,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots,
                     minHeight: DAY_CELL_HEIGHT,
                     height: DAY_CELL_HEIGHT, // 固定高さ
                     backgroundColor,
-                    color: isCurrentMonth ? 'black' : '#a0a0a0',
+                    color: isCurrentMonth ? (isWeekend ? '#9e9e9e' : 'black') : '#a0a0a0',
                     cursor: allDayBlock ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
