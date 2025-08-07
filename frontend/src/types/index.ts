@@ -7,7 +7,7 @@ export interface Appointment {
   consultation?: string;
   lastUpdatedBy?: string;
   isDeleted?: boolean;
-  reservationType?: 'outpatient' | 'visit' | 'rehab';
+  reservationType?: "outpatient" | "visit" | "rehab";
   facilityName?: string;
   startTimeRange?: string;
   endTimeRange?: string;
@@ -28,7 +28,7 @@ export interface User {
   name: string;
   department: string;
   email: string;
-  role: 'admin' | 'general' | 'viewer';
+  role: "admin" | "general" | "viewer";
   mustChangePassword?: boolean;
   isDeleted?: boolean;
   lastUpdatedBy?: string;

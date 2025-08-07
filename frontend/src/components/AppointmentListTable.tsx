@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Table,
   TableBody,
@@ -13,14 +13,14 @@ import {
   Checkbox,
   TableSortLabel,
   IconButton,
-} from '@mui/material';
-import { Edit, Delete } from '@mui/icons-material';
-import dayjs from 'dayjs';
-import { Appointment } from '../types';
+} from "@mui/material";
+import { Edit, Delete } from "@mui/icons-material";
+import dayjs from "dayjs";
+import { Appointment } from "../types";
 
 interface AppointmentListTableProps {
   appointments: Appointment[];
-  sortConfig: { key: keyof Appointment; direction: 'asc' | 'desc' } | null;
+  sortConfig: { key: keyof Appointment; direction: "asc" | "desc" } | null;
   handleRequestSort: (key: keyof Appointment) => void;
   selectedAppointments: number[];
   handleSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -31,8 +31,8 @@ interface AppointmentListTableProps {
   handleEditAppointment: (appointment: Appointment) => void;
   handleDeleteAppointment: (id: number) => void;
   userRole?: string;
-  view: 'all' | 'daily' | 'weekly' | 'monthly';
-  setView: (view: 'all' | 'daily' | 'weekly' | 'monthly') => void;
+  view: "all" | "daily" | "weekly" | "monthly";
+  setView: (view: "all" | "daily" | "weekly" | "monthly") => void;
 }
 
 const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
@@ -54,17 +54,17 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
   const isSelected = (id: number) => selectedAppointments.indexOf(id) !== -1;
 
   const sortedAppointments = React.useMemo(() => {
-    let sortableItems = [...appointments.filter(app => !app.isDeleted)];
+    let sortableItems = [...appointments.filter((app) => !app.isDeleted)];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        if (sortConfig.key === 'date' || sortConfig.key === 'time') {
+        if (sortConfig.key === "date" || sortConfig.key === "time") {
           const aDateTime = dayjs(`${a.date} ${a.time}`);
           const bDateTime = dayjs(`${b.date} ${b.time}`);
           if (aDateTime.isBefore(bDateTime)) {
-            return sortConfig.direction === 'asc' ? -1 : 1;
+            return sortConfig.direction === "asc" ? -1 : 1;
           }
           if (aDateTime.isAfter(bDateTime)) {
-            return sortConfig.direction === 'asc' ? 1 : -1;
+            return sortConfig.direction === "asc" ? 1 : -1;
           }
           return 0;
         }
@@ -76,10 +76,10 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
         if (bValue === undefined || bValue === null) return -1;
 
         if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
+          return sortConfig.direction === "asc" ? -1 : 1;
         }
         if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
+          return sortConfig.direction === "asc" ? 1 : -1;
         }
         return 0;
       });
@@ -87,33 +87,63 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
     return sortableItems;
   }, [appointments, sortConfig]);
 
-  const filteredAppointments = sortedAppointments.filter(app => {
-    return !app.isDeleted && (
-      view === 'all' ||
-      (view === 'daily' && dayjs(app.date).isSame(dayjs(), 'day')) ||
-      (view === 'weekly' && dayjs(app.date).isAfter(dayjs().startOf('week')) && dayjs(app.date).isBefore(dayjs().endOf('week'))) ||
-      (view === 'monthly' && dayjs(app.date).isSame(dayjs(), 'month'))
+  const filteredAppointments = sortedAppointments.filter((app) => {
+    return (
+      !app.isDeleted &&
+      (view === "all" ||
+        (view === "daily" && dayjs(app.date).isSame(dayjs(), "day")) ||
+        (view === "weekly" &&
+          dayjs(app.date).isAfter(dayjs().startOf("week")) &&
+          dayjs(app.date).isBefore(dayjs().endOf("week"))) ||
+        (view === "monthly" && dayjs(app.date).isSame(dayjs(), "month")))
     );
   });
 
   return (
     <>
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between' }}>
-        <ButtonGroup variant="contained" aria-label="outlined primary button group">
-          <Button onClick={() => setView('daily')} disabled={view === 'daily'}>今日</Button>
-          <Button onClick={() => setView('weekly')} disabled={view === 'weekly'}>週間</Button>
-          <Button onClick={() => setView('monthly')} disabled={view === 'monthly'}>月間</Button>
-          <Button onClick={() => setView('all')} disabled={view === 'all'}>全て</Button>
+      <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
+        <ButtonGroup
+          variant="contained"
+          aria-label="outlined primary button group"
+        >
+          <Button onClick={() => setView("daily")} disabled={view === "daily"}>
+            今日
+          </Button>
+          <Button
+            onClick={() => setView("weekly")}
+            disabled={view === "weekly"}
+          >
+            週間
+          </Button>
+          <Button
+            onClick={() => setView("monthly")}
+            disabled={view === "monthly"}
+          >
+            月間
+          </Button>
+          <Button onClick={() => setView("all")} disabled={view === "all"}>
+            全て
+          </Button>
         </ButtonGroup>
         <Box>
-          {userRole !== 'viewer' && bulkActionEnabled && selectedAppointments.length > 0 && (
-            <Button variant="contained" color="secondary" onClick={handleBulkDelete} sx={{ mr: 1 }}>
-              選択した項目を削除
-            </Button>
-          )}
-          {userRole !== 'viewer' && (
-            <Button variant="outlined" onClick={() => setBulkActionEnabled(!bulkActionEnabled)}>
-              {bulkActionEnabled ? 'キャンセル' : '一括操作'}
+          {userRole !== "viewer" &&
+            bulkActionEnabled &&
+            selectedAppointments.length > 0 && (
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={handleBulkDelete}
+                sx={{ mr: 1 }}
+              >
+                選択した項目を削除
+              </Button>
+            )}
+          {userRole !== "viewer" && (
+            <Button
+              variant="outlined"
+              onClick={() => setBulkActionEnabled(!bulkActionEnabled)}
+            >
+              {bulkActionEnabled ? "キャンセル" : "一括操作"}
             </Button>
           )}
         </Box>
@@ -125,26 +155,44 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
               {bulkActionEnabled && (
                 <TableCell padding="checkbox">
                   <Checkbox
-                    indeterminate={selectedAppointments.length > 0 && selectedAppointments.length < sortedAppointments.length}
-                    checked={sortedAppointments.length > 0 && selectedAppointments.length === sortedAppointments.length}
+                    indeterminate={
+                      selectedAppointments.length > 0 &&
+                      selectedAppointments.length < sortedAppointments.length
+                    }
+                    checked={
+                      sortedAppointments.length > 0 &&
+                      selectedAppointments.length === sortedAppointments.length
+                    }
                     onChange={handleSelectAllClick}
                   />
                 </TableCell>
               )}
-              <TableCell sortDirection={sortConfig?.key === 'date' ? sortConfig.direction : false}>
+              <TableCell
+                sortDirection={
+                  sortConfig?.key === "date" ? sortConfig.direction : false
+                }
+              >
                 <TableSortLabel
-                  active={sortConfig?.key === 'date'}
-                  direction={sortConfig?.key === 'date' ? sortConfig.direction : 'asc'}
-                  onClick={() => handleRequestSort('date')}
+                  active={sortConfig?.key === "date"}
+                  direction={
+                    sortConfig?.key === "date" ? sortConfig.direction : "asc"
+                  }
+                  onClick={() => handleRequestSort("date")}
                 >
                   日付
                 </TableSortLabel>
               </TableCell>
-              <TableCell sortDirection={sortConfig?.key === 'time' ? sortConfig.direction : false}>
+              <TableCell
+                sortDirection={
+                  sortConfig?.key === "time" ? sortConfig.direction : false
+                }
+              >
                 <TableSortLabel
-                  active={sortConfig?.key === 'time'}
-                  direction={sortConfig?.key === 'time' ? sortConfig.direction : 'asc'}
-                  onClick={() => handleRequestSort('time')}
+                  active={sortConfig?.key === "time"}
+                  direction={
+                    sortConfig?.key === "time" ? sortConfig.direction : "asc"
+                  }
+                  onClick={() => handleRequestSort("time")}
                 >
                   時間
                 </TableSortLabel>
@@ -153,8 +201,8 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
               <TableCell>患者ID/施設名</TableCell>
               <TableCell>患者名</TableCell>
               <TableCell>診察内容</TableCell>
-              {userRole !== 'viewer' && <TableCell>最終更新者</TableCell>}
-              {userRole !== 'viewer' && <TableCell>操作</TableCell>}
+              {userRole !== "viewer" && <TableCell>最終更新者</TableCell>}
+              {userRole !== "viewer" && <TableCell>操作</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -164,7 +212,9 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
                 <TableRow
                   key={row.id}
                   hover
-                  onClick={(event) => bulkActionEnabled && handleSelectClick(event, row.id)}
+                  onClick={(event) =>
+                    bulkActionEnabled && handleSelectClick(event, row.id)
+                  }
                   role="checkbox"
                   aria-checked={isItemSelected}
                   tabIndex={-1}
@@ -177,24 +227,44 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
                   )}
                   <TableCell>{row.date}</TableCell>
                   <TableCell>
-                    {row.reservationType === 'outpatient' && row.time}
-                    {(row.reservationType === 'visit' || row.reservationType === 'rehab') && `${row.startTimeRange} - ${row.endTimeRange}`}
+                    {row.reservationType === "outpatient" && row.time}
+                    {(row.reservationType === "visit" ||
+                      row.reservationType === "rehab") &&
+                      `${row.startTimeRange} - ${row.endTimeRange}`}
                   </TableCell>
                   <TableCell>
-                    {row.reservationType === 'outpatient' ? '外来診療' :
-                     row.reservationType === 'visit' ? '訪問診療' :
-                     row.reservationType === 'rehab' ? '通所リハ会議' : '-'}
+                    {row.reservationType === "outpatient"
+                      ? "外来診療"
+                      : row.reservationType === "visit"
+                      ? "訪問診療"
+                      : row.reservationType === "rehab"
+                      ? "通所リハ会議"
+                      : "-"}
                   </TableCell>
                   <TableCell>
-                    {row.reservationType === 'outpatient' ? row.patientId : row.facilityName || '-'}
+                    {row.reservationType === "outpatient"
+                      ? row.patientId
+                      : row.facilityName || "-"}
                   </TableCell>
-                  <TableCell>{row.patientName || '-'}</TableCell>
-                  <TableCell>{row.consultation || '-'}</TableCell>
-                  {userRole !== 'viewer' && <TableCell>{row.lastUpdatedBy || '-'}</TableCell>}
-                  {userRole !== 'viewer' && (
+                  <TableCell>{row.patientName || "-"}</TableCell>
+                  <TableCell>{row.consultation || "-"}</TableCell>
+                  {userRole !== "viewer" && (
+                    <TableCell>{row.lastUpdatedBy || "-"}</TableCell>
+                  )}
+                  {userRole !== "viewer" && (
                     <TableCell>
-                      <IconButton onClick={() => handleEditAppointment(row)} disabled={userRole === 'viewer'}><Edit /></IconButton>
-                      <IconButton onClick={() => handleDeleteAppointment(row.id)} disabled={userRole === 'viewer'}><Delete /></IconButton>
+                      <IconButton
+                        onClick={() => handleEditAppointment(row)}
+                        disabled={userRole === "viewer"}
+                      >
+                        <Edit />
+                      </IconButton>
+                      <IconButton
+                        onClick={() => handleDeleteAppointment(row.id)}
+                        disabled={userRole === "viewer"}
+                      >
+                        <Delete />
+                      </IconButton>
                     </TableCell>
                   )}
                 </TableRow>

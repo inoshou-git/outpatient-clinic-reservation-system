@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Container,
   CircularProgress,
@@ -11,23 +11,32 @@ import {
   DialogActions,
   IconButton,
   Typography,
-} from '@mui/material';
-import { ArrowBackIos, ArrowForwardIos, Edit, Delete } from '@mui/icons-material';
-import ReservationForm from '../components/ReservationForm';
-import CalendarView from '../components/CalendarView';
-import WeeklyCalendarView from '../components/WeeklyCalendarView';
-import BlockedSlotForm from '../components/BlockedSlotForm';
-import AppointmentListTable from '../components/AppointmentListTable';
+} from "@mui/material";
+import {
+  ArrowBackIos,
+  ArrowForwardIos,
+  Edit,
+  Delete,
+} from "@mui/icons-material";
+import ReservationForm from "../components/ReservationForm";
+import CalendarView from "../components/CalendarView";
+import WeeklyCalendarView from "../components/WeeklyCalendarView";
+import BlockedSlotForm from "../components/BlockedSlotForm";
+import AppointmentListTable from "../components/AppointmentListTable";
 
-import { useAuth } from '../contexts/AuthContext';
-import { useUI } from '../contexts/UIContext';
-import dayjs, { Dayjs } from 'dayjs';
+import { useAuth } from "../contexts/AuthContext";
+import { useUI } from "../contexts/UIContext";
+import dayjs, { Dayjs } from "dayjs";
 
-import { Appointment, BlockedSlot } from '../types';
-import { getAppointments, getBlockedSlots, deleteAppointment } from '../services/api';
+import { Appointment, BlockedSlot } from "../types";
+import {
+  getAppointments,
+  getBlockedSlots,
+  deleteAppointment,
+} from "../services/api";
 
-type DisplayMode = 'list' | 'calendar' | 'weekly';
-type Order = 'asc' | 'desc';
+type DisplayMode = "list" | "calendar" | "weekly";
+type Order = "asc" | "desc";
 
 interface SortConfig {
   key: keyof Appointment;
@@ -36,15 +45,37 @@ interface SortConfig {
 
 const HomePage = () => {
   const { isAuthenticated, token, user } = useAuth();
-  const { isReservationFormOpen, closeReservationForm, isBlockedSlotFormOpen, closeBlockedSlotForm, openReservationForm, showLoader, hideLoader, reservationFormAppointment, reservationFormInitialDate, reservationFormInitialTime, registerAppointmentChangeCallback, unregisterAppointmentChangeCallback, registerBlockedSlotChangeCallback, unregisterBlockedSlotChangeCallback } = useUI();
+  const {
+    isReservationFormOpen,
+    closeReservationForm,
+    isBlockedSlotFormOpen,
+    closeBlockedSlotForm,
+    openReservationForm,
+    showLoader,
+    hideLoader,
+    reservationFormAppointment,
+    reservationFormInitialDate,
+    reservationFormInitialTime,
+    registerAppointmentChangeCallback,
+    unregisterAppointmentChangeCallback,
+    registerBlockedSlotChangeCallback,
+    unregisterBlockedSlotChangeCallback,
+  } = useUI();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [view, setView] = useState<'all' | 'daily' | 'weekly' | 'monthly'>('daily');
-  const [displayMode, setDisplayMode] = useState<DisplayMode>('weekly');
+  const [view, setView] = useState<"all" | "daily" | "weekly" | "monthly">(
+    "daily"
+  );
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("weekly");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: 'date', direction: 'asc' });
-  const [selectedAppointments, setSelectedAppointments] = useState<number[]>([]);
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>({
+    key: "date",
+    direction: "asc",
+  });
+  const [selectedAppointments, setSelectedAppointments] = useState<number[]>(
+    []
+  );
   const [bulkActionEnabled, setBulkActionEnabled] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -52,12 +83,12 @@ const HomePage = () => {
     try {
       const [appointmentData, blockedSlotData] = await Promise.all([
         getAppointments(token),
-        getBlockedSlots(token)
+        getBlockedSlots(token),
       ]);
       setAppointments(appointmentData);
       setBlockedSlots(blockedSlotData);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -75,7 +106,13 @@ const HomePage = () => {
       unregisterAppointmentChangeCallback();
       unregisterBlockedSlotChangeCallback();
     };
-  }, [fetchData, registerAppointmentChangeCallback, unregisterAppointmentChangeCallback, registerBlockedSlotChangeCallback, unregisterBlockedSlotChangeCallback]);
+  }, [
+    fetchData,
+    registerAppointmentChangeCallback,
+    unregisterAppointmentChangeCallback,
+    registerBlockedSlotChangeCallback,
+    unregisterBlockedSlotChangeCallback,
+  ]);
 
   const handleFormSubmit = () => {
     fetchData();
@@ -86,13 +123,13 @@ const HomePage = () => {
   };
 
   const handleDeleteAppointment = async (id: number) => {
-    if (window.confirm('この予約を削除してもよろしいですか？')) {
+    if (window.confirm("この予約を削除してもよろしいですか？")) {
       showLoader(); // ローディング開始
       try {
         await deleteAppointment(id, token);
         fetchData();
       } catch (error: any) {
-        console.error('Failed to delete appointment:', error.message);
+        console.error("Failed to delete appointment:", error.message);
         alert(`予約の削除に失敗しました: ${error.message}`);
       } finally {
         hideLoader(); // ローディング終了
@@ -101,19 +138,29 @@ const HomePage = () => {
   };
 
   const handlePrev = () => {
-    const newDate = displayMode === 'calendar' ? currentDate.subtract(1, 'month') : currentDate.subtract(1, 'week');
+    const newDate =
+      displayMode === "calendar"
+        ? currentDate.subtract(1, "month")
+        : currentDate.subtract(1, "week");
     setCurrentDate(newDate);
   };
   const handleNext = () => {
-    const newDate = displayMode === 'calendar' ? currentDate.add(1, 'month') : currentDate.add(1, 'week');
+    const newDate =
+      displayMode === "calendar"
+        ? currentDate.add(1, "month")
+        : currentDate.add(1, "week");
     setCurrentDate(newDate);
   };
   const handleToday = () => setCurrentDate(dayjs());
 
   const handleRequestSort = (key: keyof Appointment) => {
-    let direction: Order = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+    let direction: Order = "asc";
+    if (
+      sortConfig &&
+      sortConfig.key === key &&
+      sortConfig.direction === "asc"
+    ) {
+      direction = "desc";
     }
     setSortConfig({ key, direction });
   };
@@ -140,17 +187,21 @@ const HomePage = () => {
     } else if (selectedIndex > 0) {
       newSelected = newSelected.concat(
         selectedAppointments.slice(0, selectedIndex),
-        selectedAppointments.slice(selectedIndex + 1),
+        selectedAppointments.slice(selectedIndex + 1)
       );
     }
     setSelectedAppointments(newSelected as number[]);
   };
 
   const handleBulkDelete = async () => {
-    if (window.confirm(`${selectedAppointments.length}件の予約を削除してもよろしいですか？`)) {
+    if (
+      window.confirm(
+        `${selectedAppointments.length}件の予約を削除してもよろしいですか？`
+      )
+    ) {
       showLoader(); // ローディング開始
       try {
-        const promises = selectedAppointments.map(id =>
+        const promises = selectedAppointments.map((id) =>
           deleteAppointment(id, token)
         );
         await Promise.all(promises);
@@ -158,8 +209,8 @@ const HomePage = () => {
         setSelectedAppointments([]);
         setBulkActionEnabled(false);
       } catch (error: any) {
-        console.error('Failed to bulk delete appointments', error.message);
-        alert('予約の一括削除中にエラーが発生しました。');
+        console.error("Failed to bulk delete appointments", error.message);
+        alert("予約の一括削除中にエラーが発生しました。");
       } finally {
         hideLoader(); // ローディング終了
       }
@@ -169,22 +220,22 @@ const HomePage = () => {
   const isSelected = (id: number) => selectedAppointments.indexOf(id) !== -1;
 
   const handleWeeklySlotClick = (date: Dayjs, time: string) => {
-    if (!isAuthenticated) return alert('ログインしてください。');
+    if (!isAuthenticated) return alert("ログインしてください。");
     openReservationForm(null, date, time);
   };
 
   const sortedAppointments = useMemo(() => {
-    let sortableItems = [...appointments.filter(app => !app.isDeleted)];
+    let sortableItems = [...appointments.filter((app) => !app.isDeleted)];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        if (sortConfig.key === 'date' || sortConfig.key === 'time') {
+        if (sortConfig.key === "date" || sortConfig.key === "time") {
           const aDateTime = dayjs(`${a.date} ${a.time}`);
           const bDateTime = dayjs(`${b.date} ${b.time}`);
           if (aDateTime.isBefore(bDateTime)) {
-            return sortConfig.direction === 'asc' ? -1 : 1;
+            return sortConfig.direction === "asc" ? -1 : 1;
           }
           if (aDateTime.isAfter(bDateTime)) {
-            return sortConfig.direction === 'asc' ? 1 : -1;
+            return sortConfig.direction === "asc" ? 1 : -1;
           }
           return 0;
         }
@@ -196,10 +247,10 @@ const HomePage = () => {
         if (bValue === undefined || bValue === null) return -1;
 
         if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
+          return sortConfig.direction === "asc" ? -1 : 1;
         }
         if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
+          return sortConfig.direction === "asc" ? 1 : -1;
         }
         return 0;
       });
@@ -207,45 +258,87 @@ const HomePage = () => {
     return sortableItems;
   }, [appointments, sortConfig]);
 
-  const filteredAppointments = sortedAppointments.filter(app => {
-    return !app.isDeleted && (
-      view === 'all' ||
-      (view === 'daily' && dayjs(app.date).isSame(dayjs(), 'day')) ||
-      (view === 'weekly' && dayjs(app.date).isAfter(dayjs().startOf('week')) && dayjs(app.date).isBefore(dayjs().endOf('week'))) ||
-      (view === 'monthly' && dayjs(app.date).isSame(dayjs(), 'month'))
+  const filteredAppointments = sortedAppointments.filter((app) => {
+    return (
+      !app.isDeleted &&
+      (view === "all" ||
+        (view === "daily" && dayjs(app.date).isSame(dayjs(), "day")) ||
+        (view === "weekly" &&
+          dayjs(app.date).isAfter(dayjs().startOf("week")) &&
+          dayjs(app.date).isBefore(dayjs().endOf("week"))) ||
+        (view === "monthly" && dayjs(app.date).isSame(dayjs(), "month")))
     );
   });
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, md: 0 } }}>
-          {(displayMode === 'calendar' || displayMode === 'weekly') && (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+          flexWrap: "wrap",
+        }}
+      >
+        <Box
+          sx={{ display: "flex", alignItems: "center", mb: { xs: 2, md: 0 } }}
+        >
+          {(displayMode === "calendar" || displayMode === "weekly") && (
             <>
-              <IconButton onClick={handlePrev}><ArrowBackIos /></IconButton>
+              <IconButton onClick={handlePrev}>
+                <ArrowBackIos />
+              </IconButton>
               <Typography variant="h5" sx={{ mx: 2 }}>
-                {displayMode === 'calendar'
-                  ? currentDate.format('YYYY年 M月')
-                  : `${currentDate.startOf('week').format('YYYY年 M月D日')} - ${currentDate.endOf('week').format('M月D日')}`}
+                {displayMode === "calendar"
+                  ? currentDate.format("YYYY年 M月")
+                  : `${currentDate
+                      .startOf("week")
+                      .format("YYYY年 M月D日")} - ${currentDate
+                      .endOf("week")
+                      .format("M月D日")}`}
               </Typography>
-              <IconButton onClick={handleNext}><ArrowForwardIos /></IconButton>
-              <Button variant="outlined" onClick={handleToday} sx={{ ml: 2 }}>今日</Button>
+              <IconButton onClick={handleNext}>
+                <ArrowForwardIos />
+              </IconButton>
+              <Button variant="outlined" onClick={handleToday} sx={{ ml: 2 }}>
+                今日
+              </Button>
             </>
           )}
-          {displayMode === 'list' && <Typography variant="h5">予約リスト</Typography>}
+          {displayMode === "list" && (
+            <Typography variant="h5">予約リスト</Typography>
+          )}
         </Box>
         <ButtonGroup variant="contained" aria-label="display mode button group">
-          <Button onClick={() => setDisplayMode('weekly')} disabled={displayMode === 'weekly'}>週</Button>
-          <Button onClick={() => setDisplayMode('calendar')} disabled={displayMode === 'calendar'}>月</Button>
-          <Button onClick={() => setDisplayMode('list')} disabled={displayMode === 'list'}>リスト</Button>
+          <Button
+            onClick={() => setDisplayMode("weekly")}
+            disabled={displayMode === "weekly"}
+          >
+            週
+          </Button>
+          <Button
+            onClick={() => setDisplayMode("calendar")}
+            disabled={displayMode === "calendar"}
+          >
+            月
+          </Button>
+          <Button
+            onClick={() => setDisplayMode("list")}
+            disabled={displayMode === "list"}
+          >
+            リスト
+          </Button>
         </ButtonGroup>
       </Box>
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+          <CircularProgress />
+        </Box>
       ) : (
         <>
-          {displayMode === 'list' && (
+          {displayMode === "list" && (
             <AppointmentListTable
               appointments={appointments}
               sortConfig={sortConfig}
@@ -264,11 +357,15 @@ const HomePage = () => {
             />
           )}
 
-          {displayMode === 'calendar' && (
-            <CalendarView appointments={appointments} blockedSlots={blockedSlots} currentMonth={currentDate} />
+          {displayMode === "calendar" && (
+            <CalendarView
+              appointments={appointments}
+              blockedSlots={blockedSlots}
+              currentMonth={currentDate}
+            />
           )}
 
-          {displayMode === 'weekly' && (
+          {displayMode === "weekly" && (
             <WeeklyCalendarView
               appointments={appointments}
               blockedSlots={blockedSlots}
@@ -276,14 +373,16 @@ const HomePage = () => {
               onSlotClick={handleWeeklySlotClick}
               onEditAppointment={handleEditAppointment}
               onDeleteAppointment={handleDeleteAppointment}
-              canEdit={user?.role !== 'viewer'}
+              canEdit={user?.role !== "viewer"}
             />
           )}
         </>
       )}
 
       <Dialog open={isReservationFormOpen} onClose={closeReservationForm}>
-        <DialogTitle>{reservationFormAppointment ? '予約編集' : '新規予約登録'}</DialogTitle>
+        <DialogTitle>
+          {reservationFormAppointment ? "予約編集" : "新規予約登録"}
+        </DialogTitle>
         <DialogContent>
           <ReservationForm
             onFormSubmit={handleFormSubmit}
@@ -301,7 +400,12 @@ const HomePage = () => {
       <Dialog open={isBlockedSlotFormOpen} onClose={closeBlockedSlotForm}>
         <DialogTitle>予約不可時間帯登録</DialogTitle>
         <DialogContent>
-          <BlockedSlotForm onFormSubmit={() => { fetchData(); closeBlockedSlotForm(); }} />
+          <BlockedSlotForm
+            onFormSubmit={() => {
+              fetchData();
+              closeBlockedSlotForm();
+            }}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={closeBlockedSlotForm}>キャンセル</Button>

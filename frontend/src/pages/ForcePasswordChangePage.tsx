@@ -1,31 +1,38 @@
-import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { useUI } from '../contexts/UIContext';
-import { Container, Box, TextField, Button, Typography, Alert } from '@mui/material';
+import React, { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useUI } from "../contexts/UIContext";
+import {
+  Container,
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Alert,
+} from "@mui/material";
 
-import { setPassword } from '../services/api';
+import { setPassword } from "../services/api";
 
 const ForcePasswordChangePage = () => {
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const { token } = useAuth();
   const navigate = useNavigate();
   const { showLoader, hideLoader } = useUI();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     if (newPassword !== confirmPassword) {
-      setError('パスワードが一致しません。');
+      setError("パスワードが一致しません。");
       return;
     }
     if (newPassword.length < 8) {
-      setError('パスワードは8文字以上で設定してください。');
+      setError("パスワードは8文字以上で設定してください。");
       return;
     }
 
@@ -33,12 +40,14 @@ const ForcePasswordChangePage = () => {
 
     try {
       await setPassword(newPassword, token);
-      setSuccess('パスワードが正常に更新されました。ホームページにリダイレクトします。');
+      setSuccess(
+        "パスワードが正常に更新されました。ホームページにリダイレクトします。"
+      );
       setTimeout(() => {
-        navigate('/');
+        navigate("/");
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'パスワードの更新に失敗しました。');
+      setError(err.message || "パスワードの更新に失敗しました。");
     } finally {
       hideLoader(); // ローディング終了
     }
@@ -49,9 +58,9 @@ const ForcePasswordChangePage = () => {
       <Box
         sx={{
           marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
       >
         <Typography component="h1" variant="h5">
@@ -83,8 +92,16 @@ const ForcePasswordChangePage = () => {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
-          {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-          {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+          {success && (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              {success}
+            </Alert>
+          )}
           <Button
             type="submit"
             fullWidth

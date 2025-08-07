@@ -1,30 +1,41 @@
-import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Container, Box, TextField, Button, Typography, Alert, Link } from '@mui/material';
+import React, { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
+import {
+  Container,
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Alert,
+  Link,
+} from "@mui/material";
 
-import { loginUser } from '../services/api';
+import { loginUser } from "../services/api";
 
 const LoginPage = () => {
-  const [userId, setUserId] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const auth = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     try {
-      const { user, token, mustChangePassword } = await loginUser(userId, password);
+      const { user, token, mustChangePassword } = await loginUser(
+        userId,
+        password
+      );
       auth.login(user, token);
       if (mustChangePassword) {
-        navigate('/force-password-change');
+        navigate("/force-password-change");
       } else {
-        navigate('/');
+        navigate("/");
       }
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(err.message || "Login failed");
     }
   };
 
@@ -33,9 +44,9 @@ const LoginPage = () => {
       <Box
         sx={{
           marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
       >
         <Typography component="h1" variant="h5">
@@ -66,7 +77,11 @@ const LoginPage = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
           <Button
             type="submit"
             fullWidth
@@ -75,7 +90,6 @@ const LoginPage = () => {
           >
             ログイン
           </Button>
-
         </Box>
       </Box>
     </Container>

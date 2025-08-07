@@ -1,4 +1,3 @@
-
 export interface Appointment {
   id: number;
   patientId?: string;
@@ -8,7 +7,7 @@ export interface Appointment {
   consultation?: string;
   lastUpdatedBy?: string;
   isDeleted?: boolean;
-  reservationType: 'outpatient' | 'visit' | 'rehab';
+  reservationType: "outpatient" | "visit" | "rehab";
   facilityName?: string;
   startTimeRange?: string;
   endTimeRange?: string;

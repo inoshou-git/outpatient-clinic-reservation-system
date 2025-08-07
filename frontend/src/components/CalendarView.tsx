@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -12,19 +12,19 @@ import {
   Button,
   List,
   ListItem,
-  ListItemText
-} from '@mui/material';
+  ListItemText,
+} from "@mui/material";
 
-import { Appointment, BlockedSlot } from '../types';
+import { Appointment, BlockedSlot } from "../types";
 
-import dayjs, { Dayjs } from 'dayjs';
-import 'dayjs/locale/ja';
-import weekday from 'dayjs/plugin/weekday';
+import dayjs, { Dayjs } from "dayjs";
+import "dayjs/locale/ja";
+import weekday from "dayjs/plugin/weekday";
 
-dayjs.locale('ja');
+dayjs.locale("ja");
 dayjs.extend(weekday);
 
-const WEEK_DAYS = ['日', '月', '火', '水', '木', '金', '土'];
+const WEEK_DAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const DAY_CELL_HEIGHT = 120;
 
 interface CalendarViewProps {
@@ -35,47 +35,65 @@ interface CalendarViewProps {
 
 const formatAppointmentPrimaryText = (app: Appointment): string => {
   switch (app.reservationType) {
-    case 'outpatient':
+    case "outpatient":
       return `${app.time} - ${app.patientName} (${app.patientId})`;
-    case 'visit':
-      return `訪問診療: ${app.startTimeRange} - ${app.endTimeRange} (${app.facilityName || ''})`;
-    case 'rehab':
+    case "visit":
+      return `訪問診療: ${app.startTimeRange} - ${app.endTimeRange} (${
+        app.facilityName || ""
+      })`;
+    case "rehab":
       return `通所リハ会議: ${app.startTimeRange} - ${app.endTimeRange}`;
     default:
-      return '不明な予約種別';
+      return "不明な予約種別";
   }
 };
 
 // --- Component ---
-const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots, currentMonth }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({
+  appointments,
+  blockedSlots,
+  currentMonth,
+}) => {
   const [openDialog, setOpenDialog] = useState(false);
-  const [selectedDayAppointments, setSelectedDayAppointments] = useState<Appointment[]>([]);
+  const [selectedDayAppointments, setSelectedDayAppointments] = useState<
+    Appointment[]
+  >([]);
   const [selectedDay, setSelectedDay] = useState<Dayjs | null>(null);
 
-  const startOfMonth = currentMonth.startOf('month');
-  const endOfMonth = currentMonth.endOf('month');
+  const startOfMonth = currentMonth.startOf("month");
+  const endOfMonth = currentMonth.endOf("month");
   const startOfWeek = startOfMonth.weekday(0);
   const endOfWeek = endOfMonth.weekday(6);
 
   const daysInMonth: Dayjs[] = [];
   let day = startOfWeek;
-  while (day.isBefore(endOfWeek) || day.isSame(endOfWeek, 'day')) {
+  while (day.isBefore(endOfWeek) || day.isSame(endOfWeek, "day")) {
     daysInMonth.push(day);
-    day = day.add(1, 'day');
+    day = day.add(1, "day");
   }
 
   const getAppointmentsForDay = (date: Dayjs) => {
-    return appointments.filter(app => {
+    return appointments.filter((app) => {
       if (app.isDeleted) return false;
-      return dayjs(app.date).isSame(date, 'day');
+      return dayjs(app.date).isSame(date, "day");
     });
   };
 
   const getAllDayBlock = (date: Dayjs) => {
-    return blockedSlots.find(slot => {
+    return blockedSlots.find((slot) => {
       const blockedStartDate = dayjs(slot.date);
-      const blockedEndDate = slot.endDate ? dayjs(slot.endDate) : blockedStartDate;
-      return slot.startTime === null && date.isBetween(blockedStartDate.startOf('day'), blockedEndDate.endOf('day'), null, '[]');
+      const blockedEndDate = slot.endDate
+        ? dayjs(slot.endDate)
+        : blockedStartDate;
+      return (
+        slot.startTime === null &&
+        date.isBetween(
+          blockedStartDate.startOf("day"),
+          blockedEndDate.endOf("day"),
+          null,
+          "[]"
+        )
+      );
     });
   };
 
@@ -97,9 +115,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots,
   return (
     <Box>
       <Grid container spacing={1}>
-        {WEEK_DAYS.map(dayName => (
+        {WEEK_DAYS.map((dayName) => (
           <Grid item xs={12 / 7} key={dayName}>
-            <Paper sx={{ p: 1, textAlign: 'center', fontWeight: 'bold' }}>{dayName}</Paper>
+            <Paper sx={{ p: 1, textAlign: "center", fontWeight: "bold" }}>
+              {dayName}
+            </Paper>
           </Grid>
         ))}
         {daysInMonth.map((date, index) => {
@@ -108,42 +128,66 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots,
           const allDayBlock = getAllDayBlock(date);
           const isWeekend = date.day() === 0 || date.day() === 6;
 
-          let backgroundColor = 'white';
+          let backgroundColor = "white";
           if (!isCurrentMonth) {
-            backgroundColor = '#fafafa';
+            backgroundColor = "#fafafa";
           } else if (allDayBlock) {
-            backgroundColor = '#ffebee'; // Light red for blocked day
+            backgroundColor = "#ffebee"; // Light red for blocked day
           } else if (isWeekend) {
-            backgroundColor = '#f5f5f5'; // Grey for weekend
+            backgroundColor = "#f5f5f5"; // Grey for weekend
           }
 
           return (
             <Grid item xs={12 / 7} key={index}>
-              <Tooltip title={allDayBlock ? allDayBlock.reason : ''} arrow>
+              <Tooltip title={allDayBlock ? allDayBlock.reason : ""} arrow>
                 <Paper
                   sx={{
                     p: 1,
                     minHeight: DAY_CELL_HEIGHT,
                     height: DAY_CELL_HEIGHT, // 固定高さ
                     backgroundColor,
-                    color: isCurrentMonth ? (isWeekend ? '#9e9e9e' : 'black') : '#a0a0a0',
-                    cursor: allDayBlock ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
+                    color: isCurrentMonth
+                      ? isWeekend
+                        ? "#9e9e9e"
+                        : "black"
+                      : "#a0a0a0",
+                    cursor: allDayBlock ? "not-allowed" : "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
                   }}
                   onClick={() => !allDayBlock && handleDayClick(date)}
                 >
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{date.date()}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                    {date.date()}
+                  </Typography>
                   {dayAppointments.length > 0 && (
-                    <Box sx={{ fontSize: '0.75rem', mt: 0.5, p: 0.5, backgroundColor: '#e0f7fa', borderRadius: 1, textAlign: 'center' }}>
+                    <Box
+                      sx={{
+                        fontSize: "0.75rem",
+                        mt: 0.5,
+                        p: 0.5,
+                        backgroundColor: "#e0f7fa",
+                        borderRadius: 1,
+                        textAlign: "center",
+                      }}
+                    >
                       {dayAppointments.length}件の予約
                     </Box>
                   )}
                   {allDayBlock && (
-                     <Box sx={{ fontSize: '0.75rem', mt: 0.5, p: 0.5, color: '#c62828', fontWeight: 'bold', textAlign: 'center' }}>
-                       {allDayBlock.reason}
-                     </Box>
+                    <Box
+                      sx={{
+                        fontSize: "0.75rem",
+                        mt: 0.5,
+                        p: 0.5,
+                        color: "#c62828",
+                        fontWeight: "bold",
+                        textAlign: "center",
+                      }}
+                    >
+                      {allDayBlock.reason}
+                    </Box>
                   )}
                 </Paper>
               </Tooltip>
@@ -153,17 +197,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, blockedSlots,
       </Grid>
 
       <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>{selectedDay ? selectedDay.format('YYYY年 M月D日') + 'の予約' : ''}</DialogTitle>
+        <DialogTitle>
+          {selectedDay ? selectedDay.format("YYYY年 M月D日") + "の予約" : ""}
+        </DialogTitle>
         <DialogContent>
           <List>
-            {selectedDayAppointments.map(app => (
+            {selectedDayAppointments.map((app) => (
               <ListItem key={app.id}>
                 <ListItemText
                   primary={formatAppointmentPrimaryText(app)}
                   secondary={
-                    app.reservationType === 'outpatient' ? app.consultation :
-                    app.reservationType === 'visit' ? app.consultation :
-                    null
+                    app.reservationType === "outpatient"
+                      ? app.consultation
+                      : app.reservationType === "visit"
+                      ? app.consultation
+                      : null
                   }
                 />
               </ListItem>

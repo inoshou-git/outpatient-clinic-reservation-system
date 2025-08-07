@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -12,15 +12,15 @@ import {
   Alert,
   Checkbox,
   FormControlLabel,
-} from '@mui/material';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import dayjs, { Dayjs } from 'dayjs';
-import { useAuth } from '../contexts/AuthContext';
-import { useUI } from '../contexts/UIContext';
+} from "@mui/material";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs, { Dayjs } from "dayjs";
+import { useAuth } from "../contexts/AuthContext";
+import { useUI } from "../contexts/UIContext";
 
-import { BlockedSlot } from '../types';
+import { BlockedSlot } from "../types";
 
 interface BlockedSlotFormProps {
   onFormSubmit: () => void;
@@ -33,20 +33,23 @@ const generateTimeSlots = () => {
   const endTime = dayjs().hour(17).minute(0).second(0);
 
   while (time.isBefore(endTime) || time.isSame(endTime)) {
-    slots.push(time.format('HH:mm'));
-    time = time.add(15, 'minute');
+    slots.push(time.format("HH:mm"));
+    time = time.add(15, "minute");
   }
   return slots;
 };
 
-const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blockedSlot }) => {
+const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
+  onFormSubmit,
+  blockedSlot,
+}) => {
   const { token } = useAuth();
   const { showLoader, hideLoader, closeBlockedSlotForm } = useUI();
   const [startDate, setStartDate] = useState<Dayjs | null>(dayjs());
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const [startTime, setStartTime] = useState<string | null>(null);
   const [endTime, setEndTime] = useState<string | null>(null);
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState("");
   const [isAllDay, setIsAllDay] = useState(false);
   const [sendNotification, setSendNotification] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +67,7 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
       setEndDate(null);
       setStartTime(null);
       setEndTime(null);
-      setReason('');
+      setReason("");
       setIsAllDay(false);
     }
   }, [blockedSlot]);
@@ -76,22 +79,24 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
     setError(null);
 
     if (!startDate || !reason) {
-      setError('開始日と理由を入力してください。');
+      setError("開始日と理由を入力してください。");
       return;
     }
 
     if (isAllDay && endDate && startDate.isAfter(endDate)) {
-      setError('開始日は終了日より前である必要があります。');
+      setError("開始日は終了日より前である必要があります。");
       return;
     }
 
     if (!isAllDay && (!startTime || !endTime)) {
-      setError('開始時間と終了時間を入力するか、終日予約不可を選択してください。');
+      setError(
+        "開始時間と終了時間を入力するか、終日予約不可を選択してください。"
+      );
       return;
     }
 
     if (!isAllDay && startTime && endTime && startTime >= endTime) {
-      setError('開始時間は終了時間より前である必要があります。');
+      setError("開始時間は終了時間より前である必要があります。");
       return;
     }
 
@@ -99,8 +104,8 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
     showLoader(); // ローディング開始
 
     const blockedSlotData = {
-      date: startDate.format('YYYY-MM-DD'),
-      endDate: isAllDay && endDate ? endDate.format('YYYY-MM-DD') : null,
+      date: startDate.format("YYYY-MM-DD"),
+      endDate: isAllDay && endDate ? endDate.format("YYYY-MM-DD") : null,
       startTime: isAllDay ? null : startTime,
       endTime: isAllDay ? null : endTime,
       reason,
@@ -109,15 +114,15 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
 
     const url = blockedSlot
       ? `/api/blocked-slots/${blockedSlot.id}`
-      : '/api/blocked-slots';
-    const method = blockedSlot ? 'PUT' : 'POST';
+      : "/api/blocked-slots";
+    const method = blockedSlot ? "PUT" : "POST";
 
     try {
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(blockedSlotData),
       });
@@ -126,11 +131,14 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
         onFormSubmit();
       } else {
         const errorData = await response.json();
-        setError(errorData.message || (blockedSlot ? '更新に失敗しました。' : '登録に失敗しました。'));
+        setError(
+          errorData.message ||
+            (blockedSlot ? "更新に失敗しました。" : "登録に失敗しました。")
+        );
       }
     } catch (err) {
-      setError('フォームの送信中にエラーが発生しました。');
-      console.error('Error submitting form:', err);
+      setError("フォームの送信中にエラーが発生しました。");
+      console.error("Error submitting form:", err);
     } finally {
       hideLoader(); // ローディング終了
     }
@@ -139,16 +147,27 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box component="form" onSubmit={handleSubmit} noValidate>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        <Typography variant="h6" sx={{ mb: 2 }}>{blockedSlot ? '予約不可設定の編集' : '予約不可設定の登録'}</Typography>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          {blockedSlot ? "予約不可設定の編集" : "予約不可設定の登録"}
+        </Typography>
         <DatePicker
           label="開始日"
           value={startDate}
           onChange={(newValue) => setStartDate(newValue)}
-          sx={{ mb: 2, width: '100%' }}
+          sx={{ mb: 2, width: "100%" }}
         />
         <FormControlLabel
-          control={<Checkbox checked={isAllDay} onChange={(e) => setIsAllDay(e.target.checked)} />}
+          control={
+            <Checkbox
+              checked={isAllDay}
+              onChange={(e) => setIsAllDay(e.target.checked)}
+            />
+          }
           label="終日予約不可"
           sx={{ mb: 2 }}
         />
@@ -158,17 +177,19 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
             value={endDate}
             onChange={(newValue) => setEndDate(newValue)}
             minDate={startDate || undefined}
-            sx={{ mb: 2, width: '100%' }}
+            sx={{ mb: 2, width: "100%" }}
           />
         )}
         {!isAllDay && (
-          <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
             <FormControl fullWidth>
               <InputLabel>開始時間</InputLabel>
               <Select
-                value={startTime || ''}
+                value={startTime || ""}
                 label="開始時間"
-                onChange={(e: SelectChangeEvent) => setStartTime(e.target.value)}
+                onChange={(e: SelectChangeEvent) =>
+                  setStartTime(e.target.value)
+                }
               >
                 {timeSlots.map((slot) => (
                   <MenuItem key={slot} value={slot}>
@@ -180,7 +201,7 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
             <FormControl fullWidth>
               <InputLabel>終了時間</InputLabel>
               <Select
-                value={endTime || ''}
+                value={endTime || ""}
                 label="終了時間"
                 onChange={(e: SelectChangeEvent) => setEndTime(e.target.value)}
               >
@@ -202,12 +223,17 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({ onFormSubmit, blocked
           sx={{ mb: 2 }}
         />
         <FormControlLabel
-          control={<Checkbox checked={sendNotification} onChange={(e) => setSendNotification(e.target.checked)} />}
+          control={
+            <Checkbox
+              checked={sendNotification}
+              onChange={(e) => setSendNotification(e.target.checked)}
+            />
+          }
           label="関係者にメールで通知する"
           sx={{ mb: 2 }}
         />
         <Button type="submit" variant="contained" fullWidth>
-          {blockedSlot ? '更新' : '登録'}
+          {blockedSlot ? "更新" : "登録"}
         </Button>
       </Box>
     </LocalizationProvider>

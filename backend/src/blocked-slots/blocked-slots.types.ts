@@ -1,4 +1,3 @@
-
 export interface BlockedSlot {
   id: number;
   date: string;
