@@ -3,80 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>閲覧ユーザー向け操作マニュアル</title>
+    <title>閲覧者向け操作マニュアル</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 20px; background-color: #f4f4f4; }
-        h1, h2, h3 { color: #0056b3; }
-        section { background-color: #fff; padding: 20px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        ul { list-style-type: disc; margin-left: 20px; }
-        ol { list-style-type: decimal; margin-left: 20px; }
-        .note { background-color: #e7f3fe; border-left: 6px solid #2196F3; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; line-height: 1.8; color: #333; margin: 20px; background-color: #f8f9fa; }
+        h1, h2, h3 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 5px; }
+        h1 { font-size: 2.5em; text-align: center; margin-bottom: 30px; }
+        h2 { font-size: 1.8em; margin-top: 40px; }
+        h3 { font-size: 1.4em; border-bottom: 1px solid #ccc; }
+        section { background-color: #fff; padding: 25px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        ul, ol { padding-left: 20px; }
+        li { margin-bottom: 10px; }
+        .note { background-color: #e7f3fe; border-left: 6px solid #2196F3; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .note h4 { margin-top: 0; color: #0056b3; }
+        dl dt { font-weight: bold; color: #333; margin-top: 10px; }
+        dl dd { margin-left: 20px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
-    <h1>閲覧ユーザー向け操作マニュアル</h1>
+    <h1>閲覧者向け操作マニュアル</h1>
 
     <section>
-        <h2>1. システム概要</h2>
-        <p>このシステムは、外来診療、訪問診療、通所リハ会議など、様々な予約を一元的に管理するための予約システムです。ユーザーは自身の役割に応じた機能を利用し、効率的な予約管理を行うことができます。</p>
+        <h2>1. 概要</h2>
+        <p>このマニュアルは、外来診療予約システムの閲覧者向け機能について説明します。閲覧者は、予約状況の確認のみが可能です。</p>
     </section>
 
     <section>
-        <h2>2. 概要</h2>
-        <p>このマニュアルは、外来診療予約システムの閲覧ユーザー向け機能について説明します。閲覧ユーザーは、予約状況や予約不可設定の確認のみが可能で、データの追加・編集・削除はできません。</p>
+        <h2>2. ログイン</h2>
+        <p>システムにアクセスするには、提供されたユーザーIDとパスワードを使用してログインしてください。初回ログイン時には、セキュリティのため新しいパスワードの設定が求められます。</p>
     </section>
 
     <section>
-        <h2>3. ログイン</h2>
-        <p>システムにアクセスするには、ユーザーIDとパスワードを使用してログインしてください。</p>
-        <ol>
-            <li>システムURLにアクセスします。</li>
-            <li>ログイン画面で、ユーザーIDとパスワードを入力し、「ログイン」ボタンをクリックします。</li>
-            <li>初回ログイン時には、新しいパスワードの設定が求められます。画面の指示に従ってパスワードを変更してください。</li>
-        </ol>
-    </section>
-
-    <section>
-        <h2>4. 予約状況の確認</h2>
-        <h4>4.0. 予約リストの見方</h4>
-        <p>予約リストでは、以下の項目が表示されます。</p>
-        <ul>
-            <li><strong>日付:</strong> 予約の日付。</li>
-            <li><strong>時間:</strong> 外来診療の場合は予約時間、訪問診療・通所リハ会議の場合は開始時間 - 終了時間。</li>
-            <li><strong>予約種別:</strong> 外来診療、訪問診療、通所リハ会議のいずれか。</li>
-            <li><strong>患者ID/施設名:</strong> 外来診療の場合は患者ID、訪問診療の場合は施設名。通所リハ会議の場合は表示されません。</li>
-            <li><strong>患者名:</strong> 外来診療の場合の患者名。訪問診療・通所リハ会議の場合は表示されません。</li>
-            <li><strong>診察内容:</strong> 外来診療・訪問診療の場合の診察内容。通所リハ会議の場合は表示されません。</li>
-            <li><strong>最終更新者:</strong> 予約を最後に更新したユーザー。</li>
-        </ul>
-        <p>予約一覧、カレンダー表示、週表示で予約状況を確認できます。</p>
-        <ul>
-            <li>**予約リスト:** 登録されている予約を一覧で確認できます。</li>
-            <li>**月表示:** 月単位で予約状況をカレンダー形式で確認できます。</li>
-            <li>**週表示:** 週単位で予約状況をカレンダー形式で確認できます。週表示では、「午前診療」「午後診療」「全て表示」ボタンで表示する時間帯を切り替えることができます。</li>
-        </ul>
+        <h2>3. 予約画面の見方と新機能</h2>
+        <p>予約状況は「週」「月」「リスト」の3つの形式で確認できます。画面上部のボタンで切り替えます。</p>
         <div class="note">
-            <strong>注意:</strong> 閲覧ユーザーは予約の追加、編集、削除を行うことはできません。
+            <h4>✨ 主な新機能と変更点 (2025年8月版)</h4>
+            <dl>
+                <dt>リアルタイム更新</dt>
+                <dd>他のユーザーが予約を変更すると、あなたの画面も自動的に更新されます。ページを再読み込みする必要はありません。</dd>
+                <dt>予約種別ごとの色分け (週表示)</dt>
+                <dd>週表示カレンダーで、予約の種類によって背景色が変わります。<br>
+                    <span style="color: #1e88e5; font-weight: bold;">■ 水色: 外来診療</span> / 
+                    <span style="color: #43a047; font-weight: bold;">■ 緑色: 訪問診療</span> / 
+                    <span style="color: #8e24aa; font-weight: bold;">■ 紫色: 通所リハ会議</span>
+                </dd>
+                <dt>予約不可ルールの追加</dt>
+                <dd>毎週<strong>水曜日の午後 (13:00以降)</strong> は、全ての予約ができなくなりました。カレンダー上ではグレーアウトして表示されます。</dd>
+                <dt>カレンダー表示の改善 (月表示)</dt>
+                <dd>月表示カレンダーで、土日の日付がグレーアウトされるようになり、週末が視覚的に分かりやすくなりました。</dd>
+            </dl>
         </div>
     </section>
 
     <section>
-        <h2>5. 予約不可設定の確認</h2>
-        <p>システムに設定されている予約不可時間帯を確認できます。</p>
-        <ol>
-            <li>ヘッダーメニューから「予約不可設定」を選択します。</li>
-            <li>予約不可設定の一覧が表示され、内容を確認できます。</li>
-        </ol>
-        <div class="note">
-            <strong>注意:</strong> 閲覧ユーザーは予約不可設定の追加、編集、削除を行うことはできません。
-        </div>
-    </section>
-
-    <section>
-        <h2>6. その他の機能</h2>
+        <h2>4. 予約の確認</h2>
+        <p>予約一覧、カレンダー、週表示で現在の予約状況を確認できます。</p>
         <ul>
-            <li>**ローディング表示:** 各操作の実行中は、画面全体にローディングアイコンが表示され、処理中であることが視覚的にわかります。</li>
+            <li><strong>カレンダー/週表示:</strong> 予約状況をカレンダー形式や週単位で確認できます。週表示では、「午前診療」「午後診療」「全て表示」ボタンで表示する時間帯を切り替えることができます。</li>
+            <li><strong>予約リスト:</strong> 予約の詳細情報を一覧で確認できます。</li>
         </ul>
     </section>
+
 </body>
 </html>

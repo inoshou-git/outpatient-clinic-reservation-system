@@ -5,99 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>一般ユーザー向け操作マニュアル</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 20px; background-color: #f4f4f4; }
-        h1, h2, h3 { color: #0056b3; }
-        section { background-color: #fff; padding: 20px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        ul { list-style-type: disc; margin-left: 20px; }
-        ol { list-style-type: decimal; margin-left: 20px; }
-        .note { background-color: #e7f3fe; border-left: 6px solid #2196F3; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; line-height: 1.8; color: #333; margin: 20px; background-color: #f8f9fa; }
+        h1, h2, h3 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 5px; }
+        h1 { font-size: 2.5em; text-align: center; margin-bottom: 30px; }
+        h2 { font-size: 1.8em; margin-top: 40px; }
+        h3 { font-size: 1.4em; border-bottom: 1px solid #ccc; }
+        section { background-color: #fff; padding: 25px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        ul, ol { padding-left: 20px; }
+        li { margin-bottom: 10px; }
+        .note { background-color: #e7f3fe; border-left: 6px solid #2196F3; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .note h4 { margin-top: 0; color: #0056b3; }
+        dl dt { font-weight: bold; color: #333; margin-top: 10px; }
+        dl dd { margin-left: 20px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <h1>一般ユーザー向け操作マニュアル</h1>
 
     <section>
-        <h2>1. システム概要</h2>
-        <p>このシステムは、外来診療、訪問診療、通所リハ会議など、様々な予約を一元的に管理するための予約システムです。ユーザーは自身の役割に応じた機能を利用し、効率的な予約管理を行うことができます。</p>
+        <h2>1. 概要</h2>
+        <p>このマニュアルは、外来診療予約システムの一般ユーザー向け機能について説明します。予約の追加・編集・削除が主な操作となります。</p>
     </section>
 
     <section>
-        <h2>2. 概要</h2>
-        <p>このマニュアルは、外来診療予約システムの一般ユーザー向け機能について説明します。一般ユーザーは、予約の追加・編集・削除、予約状況の確認が可能です。</p>
+        <h2>2. ログイン</h2>
+        <p>システムにアクセスするには、提供されたユーザーIDとパスワードを使用してログインしてください。初回ログイン時には、セキュリティのため新しいパスワードの設定が求められます。</p>
     </section>
 
     <section>
-        <h2>3. ログイン</h2>
-        <p>システムにアクセスするには、ユーザーIDとパスワードを使用してログインしてください。</p>
+        <h2>3. 予約画面の見方と新機能</h2>
+        <p>予約状況は「週」「月」「リスト」の3つの形式で確認できます。画面上部のボタンで切り替えます。</p>
+        <div class="note">
+            <h4>✨ 主な新機能と変更点 (2025年8月版)</h4>
+            <dl>
+                <dt>リアルタイム更新</dt>
+                <dd>他のユーザーが予約を変更すると、あなたの画面も自動的に更新されます。ページを再読み込みする必要はありません。</dd>
+                <dt>予約種別ごとの色分け (週表示)</dt>
+                <dd>週表示カレンダーで、予約の種類によって背景色が変わります。<br>
+                    <span style="color: #1e88e5; font-weight: bold;">■ 水色: 外来診療</span> / 
+                    <span style="color: #43a047; font-weight: bold;">■ 緑色: 訪問診療</span> / 
+                    <span style="color: #8e24aa; font-weight: bold;">■ 紫色: 通所リハ会議</span>
+                </dd>
+                <dt>予約不可ルールの追加</dt>
+                <dd>毎週<strong>水曜日の午後 (13:00以降)</strong> は、全ての予約ができなくなりました。カレンダー上ではグレーアウトして表示されます。</dd>
+                <dt>カレンダー表示の改善 (月表示)</dt>
+                <dd>月表示カレンダーで、土日の日付がグレーアウトされるようになり、週末が視覚的に分かりやすくなりました。</dd>
+            </dl>
+        </div>
+    </section>
+
+    <section>
+        <h2>4. 予約の管理</h2>
+        <p>予約の追加、更新、削除が可能です。操作中はローディングアイコンが表示され、完了すると自動的に画面が更新されます。</p>
+        <h3>4.1. 新規予約・編集</h3>
         <ol>
-            <li>システムURLにアクセスします。</li>
-            <li>ログイン画面で、ユーザーIDとパスワードを入力し、「ログイン」ボタンをクリックします。</li>
-            <li>初回ログイン時には、新しいパスワードの設定が求められます。画面の指示に従ってパスワードを変更してください。</li>
+            <li>週表示カレンダーの空いている時間帯をクリックするか、既存の予約をクリックして「編集」を選択すると、予約フォームが開きます。</li>
+            <li>以下の項目を入力・編集します。
+                <ul>
+                    <li><strong>予約種別:</strong> 「外来診療」「訪問診療」「通所リハ会議」から選択します。</li>
+                    <li><strong>患者ID/患者名:</strong> 外来診療の場合に必須です。</li>
+                    <li><strong>施設名:</strong> 訪問診療の場合に入力します。</li>
+                    <li><strong>日付/時間:</strong> 予約日時を選択します。</li>
+                    <li><strong>診察内容:</strong> リストから診察内容を選択します。<strong>「その他」</strong>を選択すると、詳細を自由に入力できるテキストボックスが表示されます。</li>
+                    <li><strong>通知:</strong> チェックを入れると、関係者にメールで通知が送信されます。</li>
+                </ul>
+            </li>
+            <li>「予約を登録する」または「予約を更新する」ボタンをクリックして保存します。</li>
         </ol>
+        <h3>4.2. 予約の削除</h3>
+        <p>予約一覧または週表示カレンダーで、削除したい予約をクリックし、「削除」ボタンから操作します。削除時にも、予約内容に応じた詳細情報が記載された通知メールが送信されます。</p>
+        <h3>4.3. 予約の一括操作 (リスト表示)</h3>
+        <p>予約一覧画面で「一括操作」ボタンをクリックすると、複数の予約を選択して一括で削除できます。</p>
     </section>
 
-    <section>
-        <h2>4. 予約管理</h2>
-        <p>予約の追加、更新、削除が可能です。操作中はローディングアイコンが表示されます。</p>
-        <h3>4.1. 新規予約登録</h3>
-        <ol>
-            <li>ログイン後、ヘッダーメニューから「新規予約登録」を選択するか、カレンダー/週表示の空き時間枠をクリックします。</li>
-            <li>表示されるフォームで、まず「予約種別」を選択します。</li>
-            <ul>
-                <li><strong>外来診療:</strong> 患者ID（数字のみ）、患者名、日付、時間、診察内容を入力します。</li>
-                <li><strong>訪問診療:</strong> 施設名（任意）、日付、開始時間、終了時間（必須）、診察内容を入力します。</li>
-                <li><strong>通所リハ会議:</strong> 日付、開始時間、終了時間（必須）を入力します。</li>
-            </ul>
-            <li>「関係者にメールで通知する」チェックボックスをオンにすると、システムに登録されている全ユーザーに通知メールが送信されます。</li>
-            <li>「予約を登録する」ボタンをクリックして予約を保存します。</li>
-        </ol>
-        <h3>4.2. 予約の編集</h3>
-        <ol>
-            <li>予約一覧またはカレンダー/週表示で、編集したい予約をクリックします。</li>
-            <li>表示されるフォームで、予約種別に応じた項目を編集します。</li>
-            <ul>
-                <li><strong>外来診療:</strong> 患者ID、患者名、日付、時間、診察内容。</li>
-                <li><strong>訪問診療:</strong> 施設名、日付、開始時間、終了時間、診察内容。</li>
-                <li><strong>通所リハ会議:</strong> 日付、開始時間、終了時間。</li>
-            </ul>
-            <li>「関係者にメールで通知する」チェックボックスをオンにすると、変更内容が記載された通知メールが送信されます。</li>
-            <li>「予約を更新する」ボタンをクリックして変更を保存します。</li>
-        </ol>
-        <h3>4.3. 予約の削除</h3>
-        <ol>
-            <li>予約一覧で、削除したい予約の行にある「削除」アイコンをクリックします。</li>
-            <li>確認ダイアログが表示されるので、「OK」をクリックすると予約が削除されます。</li>
-            <li>予約削除時にも通知メールが送信されます。</li>
-        </ol>
-    </section>
-
-    <section>
-        <h2>5. 予約状況の確認</h2>
-        <h4>5.0. 予約リストの見方</h4>
-        <p>予約リストでは、以下の項目が表示されます。</p>
-        <ul>
-            <li><strong>日付:</strong> 予約の日付。</li>
-            <li><strong>時間:</strong> 外来診療の場合は予約時間、訪問診療・通所リハ会議の場合は開始時間 - 終了時間。</li>
-            <li><strong>予約種別:</strong> 外来診療、訪問診療、通所リハ会議のいずれか。</li>
-            <li><strong>患者ID/施設名:</strong> 外来診療の場合は患者ID、訪問診療の場合は施設名。通所リハ会議の場合は表示されません。</li>
-            <li><strong>患者名:</strong> 外来診療の場合の患者名。訪問診療・通所リハ会議の場合は表示されません。</li>
-            <li><strong>診察内容:</strong> 外来診療・訪問診療の場合の診察内容。通所リハ会議の場合は表示されません。</li>
-            <li><strong>最終更新者:</strong> 予約を最後に更新したユーザー。</li>
-            <li><strong>操作:</strong> 予約の編集、削除を行うためのボタン。</li>
-        </ul>
-        <p>予約一覧、カレンダー表示、週表示で予約状況を確認できます。</p>
-        <ul>
-            <li>**予約リスト:** 登録されている予約を一覧で確認できます。</li>
-            <li>**月表示:** 月単位で予約状況をカレンダー形式で確認できます。</li>
-            <li>**週表示:** 週単位で予約状況をカレンダー形式で確認できます。週表示では、「午前診療」「午後診療」「全て表示」ボタンで表示する時間帯を切り替えることができます。</li>
-        </ul>
-    </section>
-
-    <section>
-        <h2>6. その他の機能</h2>
-        <ul>
-            <li>**ローディング表示:** 各操作の実行中は、画面全体にローディングアイコンが表示され、処理中であることが視覚的にわかります。</li>
-        </ul>
-    </section>
 </body>
 </html>

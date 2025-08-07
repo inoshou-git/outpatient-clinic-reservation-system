@@ -17,25 +17,38 @@
 
 ## 機能
 
+- **リアルタイム更新:**
+  - 予約や予約不可設定の変更が、画面を再読み込みせずにリアルタイムで反映されます。
+- **カレンダー表示の改善:**
+  - 週表示カレンダーで、予約種別（外来診療、訪問診療、通所リハ会議）に応じて背景色が色分けされます。
+  - 月表示カレンダーで、土日の日付が視覚的に分かりやすくグレーアウトされます。
+- **予約ルールの追加:**
+  - 毎週水曜日の午後（13:00以降）は、全ての予約種別で予約ができないようになりました。該当時間帯はカレンダー上でグレーアウトされ、予約フォームでも選択・登録ができません。
+- **予約フォームの改善:**
+  - 「診察内容」が、固定リストからの選択式になりました。「その他」を選択した場合は、詳細を自由に入力できるテキストフィールドが表示されます。
 - **管理者によるユーザー作成:**
   - 管理者権限を持つユーザーのみが新しいユーザーを作成できます。
   - 新規ユーザーには自動生成された初期パスワードが割り当てられ、指定されたメールアドレスに通知されます。
   - 初回ログイン時にパスワードの変更が強制されます。
-- 予約の追加、更新、削除
+- **予約の追加、更新、削除:**
   - 予約更新時には、変更された項目がメール通知に明記されます（例: 日時: 2025-08-01 11:00 → 2025-08-01 10:30）。
+  - 予約削除時には、予約種別に応じた詳細情報が通知メールに記載されます。
   - 予約操作中にローディングインジケーターが表示され、ユーザー体験が向上しました。
-- 予約不可時間帯の設定
+- **予約不可時間帯の設定:**
   - 予約不可設定の変更中にローディングインジケーターが表示され、ユーザー体験が向上しました。
-- ユーザー管理（管理者権限）
+- **ユーザー管理（管理者権限）:**
   - ユーザーの作成、更新、削除操作中にローディングインジケーターが表示され、ユーザー体験が向上しました。
   - 閲覧ユーザーには「一括操作」ボタンが表示されません。
-- メール通知機能（予約、予約不可設定の変更時、新規ユーザー作成時）
-- `patientId` の数字のみバリデーション（フロントエンド・バックエンド両方）
+- **メール通知機能:**
+  - 予約、予約不可設定の変更時、新規ユーザー作成時にメール通知が送信されます。
+  - 送信元メールアドレスを環境変数で管理できるようになりました。
+- **`patientId` の数字のみバリデーション:**
+  - フロントエンド・バックエンド両方で実装されています。
 
 ## 技術スタック
 
-- **バックエンド:** Node.js, Express.js, TypeScript, `date-fns`, `nodemailer`
-- **フロントエンド:** React, TypeScript, Material-UI, `dayjs`, `react-router-dom`
+- **バックエンド:** Node.js, Express.js, TypeScript, `dayjs`, `nodemailer`, `socket.io`
+- **フロントエンド:** React, TypeScript, Material-UI, `dayjs`, `react-router-dom`, `socket.io-client`
 - **データベース:** JSONファイル (db.json)
 - **コンテナ化:** Docker, Docker Compose
 
@@ -61,23 +74,11 @@
     -   **`backend/.env`**
         ```env
         # SMTPサーバーの設定 (Gmail, Yahoo!メールなどの実際のSMTPサービス、またはテスト用SMTPサービスを推奨)
-        # Gmailの場合:
         # SMTP_HOST=smtp.gmail.com
         # SMTP_PORT=465
         # SMTP_USER=あなたのGmailアドレス@gmail.com
-        # SMTP_PASS=あなたのGmailアプリパスワード (通常のパスワードではありません)
-        #
-        # Yahoo!メールの場合:
-        # SMTP_HOST=smtp.mail.yahoo.co.jp
-        # SMTP_PORT=465
-        # SMTP_USER=あなたのYahooメールアドレス@yahoo.co.jp
-        # SMTP_PASS=あなたのYahooメールアプリパスワード (通常のパスワードではありません)
-        #
-        # テスト用SMTPサービス (例: Ethereal.email) の場合:
-        # SMTP_HOST=smtp.ethereal.email
-        # SMTP_PORT=587 # または465
-        # SMTP_USER=your_ethereal_username
-        # SMTP_PASS=your_ethereal_password
+        # SMTP_PASS=あなたのGmailアプリパスワード
+        # SMTP_FROM_ADDRESS=noreply@example.com
 
         # システムのURL (フロントエンドのURLと合わせる)
         SYSTEM_URL=http://localhost:3333
@@ -144,6 +145,7 @@
         SMTP_PORT=your_production_smtp_port
         SMTP_USER=your_production_smtp_user
         SMTP_PASS=your_production_smtp_pass
+        SMTP_FROM_ADDRESS=noreply@example.com
         # 本番環境のシステムのURL
         SYSTEM_URL=https://your.production.url
         ```
