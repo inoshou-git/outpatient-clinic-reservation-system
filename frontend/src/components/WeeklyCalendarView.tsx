@@ -77,6 +77,12 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ appointments, b
   };
 
   const getBlockedSlotForSlot = (day: Dayjs, time: string) => {
+    // Check for Wednesday afternoon
+    const isWednesdayAfternoon = day.day() === 3 && time >= '13:00';
+    if (isWednesdayAfternoon) {
+      return { id: -1, reason: '水曜午後は予約不可', date: day.format('YYYY-MM-DD'), startTime: '13:00', endTime: '16:30' };
+    }
+
     const dateTime = dayjs(`${day.format('YYYY-MM-DD')}T${time}`);
     return blockedSlots.find(slot => {
       const blockedStartDate = dayjs(slot.date);
@@ -169,9 +175,19 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ appointments, b
                     cursor = 'not-allowed';
                     clickable = false;
                   } else if (appointment) {
-                    backgroundColor = '#e3f2fd'; // Light blue for appointments
-                    cursor = canEdit ? 'pointer' : 'default'; // Only pointer if canEdit
-                    clickable = canEdit; // Only clickable if canEdit is true
+                    switch (appointment.reservationType) {
+                      case 'visit':
+                        backgroundColor = '#e8f5e9'; // Light green
+                        break;
+                      case 'rehab':
+                        backgroundColor = '#f3e5f5'; // Light purple
+                        break;
+                      default:
+                        backgroundColor = '#e3f2fd'; // Light blue
+                        break;
+                    }
+                    cursor = canEdit ? 'pointer' : 'default';
+                    clickable = canEdit;
                   }
 
                   return (

@@ -41,6 +41,12 @@ export const createAppointment = async (appointmentData: any, lastUpdatedBy: str
         }
     }
     
+    // Add validation for Wednesday afternoon
+    const appointmentDate = dayjs(appointmentData.date);
+    if (appointmentDate.day() === 3 && appointmentData.time >= '13:00') {
+        throw new Error('水曜日の午後は予約できません。');
+    }
+
     const db = await readDb();
     const newId = db.appointments.length > 0 ? Math.max(...db.appointments.map(a => a.id)) + 1 : 1;
     const newAppointment: Appointment = {
@@ -78,9 +84,7 @@ export const createAppointment = async (appointmentData: any, lastUpdatedBy: str
         let html = '';
 
         if (reservationType === 'outpatient') {
-            subject = '新規予約登録のお知らせ (外来診療)';
-            text = `新しい外来診療の予約が登録されました.\n患者名: ${patientName}\n日時: ${date} ${time}\n担当: ${lastUpdatedBy}`;
-            html = `<p>新しい外来診療の予約が登録されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${time}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+            subject = '新規予約登録のお知らせ (外来診療)';            text = `新しい外来診療の予約が登録されました.\n患者名: ${patientName}\n日時: ${date} ${time}\n診察内容: ${consultation || '未入力'}\n担当: ${lastUpdatedBy}`;            html = `<p>新しい外来診療の予約が登録されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${time}</li><li>診察内容: ${consultation || '未入力'}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
         } else if (reservationType === 'visit') {
             subject = '新規予約登録のお知らせ (訪問診療)';
             text = `新しい訪問診療の予約が登録されました.\n施設名: ${facilityName || '未入力'}\n日時: ${date} ${startTimeRange} - ${endTimeRange}\n診察内容: ${consultation || '未入力'}\n担当: ${lastUpdatedBy}`;
@@ -103,11 +107,13 @@ export const updateAppointment = async (id: number, appointmentData: any, lastUp
     if (appointmentIndex !== -1) {
         const oldAppointment = { ...db.appointments[appointmentIndex] };
 
-        const updatedAppointment: Appointment = {
-            ...db.appointments[appointmentIndex],
-            ...appointmentData,
-            lastUpdatedBy,
-        };
+        // Add validation for Wednesday afternoon
+        const appointmentDate = dayjs(appointmentData.date);
+        if (appointmentDate.day() === 3 && appointmentData.time >= '13:00') {
+            throw new Error('水曜日の午後は予約できません。');
+        }
+
+        const updatedAppointment = { ...db.appointments[appointmentIndex], ...appointmentData, lastUpdatedBy };
 
         if (updatedAppointment.reservationType === 'outpatient') {
             if (!updatedAppointment.patientId || !updatedAppointment.patientName || !updatedAppointment.time) {
@@ -156,7 +162,7 @@ export const updateAppointment = async (id: number, appointmentData: any, lastUp
                 if (oldAppointment.consultation !== updatedAppointment.consultation) changes += `<li>診察内容: ${oldAppointment.consultation || '未入力'} → ${updatedAppointment.consultation || '未入力'}</li>`;
                 subject = '予約更新のお知らせ (外来診療)';
                 text = `外来診療の予約が更新されました.\n患者名: ${updatedAppointment.patientName}\n日時: ${updatedAppointment.date} ${updatedAppointment.time}\n担当: ${lastUpdatedBy}\n\n変更点:\n${changes.replace(/<li>/g, '').replace(/<\/li>/g, '\n')}`;
-                html = `<p>外来診療の予約が更新されました。</p><ul><li>患者名: ${updatedAppointment.patientName}</li><li>日時: ${updatedAppointment.date} ${updatedAppointment.time}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+                html = `<p>外来診療の予約が更新されました。</p><ul><li>患者名: ${updatedAppointment.patientName}</li><li>日時: ${updatedAppointment.date} ${updatedAppointment.time}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}<\/a><\/p>`;
             } else if (updatedAppointment.reservationType === 'visit') {
                 if (oldAppointment.facilityName !== updatedAppointment.facilityName) changes += `<li>施設名: ${oldAppointment.facilityName || '未入力'} → ${updatedAppointment.facilityName || '未入力'}</li>`;
                 if (oldAppointment.startTimeRange !== updatedAppointment.startTimeRange) changes += `<li>開始時間: ${oldAppointment.startTimeRange || '未入力'} → ${updatedAppointment.startTimeRange || '未入力'}</li>`;
@@ -194,9 +200,43 @@ export const deleteAppointment = async (id: number, lastUpdatedBy: string): Prom
         // Emit WebSocket event
         io.emit('appointmentDeleted', id);
 
-        const subject = '予約削除のお知らせ';
-        const text = `予約が削除されました.\n患者名: ${deletedAppointment.patientName}\n日時: ${deletedAppointment.date} ${deletedAppointment.time}\n担当: ${lastUpdatedBy}`;
-        const html = `<p>予約が削除されました。</p><ul><li>患者名: ${deletedAppointment.patientName}</li><li>日時: ${deletedAppointment.date} ${deletedAppointment.time}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+        let subject = '予約削除のお知らせ';
+        let text = '';
+        let html = '';
+
+        switch (deletedAppointment.reservationType) {
+            case 'outpatient':
+                subject = '予約削除のお知らせ (外来診療)';
+                text = `外来診療の予約が削除されました。
+患者名: ${deletedAppointment.patientName}
+日時: ${deletedAppointment.date} ${deletedAppointment.time}
+診察内容: ${deletedAppointment.consultation || '未入力'}
+担当: ${lastUpdatedBy}`;
+                html = `<p>外来診療の予約が削除されました。</p><ul><li>患者名: ${deletedAppointment.patientName}</li><li>日時: ${deletedAppointment.date} ${deletedAppointment.time}</li><li>診察内容: ${deletedAppointment.consultation || '未入力'}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+                break;
+            case 'visit':
+                subject = '予約削除のお知らせ (訪問診療)';
+                text = `訪問診療の予約が削除されました。
+施設名: ${deletedAppointment.facilityName || '未入力'}
+日時: ${deletedAppointment.date} ${deletedAppointment.startTimeRange} - ${deletedAppointment.endTimeRange}
+診察内容: ${deletedAppointment.consultation || '未入力'}
+担当: ${lastUpdatedBy}`;
+                html = `<p>訪問診療の予約が削除されました。</p><ul><li>施設名: ${deletedAppointment.facilityName || '未入力'}</li><li>日時: ${deletedAppointment.date} ${deletedAppointment.startTimeRange} - ${deletedAppointment.endTimeRange}</li><li>診察内容: ${deletedAppointment.consultation || '未入力'}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+                break;
+            case 'rehab':
+                subject = '予約削除のお知らせ (通所リハ会議)';
+                text = `通所リハ会議の予約が削除されました。
+日時: ${deletedAppointment.date} ${deletedAppointment.startTimeRange} - ${deletedAppointment.endTimeRange}
+担当: ${lastUpdatedBy}`;
+                html = `<p>通所リハ会議の予約が削除されました。</p><ul><li>日時: ${deletedAppointment.date} ${deletedAppointment.startTimeRange} - ${deletedAppointment.endTimeRange}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+                break;
+            default:
+                text = `予約が削除されました。
+担当: ${lastUpdatedBy}`;
+                html = `<p>予約が削除されました。</p><p>担当: ${lastUpdatedBy}</p><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+                break;
+        }
+
         await notifyUsers(subject, text, html);
 
         return true;
