@@ -60,7 +60,7 @@ const UserManagementPage = () => {
       setLoading(false);
       hideLoader(); // ローディング終了
     }
-  }, [token, hideLoader, showLoader]);
+  }, [token]);
 
   useEffect(() => {
     fetchUsers();
