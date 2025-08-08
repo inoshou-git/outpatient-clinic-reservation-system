@@ -88,7 +88,10 @@ export const UIProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const socket: Socket = io("http://127.0.0.1:3334"); // Connect to backend WebSocket server
+    const socketURL = process.env.REACT_APP_WEBSOCKET_URL || window.location.origin.replace(/^http/, 'ws');
+    const socket: Socket = io(socketURL, {
+      transports: ['websocket', 'polling'], // Add polling as a fallback
+    }); // Connect to backend WebSocket server
 
     socket.on("connect", () => {
       console.log("Connected to WebSocket server");
