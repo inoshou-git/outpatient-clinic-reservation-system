@@ -296,8 +296,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                         backgroundColor = "#e3f2fd"; // Light blue
                         break;
                     }
-                    cursor = canEdit ? "pointer" : "default";
-                    clickable = canEdit;
+                    cursor = "pointer"; // Always allow clicking to view details
                   }
 
                   return (
@@ -324,12 +323,10 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                           },
                         }}
                         onClick={() => {
-                          if (clickable) {
-                            if (appointment) {
-                              handleAppointmentClick(appointment);
-                            } else {
-                              onSlotClick(day, time);
-                            }
+                          if (appointment) {
+                            handleAppointmentClick(appointment);
+                          } else if (canEdit && !isWeekend && !blockedSlot) {
+                            onSlotClick(day, time);
                           }
                         }}
                       >
