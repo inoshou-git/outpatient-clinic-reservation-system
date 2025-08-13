@@ -1,9 +1,14 @@
 FROM node:20-alpine as build
+
+ARG REACT_APP_WEBSOCKET_URL
+ARG REACT_APP_SITE_NAME_SUFFIX
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm cache clean --force && npm install
 COPY . .
-RUN npm run build
+
+RUN REACT_APP_WEBSOCKET_URL=${REACT_APP_WEBSOCKET_URL} REACT_APP_SITE_NAME_SUFFIX=${REACT_APP_SITE_NAME_SUFFIX} npm run build
 
 FROM nginx:stable-alpine
 COPY --from=build /app/build /usr/share/nginx/html

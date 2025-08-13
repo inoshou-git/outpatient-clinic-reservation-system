@@ -25,3 +25,11 @@ frontend/node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Environment specific config files
+backend/.env.development
+backend/.env.staging
+frontend/.env
+frontend/.env.development
+frontend/.env.staging
+frontend/.env.production

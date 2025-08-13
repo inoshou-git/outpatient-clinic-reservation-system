@@ -4,17 +4,22 @@ services:
   backend:
     build: ./backend
     ports:
-      - "3334:3001"
+      - "3001:3001"
     volumes:
-      - ./backend/db.json:/app/db.json # Persist db.json
+      - ./backend/db.json:/app/db.json
     env_file:
       - ./backend/.env.production
+    command: npm run start:prod
     restart: always
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - REACT_APP_WEBSOCKET_URL=${REACT_APP_WEBSOCKET_URL}
+        - REACT_APP_SITE_NAME_SUFFIX=${REACT_APP_SITE_NAME_SUFFIX}
     ports:
-      - "3333:80"
+      - "3334:3334"
     depends_on:
       - backend
     env_file:

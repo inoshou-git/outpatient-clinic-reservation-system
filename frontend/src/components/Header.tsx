@@ -49,12 +49,16 @@ const Header = () => {
     handleMenuClose();
   };
 
+  const baseSiteName = "外来診療予約システム";
+  const siteNameSuffix = process.env.REACT_APP_SITE_NAME_SUFFIX || "";
+  const fullSiteName = `${baseSiteName}${siteNameSuffix}`;
+
   return (
     <AppBar position="static">
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
           <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
-            外来診療予約システム
+            {fullSiteName}
           </Link>
         </Typography>
         {isAuthenticated ? (
