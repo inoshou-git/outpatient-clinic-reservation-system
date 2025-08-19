@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import * as appointmentService from "./appointments.service";
 
 export const getAllAppointments = async (req: Request, res: Response) => {
-  const appointments = await appointmentService.getAllAppointments();
+  const date = req.query.date as string | undefined;
+  const appointments = await appointmentService.getAllAppointments(date);
   res.json(appointments);
 };
 

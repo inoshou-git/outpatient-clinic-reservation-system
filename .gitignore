@@ -29,7 +29,9 @@ yarn-error.log*
 # Environment specific config files
 backend/.env.development
 backend/.env.staging
+backend/.env.production
 frontend/.env
 frontend/.env.development
 frontend/.env.staging
 frontend/.env.production
+frontend/.env.development

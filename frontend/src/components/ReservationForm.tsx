@@ -18,6 +18,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 import { useAuth } from "../contexts/AuthContext";
 import { useUI } from "../contexts/UIContext";
+import { getAppointments } from "../services/api"; // Import getAppointments
 
 import { Appointment, BlockedSlot } from "../types";
 
@@ -95,6 +96,22 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const [otherConsultation, setOtherConsultation] = useState("");
   const [sendNotification, setSendNotification] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [existingAppointments, setExistingAppointments] = useState<Appointment[]>([]); // New state for existing appointments
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      if (date && token) {
+        try {
+          const fetchedAppointments = await getAppointments(token, date.format("YYYY-MM-DD"));
+          setExistingAppointments(fetchedAppointments);
+        } catch (err) {
+          console.error("Failed to fetch existing appointments:", err);
+          setExistingAppointments([]);
+        }
+      }
+    };
+    fetchAppointments();
+  }, [date, token]);
 
   useEffect(() => {
     if (appointment) {
@@ -106,6 +123,10 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       setTime(appointment.time || "");
       setStartTimeRange(appointment.startTimeRange || "");
       setEndTimeRange(appointment.endTimeRange || "");
+      console.log("Editing appointment:", appointment);
+      console.log("Appointment time:", appointment.time);
+      console.log("Appointment startTimeRange:", appointment.startTimeRange);
+      console.log("Appointment endTimeRange:", appointment.endTimeRange);
 
       const existingConsultation = appointment.consultation || "";
       if (consultationOptions.includes(existingConsultation)) {
@@ -272,13 +293,26 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
     return allTimeSlots.filter((slotTime) => {
       const currentSlotTime = dayjs(`${date.format("YYYY-MM-DD")}T${slotTime}`);
-      return !dayBlockedSlots.some((blocked) => {
+      const isBlocked = dayBlockedSlots.some((blocked) => {
         const start = dayjs(`${blocked.date}T${blocked.startTime}`);
         const end = dayjs(`${blocked.date}T${blocked.endTime}`);
         return currentSlotTime.isBetween(start, end, null, "[)");
       });
+
+      const isBooked = existingAppointments.some((appt) => {
+        // If we are editing this appointment, its own time should not be considered booked
+        if (appointment && appt.id === appointment.id) {
+          return false;
+        }
+        if (appt.reservationType === "outpatient" && appt.time) {
+          return appt.time === slotTime;
+        }
+        return false;
+      });
+
+      return !isBlocked && !isBooked;
     });
-  }, [date, blockedSlots, allTimeSlots]);
+  }, [date, blockedSlots, allTimeSlots, existingAppointments]);
 
   const availableVisitRehabTimeSlots = useMemo(() => {
     if (!date) return [];
@@ -286,8 +320,34 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     if (date.day() === 3) {
       return allTimeSlots.filter((slotTime) => slotTime < "13:00");
     }
-    return allTimeSlots;
-  }, [date, allTimeSlots]);
+    return allTimeSlots.filter((slotTime) => {
+      const currentSlotTime = dayjs(`${date.format("YYYY-MM-DD")}T${slotTime}`);
+
+      const isBooked = existingAppointments.some((appt) => {
+        // If we are editing this appointment, its own time should not be considered booked
+        if (appointment && appt.id === appointment.id) {
+          return false;
+        }
+        if (
+          (appt.reservationType === "visit" ||
+            appt.reservationType === "rehab") &&
+          appt.startTimeRange &&
+          appt.endTimeRange
+        ) {
+          const apptStart = dayjs(`${appt.date}T${appt.startTimeRange}`);
+          const apptEnd = dayjs(`${appt.date}T${appt.endTimeRange}`);
+          // Check if the current slot overlaps with the existing appointment's time range
+          // A slot is booked if its start time is before the apptEnd and its end time is after the apptStart
+          return (
+            currentSlotTime.isBefore(apptEnd) &&
+            currentSlotTime.add(15, "minute").isAfter(apptStart)
+          );
+        }
+        return false;
+      });
+      return !isBooked;
+    });
+  }, [date, allTimeSlots, existingAppointments]);
 
   // --- Render ---
   return (

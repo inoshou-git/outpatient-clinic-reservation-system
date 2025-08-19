@@ -16,8 +16,7 @@ services:
     build:
       context: ./frontend
       args:
-        - REACT_APP_WEBSOCKET_URL=${REACT_APP_WEBSOCKET_URL}
-        - REACT_APP_SITE_NAME_SUFFIX=${REACT_APP_SITE_NAME_SUFFIX}
+        ENV_NAME: production
     ports:
       - "3334:3334"
     depends_on:

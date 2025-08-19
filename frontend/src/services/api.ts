@@ -43,9 +43,11 @@ const callApi = async <T>(
 
 // Appointments
 export const getAppointments = (
-  token: string | null
+  token: string | null,
+  date?: string
 ): Promise<Appointment[]> => {
-  return callApi<Appointment[]>("/appointments", token);
+  const endpoint = date ? `/appointments?date=${date}` : "/appointments";
+  return callApi<Appointment[]>(endpoint, token);
 };
 
 export const createAppointment = (

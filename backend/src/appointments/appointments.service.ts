@@ -13,9 +13,13 @@ const notifyUsers = async (subject: string, text: string, html: string) => {
   }
 };
 
-export const getAllAppointments = async (): Promise<Appointment[]> => {
+export const getAllAppointments = async (date?: string): Promise<Appointment[]> => {
   const db = await readDb();
-  return db.appointments.filter((a) => !a.isDeleted);
+  let appointments = db.appointments.filter((a) => !a.isDeleted);
+  if (date) {
+    appointments = appointments.filter((a) => a.date === date);
+  }
+  return appointments;
 };
 
 export const createAppointment = async (
