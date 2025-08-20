@@ -83,7 +83,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const { token } = useAuth();
   const { showLoader, hideLoader, closeReservationForm } = useUI();
   const [reservationType, setReservationType] = useState<
-    "outpatient" | "visit" | "rehab"
+    "outpatient" | "visit" | "rehab" | "special"
   >(appointment?.reservationType || "outpatient");
   const [patientId, setPatientId] = useState("");
   const [patientName, setPatientName] = useState("");
@@ -96,6 +96,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const [otherConsultation, setOtherConsultation] = useState("");
   const [sendNotification, setSendNotification] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [patientIdError, setPatientIdError] = useState("");
   const [existingAppointments, setExistingAppointments] = useState<Appointment[]>([]); // New state for existing appointments
 
   useEffect(() => {
@@ -155,6 +156,21 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
   const allTimeSlots = useMemo(() => generateTimeSlots(), []);
 
+  const validatePatientId = (id: string) => {
+    if (!/^[0-9]*$/.test(id)) {
+      setPatientIdError("患者IDは半角数字で入力してください。");
+      return false;
+    }
+    setPatientIdError("");
+    return true;
+  };
+
+  const handlePatientIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPatientId = e.target.value;
+    setPatientId(newPatientId);
+    validatePatientId(newPatientId);
+  };
+
   // --- Event Handlers ---
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -181,6 +197,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     }
 
     if (reservationType === "outpatient") {
+      if (!validatePatientId(patientId)) return;
       if (!patientId || !patientName || !time) {
         setError("患者ID、患者名、時間は必須項目です。");
         return;
@@ -366,7 +383,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
             label="予約種別"
             onChange={(e: SelectChangeEvent) =>
               setReservationType(
-                e.target.value as "outpatient" | "visit" | "rehab"
+                e.target.value as "outpatient" | "visit" | "rehab" | "special"
               )
             }
           >
@@ -381,18 +398,12 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
             <TextField
               label="患者ID"
               value={patientId}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^\d*$/.test(value)) {
-                  // 数字のみを許可
-                  setPatientId(value);
-                }
-              }}
+              onChange={handlePatientIdChange}
               fullWidth
               required
               sx={{ mb: 2 }}
-              error={!!error && error.includes("患者ID")}
-              helperText={!!error && error.includes("患者ID") ? error : ""}
+              error={!!patientIdError}
+              helperText={patientIdError}
             />
             <TextField
               label="患者名"

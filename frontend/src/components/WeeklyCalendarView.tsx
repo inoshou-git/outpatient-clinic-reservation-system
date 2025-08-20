@@ -30,6 +30,7 @@ interface WeeklyCalendarViewProps {
   currentDate: Dayjs;
   onSlotClick: (date: Dayjs, time: string) => void; // For new appointments
   onEditAppointment: (appointment: Appointment) => void; // For editing existing appointments
+  onEditSpecialAppointment: (appointment: Appointment) => void; // For editing special appointments
   onDeleteAppointment: (id: number) => void; // For deleting existing appointments
   canEdit: boolean; // New prop to control editability
 }
@@ -76,6 +77,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
   currentDate,
   onSlotClick,
   onEditAppointment,
+  onEditSpecialAppointment,
   onDeleteAppointment,
   canEdit,
 }) => {
@@ -98,6 +100,8 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
 
       if (app.reservationType === "outpatient") {
         return app.time === time;
+      } else if (app.reservationType === "special") {
+        return false; // Handled separately
       } else if (
         app.reservationType === "visit" ||
         app.reservationType === "rehab"
@@ -171,7 +175,11 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
 
   const handleEditClick = () => {
     if (selectedAppointment) {
-      onEditAppointment(selectedAppointment);
+      if (selectedAppointment.reservationType === "special") {
+        onEditSpecialAppointment(selectedAppointment);
+      } else {
+        onEditAppointment(selectedAppointment);
+      }
       handleCloseAppointmentDetails();
     }
   };
@@ -181,6 +189,14 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
       onDeleteAppointment(selectedAppointment.id);
       handleCloseAppointmentDetails();
     }
+  };
+
+  const specialAppointments = appointments.filter(
+    (app) => app.reservationType === "special"
+  );
+
+  const getSpecialAppointmentsForDay = (day: Dayjs) => {
+    return specialAppointments.filter((app) => dayjs(app.date).isSame(day, "day"));
   };
 
   return (
@@ -237,7 +253,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                 </Box>
               </TableCell>
             </TableRow>
-            <TableRow sx={{ position: "sticky", top: 69, zIndex: 1101 }}>
+            <TableRow sx={{ position: "sticky", top: 57, zIndex: 1101 }}>
               <TableCell
                 sx={{ minWidth: 80, zIndex: 1100, backgroundColor: "white" }}
               >
@@ -259,6 +275,43 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
             </TableRow>
           </TableHead>
           <TableBody>
+            <TableRow>
+              <TableCell
+                sx={{
+                  minWidth: 80,
+                  zIndex: 1100,
+                  backgroundColor: "white",
+                  position: "sticky",
+                  left: 0,
+                }}
+              >
+                特別予約
+              </TableCell>
+              {weekDays.map((day) => {
+                const daySpecialAppointments = getSpecialAppointmentsForDay(day);
+                return (
+                  <TableCell
+                    key={day.toString()}
+                    align="center"
+                    sx={{
+                      minWidth: 120,
+                      backgroundColor: "#fff176", // Darker yellow
+                      borderRight: "1px solid #eee",
+                    }}
+                  >
+                    {daySpecialAppointments.map((app) => (
+                      <Box
+                        key={app.id}
+                        sx={{ fontSize: "0.75rem", cursor: "pointer" }}
+                        onClick={() => handleAppointmentClick(app)}
+                      >
+                        <strong>{app.patientName}</strong>({app.time})
+                      </Box>
+                    ))}
+                  </TableCell>
+                );
+              })}
+            </TableRow>
             {timeSlots.map((time) => (
               <TableRow key={time} hover>
                 <TableCell
@@ -291,6 +344,9 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                         break;
                       case "rehab":
                         backgroundColor = "#f3e5f5"; // Light purple
+                        break;
+                      case "special":
+                        backgroundColor = "#fffbe6"; // Light yellow
                         break;
                       default:
                         backgroundColor = "#e3f2fd"; // Light blue
@@ -393,9 +449,12 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                   ? "訪問診療"
                   : selectedAppointment.reservationType === "rehab"
                   ? "通所リハ会議"
+                  : selectedAppointment.reservationType === "special"
+                  ? "特別予約"
                   : "不明"}
               </Typography>
-              {selectedAppointment.reservationType === "outpatient" && (
+              {(selectedAppointment.reservationType === "outpatient" ||
+                selectedAppointment.reservationType === "special") && (
                 <>
                   <Typography variant="subtitle1">
                     <strong>患者ID:</strong> {selectedAppointment.patientId}
@@ -438,6 +497,12 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                   <Typography variant="subtitle1">
                     <strong>診察内容:</strong>{" "}
                     {selectedAppointment.consultation}
+                  </Typography>
+                )}
+              {selectedAppointment.reservationType === "special" &&
+                selectedAppointment.reason && (
+                  <Typography variant="subtitle1">
+                    <strong>理由:</strong> {selectedAppointment.reason}
                   </Typography>
                 )}
             </Box>

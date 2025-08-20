@@ -63,3 +63,42 @@ export const deleteAppointment = async (req: Request, res: Response) => {
     res.status(404).json({ message: "Appointment not found" });
   }
 };
+
+export const createSpecialAppointment = async (req: Request, res: Response) => {
+  if ((req as any).user.role === "viewer") {
+    return res
+      .status(403)
+      .json({ message: "閲覧ユーザーは予約を作成できません。" });
+  }
+  const result = await appointmentService.createSpecialAppointment(
+    req.body,
+    (req as any).user.name
+  );
+  if (result.error) {
+    return res.status(400).json({ message: result.error });
+  }
+  res.status(201).json(result.appointment);
+};
+
+export const updateSpecialAppointment = async (req: Request, res: Response) => {
+  if ((req as any).user.role === "viewer") {
+    return res
+      .status(403)
+      .json({ message: "閲覧ユーザーは予約を更新できません。" });
+  }
+  const id = parseInt(req.params.id, 10);
+  const result = await appointmentService.updateSpecialAppointment(
+    id,
+    req.body,
+    (req as any).user.name
+  );
+
+  if (result.error) {
+    return res.status(result.status || 400).json({ message: result.error });
+  }
+  if (result.appointment) {
+    res.json(result.appointment);
+  } else {
+    res.status(404).json({ message: "Appointment not found" });
+  }
+};

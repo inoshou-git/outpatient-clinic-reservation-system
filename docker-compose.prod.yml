@@ -11,6 +11,11 @@ services:
       - ./backend/.env.production
     command: npm run start:prod
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build:
@@ -20,7 +25,8 @@ services:
     ports:
       - "3334:3334"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     env_file:
       - ./frontend/.env.production
     restart: always

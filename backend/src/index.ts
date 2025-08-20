@@ -20,6 +20,10 @@ app.use("/api", usersRouter);
 app.use("/api/appointments", appointmentsRouter);
 app.use("/api/blocked-slots", blockedSlotsRouter);
 
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
 const httpServer = http.createServer(app);
 export const io = new Server(httpServer, {
   cors: {

@@ -29,6 +29,7 @@ interface AppointmentListTableProps {
   bulkActionEnabled: boolean;
   setBulkActionEnabled: (enabled: boolean) => void;
   handleEditAppointment: (appointment: Appointment) => void;
+  handleEditSpecialAppointment: (appointment: Appointment) => void;
   handleDeleteAppointment: (id: number) => void;
   userRole?: string;
   view: "all" | "daily" | "weekly" | "monthly";
@@ -46,6 +47,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
   bulkActionEnabled,
   setBulkActionEnabled,
   handleEditAppointment,
+  handleEditSpecialAppointment,
   handleDeleteAppointment,
   userRole,
   view,
@@ -227,7 +229,9 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
                   )}
                   <TableCell>{row.date}</TableCell>
                   <TableCell>
-                    {row.reservationType === "outpatient" && row.time}
+                    {(row.reservationType === "outpatient" ||
+                      row.reservationType === "special") &&
+                      row.time}
                     {(row.reservationType === "visit" ||
                       row.reservationType === "rehab") &&
                       `${row.startTimeRange} - ${row.endTimeRange}`}
@@ -239,22 +243,33 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
                       ? "訪問診療"
                       : row.reservationType === "rehab"
                       ? "通所リハ会議"
+                      : row.reservationType === "special"
+                      ? "特別予約"
                       : "-"}
                   </TableCell>
                   <TableCell>
-                    {row.reservationType === "outpatient"
+                    {row.reservationType === "outpatient" ||
+                    row.reservationType === "special"
                       ? row.patientId
                       : row.facilityName || "-"}
                   </TableCell>
                   <TableCell>{row.patientName || "-"}</TableCell>
-                  <TableCell>{row.consultation || "-"}</TableCell>
+                  <TableCell>
+                    {row.reservationType === "special"
+                      ? row.reason
+                      : row.consultation || "-"}
+                  </TableCell>
                   {userRole !== "viewer" && (
                     <TableCell>{row.lastUpdatedBy || "-"}</TableCell>
                   )}
                   {userRole !== "viewer" && (
                     <TableCell>
                       <IconButton
-                        onClick={() => handleEditAppointment(row)}
+                        onClick={() =>
+                          row.reservationType === "special"
+                            ? handleEditSpecialAppointment(row)
+                            : handleEditAppointment(row)
+                        }
                         disabled={userRole === "viewer"}
                       >
                         <Edit />

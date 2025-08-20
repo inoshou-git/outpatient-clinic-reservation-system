@@ -22,6 +22,7 @@ import ReservationForm from "../components/ReservationForm";
 import CalendarView from "../components/CalendarView";
 import WeeklyCalendarView from "../components/WeeklyCalendarView";
 import BlockedSlotForm from "../components/BlockedSlotForm";
+import SpecialReservationForm from "../components/SpecialReservationForm";
 import AppointmentListTable from "../components/AppointmentListTable";
 
 import { useAuth } from "../contexts/AuthContext";
@@ -77,6 +78,20 @@ const HomePage = () => {
     []
   );
   const [bulkActionEnabled, setBulkActionEnabled] = useState(false);
+  const [isSpecialReservationFormOpen, setIsSpecialReservationFormOpen] =
+    useState(false);
+  const [editingSpecialAppointment, setEditingSpecialAppointment] =
+    useState<Appointment | null>(null);
+
+  const openSpecialReservationForm = (appointment: Appointment | null = null) => {
+    setEditingSpecialAppointment(appointment);
+    setIsSpecialReservationFormOpen(true);
+  };
+
+  const closeSpecialReservationForm = () => {
+    setEditingSpecialAppointment(null);
+    setIsSpecialReservationFormOpen(false);
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -310,26 +325,35 @@ const HomePage = () => {
             <Typography variant="h5">予約リスト</Typography>
           )}
         </Box>
-        <ButtonGroup variant="contained" aria-label="display mode button group">
+        <Box sx={{ display: "flex", alignItems: "center" }}>
           <Button
-            onClick={() => setDisplayMode("weekly")}
-            disabled={displayMode === "weekly"}
+            variant="contained"
+            onClick={() => openSpecialReservationForm()}
+            sx={{ mr: 2 }}
           >
-            週
+            特別予約登録
           </Button>
-          <Button
-            onClick={() => setDisplayMode("calendar")}
-            disabled={displayMode === "calendar"}
-          >
-            月
-          </Button>
-          <Button
-            onClick={() => setDisplayMode("list")}
-            disabled={displayMode === "list"}
-          >
-            リスト
-          </Button>
-        </ButtonGroup>
+          <ButtonGroup variant="contained" aria-label="display mode button group">
+            <Button
+              onClick={() => setDisplayMode("weekly")}
+              disabled={displayMode === "weekly"}
+            >
+              週
+            </Button>
+            <Button
+              onClick={() => setDisplayMode("calendar")}
+              disabled={displayMode === "calendar"}
+            >
+              月
+            </Button>
+            <Button
+              onClick={() => setDisplayMode("list")}
+              disabled={displayMode === "list"}
+            >
+              リスト
+            </Button>
+          </ButtonGroup>
+        </Box>
       </Box>
 
       {loading ? (
@@ -350,6 +374,7 @@ const HomePage = () => {
               bulkActionEnabled={bulkActionEnabled}
               setBulkActionEnabled={setBulkActionEnabled}
               handleEditAppointment={handleEditAppointment}
+              handleEditSpecialAppointment={openSpecialReservationForm}
               handleDeleteAppointment={handleDeleteAppointment}
               userRole={user?.role}
               view={view}
@@ -372,6 +397,7 @@ const HomePage = () => {
               currentDate={currentDate}
               onSlotClick={handleWeeklySlotClick}
               onEditAppointment={handleEditAppointment}
+              onEditSpecialAppointment={openSpecialReservationForm}
               onDeleteAppointment={handleDeleteAppointment}
               canEdit={user?.role !== "viewer"}
             />
@@ -409,6 +435,29 @@ const HomePage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeBlockedSlotForm}>キャンセル</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={isSpecialReservationFormOpen}
+        onClose={closeSpecialReservationForm}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          {editingSpecialAppointment ? "特別予約編集" : "特別予約登録"}
+        </DialogTitle>
+        <DialogContent>
+          <SpecialReservationForm
+            onFormSubmit={() => {
+              fetchData();
+              closeSpecialReservationForm();
+            }}
+            appointment={editingSpecialAppointment}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeSpecialReservationForm}>キャンセル</Button>
         </DialogActions>
       </Dialog>
     </Container>

@@ -43,6 +43,8 @@ const formatAppointmentPrimaryText = (app: Appointment): string => {
       })`;
     case "rehab":
       return `通所リハ会議: ${app.startTimeRange} - ${app.endTimeRange}`;
+    case "special":
+      return `特別予約 - ${app.patientName} (${app.patientId})`;
     default:
       return "不明な予約種別";
   }
