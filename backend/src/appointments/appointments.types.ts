@@ -7,8 +7,9 @@ export interface Appointment {
   consultation?: string;
   lastUpdatedBy?: string;
   isDeleted?: boolean;
-  reservationType: "outpatient" | "visit" | "rehab";
+  reservationType: "outpatient" | "visit" | "rehab" | "special";
   facilityName?: string;
   startTimeRange?: string;
   endTimeRange?: string;
+  reason?: string;
 }

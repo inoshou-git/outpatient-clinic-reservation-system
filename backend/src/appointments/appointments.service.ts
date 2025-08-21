@@ -371,6 +371,15 @@ export const deleteAppointment = async (
 担当: ${lastUpdatedBy}`;
         html = `<p>通所リハ会議の予約が削除されました。</p><ul><li>日時: ${deletedAppointment.date} ${deletedAppointment.startTimeRange} - ${deletedAppointment.endTimeRange}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
         break;
+      case "special":
+        subject = "予約削除のお知らせ (特別予約)";
+        text = `特別予約が削除されました。
+患者名: ${deletedAppointment.patientName}
+日時: ${deletedAppointment.date} ${deletedAppointment.time}
+理由: ${deletedAppointment.reason}
+担当: ${lastUpdatedBy}`;
+        html = `<p>特別予約が削除されました。</p><ul><li>患者名: ${deletedAppointment.patientName}</li><li>日時: ${deletedAppointment.date} ${deletedAppointment.time}</li><li>理由: ${deletedAppointment.reason}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+        break;
       default:
         text = `予約が削除されました。
 担当: ${lastUpdatedBy}`;
@@ -383,5 +392,111 @@ export const deleteAppointment = async (
     return true;
   } else {
     return false;
+  }
+};
+
+export const createSpecialAppointment = async (
+  appointmentData: any,
+  lastUpdatedBy: string
+): Promise<{ appointment?: Appointment; error?: string }> => {
+  const {
+    patientId,
+    patientName,
+    date,
+    time,
+    reason,
+    sendNotification,
+  } = appointmentData;
+
+  if (!patientId || !patientName || !date || !time || !reason) {
+    return { error: "患者ID, 患者名, 日付, 時間, 理由は必須項目です。" };
+  }
+
+  if (!/^[0-9]+$/.test(patientId)) {
+    return { error: "患者IDは数字のみで入力してください。" };
+  }
+
+  const db = await readDb();
+  const newId =
+    db.appointments.length > 0
+      ? Math.max(...db.appointments.map((a) => a.id)) + 1
+      : 1;
+  const newAppointment: Appointment = {
+    id: newId,
+    patientId,
+    patientName,
+    date,
+    time,
+    reason,
+    reservationType: "special",
+    lastUpdatedBy,
+    isDeleted: false,
+  };
+
+  db.appointments.push(newAppointment);
+  await writeDb(db);
+
+  io.emit("appointmentCreated", newAppointment);
+
+  if (sendNotification) {
+    const subject = "新規予約登録のお知らせ (特別予約)";
+    const text = `新しい特別予約が登録されました.\n患者名: ${patientName}\n日時: ${date} ${time}\n理由: ${reason}\n担当: ${lastUpdatedBy}`;
+    const html = `<p>新しい特別予約が登録されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${time}</li><li>理由: ${reason}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+    await notifyUsers(subject, text, html);
+  }
+
+  return { appointment: newAppointment };
+};
+
+export const updateSpecialAppointment = async (
+  id: number,
+  appointmentData: any,
+  lastUpdatedBy: string
+): Promise<{ appointment?: Appointment; error?: string; status?: number }> => {
+  const db = await readDb();
+  const appointmentIndex = db.appointments.findIndex((a) => a.id === id);
+
+  if (appointmentIndex !== -1) {
+    const oldAppointment = { ...db.appointments[appointmentIndex] };
+
+    const updatedAppointment = {
+      ...db.appointments[appointmentIndex],
+      ...appointmentData,
+      lastUpdatedBy,
+    };
+
+    if (
+      !updatedAppointment.patientId ||
+      !updatedAppointment.patientName ||
+      !updatedAppointment.date ||
+      !updatedAppointment.time ||
+      !updatedAppointment.reason
+    ) {
+      return { error: "患者ID, 患者名, 日付, 時間, 理由は必須項目です。" };
+    }
+
+    if (!/^[0-9]+$/.test(updatedAppointment.patientId)) {
+      return { error: "患者IDは数字のみで入力してください。" };
+    }
+
+    db.appointments[appointmentIndex] = updatedAppointment;
+    await writeDb(db);
+
+    io.emit("appointmentUpdated", updatedAppointment);
+
+    if (appointmentData.sendNotification) {
+      const subject = "予約更新のお知らせ (特別予約)";
+      const text = `特別予約が更新されました。
+患者名: ${updatedAppointment.patientName}
+日時: ${updatedAppointment.date} ${updatedAppointment.time}
+理由: ${updatedAppointment.reason}
+担当: ${lastUpdatedBy}`;
+      const html = `<p>特別予約が更新されました。</p><ul><li>患者名: ${updatedAppointment.patientName}</li><li>日時: ${updatedAppointment.date} ${updatedAppointment.time}</li><li>理由: ${updatedAppointment.reason}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+      await notifyUsers(subject, text, html);
+    }
+
+    return { appointment: db.appointments[appointmentIndex] };
+  } else {
+    return { error: "Appointment not found", status: 404 };
   }
 };

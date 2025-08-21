@@ -7,10 +7,22 @@ export interface Appointment {
   consultation?: string;
   lastUpdatedBy?: string;
   isDeleted?: boolean;
-  reservationType?: "outpatient" | "visit" | "rehab";
+  reservationType?: "outpatient" | "visit" | "rehab" | "special";
   facilityName?: string;
   startTimeRange?: string;
   endTimeRange?: string;
+  reason?: string;
+  sendNotification?: boolean;
+}
+
+export interface SpecialAppointment {
+  id: number;
+  patientId: string;
+  patientName: string;
+  date: string;
+  time: string;
+  reason: string;
+  reservationType: "special";
 }
 
 export interface BlockedSlot {

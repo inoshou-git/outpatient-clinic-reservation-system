@@ -78,6 +78,27 @@ export const deleteAppointment = (
   return callApi<void>(`/appointments/${id}`, token, { method: "DELETE" });
 };
 
+export const createSpecialAppointment = (
+  appointment: Partial<Appointment>,
+  token: string | null
+): Promise<Appointment> => {
+  return callApi<Appointment>("/appointments/special", token, {
+    method: "POST",
+    body: JSON.stringify(appointment),
+  });
+};
+
+export const updateSpecialAppointment = (
+  id: number,
+  appointment: Partial<Appointment>,
+  token: string | null
+): Promise<Appointment> => {
+  return callApi<Appointment>(`/appointments/special/${id}`, token, {
+    method: "PUT",
+    body: JSON.stringify(appointment),
+  });
+};
+
 // Blocked Slots
 export const getBlockedSlots = (
   token: string | null

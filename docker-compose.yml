@@ -12,6 +12,11 @@ services:
       - ./backend/.env.development
     command: npx ts-node-dev src/index.ts
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3334/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build:
@@ -22,7 +27,8 @@ services:
     ports:
       - "3333:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     env_file:
       - ./frontend/.env.development
     restart: always
