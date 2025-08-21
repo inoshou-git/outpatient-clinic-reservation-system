@@ -15,6 +15,8 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 
 import { Appointment, BlockedSlot } from "../types";
@@ -31,7 +33,7 @@ interface WeeklyCalendarViewProps {
   onSlotClick: (date: Dayjs, time: string) => void; // For new appointments
   onEditAppointment: (appointment: Appointment) => void; // For editing existing appointments
   onEditSpecialAppointment: (appointment: Appointment) => void; // For editing special appointments
-  onDeleteAppointment: (id: number) => void; // For deleting existing appointments
+  onDeleteAppointment: (id: number, sendNotification: boolean) => void; // For deleting existing appointments
   canEdit: boolean; // New prop to control editability
 }
 
@@ -90,6 +92,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [openAppointmentDetails, setOpenAppointmentDetails] = useState(false);
+  const [sendDeleteNotification, setSendDeleteNotification] = useState(false); // Default to false
 
   const getAppointmentForSlot = (day: Dayjs, time: string) => {
     const currentSlotDateTime = dayjs(`${day.format("YYYY-MM-DD")}T${time}`);
@@ -122,23 +125,11 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
   };
 
   const getBlockedSlotForSlot = (day: Dayjs, time: string) => {
-    // Check for Wednesday afternoon
-    const isWednesdayAfternoon = day.day() === 3 && time >= "13:00";
-    if (isWednesdayAfternoon) {
-      return {
-        id: -1,
-        reason: "水曜午後は予約不可",
-        date: day.format("YYYY-MM-DD"),
-        startTime: "13:00",
-        endTime: "16:30",
-      };
-    }
-
     const dateTime = dayjs(`${day.format("YYYY-MM-DD")}T${time}`);
     return blockedSlots.find((slot) => {
       const blockedStartDate = dayjs(slot.date);
       const blockedEndDate = slot.endDate
-        ? dayjs(slot.endDate)
+        ? dayjs(slot.endDate).endOf("day")
         : blockedStartDate;
 
       // Check if the day is within the blocked date range
@@ -186,8 +177,10 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
 
   const handleDeleteClick = () => {
     if (selectedAppointment) {
-      onDeleteAppointment(selectedAppointment.id);
-      handleCloseAppointmentDetails();
+      if (window.confirm("この予約を削除してもよろしいですか？")) {
+        onDeleteAppointment(selectedAppointment.id, sendDeleteNotification);
+        handleCloseAppointmentDetails();
+      }
     }
   };
 
@@ -201,7 +194,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
 
   return (
     <Paper>
-      <TableContainer sx={{ maxHeight: "calc(100vh - 250px)" }}>
+      <TableContainer sx={{ maxHeight: "calc(100vh - 160px)" }}>
         <Table stickyHeader sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow sx={{ position: "sticky", top: 0, zIndex: 1101 }}>
@@ -508,18 +501,36 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleEditClick} color="primary" disabled={!canEdit}>
-            編集
-          </Button>
-          <Button
-            onClick={handleDeleteClick}
-            color="secondary"
-            disabled={!canEdit}
-          >
-            削除
-          </Button>
-          <Button onClick={handleCloseAppointmentDetails}>閉じる</Button>
+        <DialogActions sx={{ justifyContent: "space-between" }}>
+          <Box>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={sendDeleteNotification}
+                  onChange={(e) => setSendDeleteNotification(e.target.checked)}
+                  disabled={!canEdit}
+                />
+              }
+              label="関係者に通知する"
+            />
+          </Box>
+          <Box>
+            <Button
+              onClick={handleEditClick}
+              color="primary"
+              disabled={!canEdit}
+            >
+              編集
+            </Button>
+            <Button
+              onClick={handleDeleteClick}
+              color="secondary"
+              disabled={!canEdit}
+            >
+              削除
+            </Button>
+            <Button onClick={handleCloseAppointmentDetails}>閉じる</Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </Paper>

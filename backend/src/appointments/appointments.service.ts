@@ -309,7 +309,8 @@ export const updateAppointment = async (
 
 export const deleteAppointment = async (
   id: number,
-  lastUpdatedBy: string
+  lastUpdatedBy: string,
+  sendNotification: boolean
 ): Promise<boolean> => {
   const db = await readDb();
   const appointmentIndex = db.appointments.findIndex((a) => a.id === id);
@@ -323,71 +324,82 @@ export const deleteAppointment = async (
     // Emit WebSocket event
     io.emit("appointmentDeleted", id);
 
-    let subject = "予約削除のお知らせ";
-    let text = "";
-    let html = "";
+    if (sendNotification) {
+      let subject = "予約キャンセルのお知らせ";
+      let text = "";
+      let html = "";
 
-    switch (deletedAppointment.reservationType) {
-      case "outpatient":
-        subject = "予約削除のお知らせ (外来診療)";
-        text = `外来診療の予約が削除されました。
+      switch (deletedAppointment.reservationType) {
+        case "outpatient":
+          subject = "予約キャンセルのお知らせ (外来診療)";
+          text = `外来診療の予約がキャンセルされました。
 患者名: ${deletedAppointment.patientName}
 日時: ${deletedAppointment.date} ${deletedAppointment.time}
 診察内容: ${deletedAppointment.consultation || "未入力"}
 担当: ${lastUpdatedBy}`;
-        html = `<p>外来診療の予約が削除されました。</p><ul><li>患者名: ${
-          deletedAppointment.patientName
-        }</li><li>日時: ${deletedAppointment.date} ${
-          deletedAppointment.time
-        }</li><li>診察内容: ${
-          deletedAppointment.consultation || "未入力"
-        }</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
-          process.env.SYSTEM_URL
-        }">${process.env.SYSTEM_URL}</a></p>`;
-        break;
-      case "visit":
-        subject = "予約削除のお知らせ (訪問診療)";
-        text = `訪問診療の予約が削除されました。
+          html = `<p>外来診療の予約がキャンセルされました。</p><ul><li>患者名: ${
+            deletedAppointment.patientName
+          }</li><li>日時: ${deletedAppointment.date} ${
+            deletedAppointment.time
+          }</li><li>診察内容: ${
+            deletedAppointment.consultation || "未入力"
+          }</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
+            process.env.SYSTEM_URL
+          }">${process.env.SYSTEM_URL}</a></p>`;
+          break;
+        case "visit":
+          subject = "予約キャンセルのお知らせ (訪問診療)";
+          text = `訪問診療の予約がキャンセルされました。
 施設名: ${deletedAppointment.facilityName || "未入力"}
 日時: ${deletedAppointment.date} ${deletedAppointment.startTimeRange} - ${
-          deletedAppointment.endTimeRange
-        }
+            deletedAppointment.endTimeRange
+          }
 診察内容: ${deletedAppointment.consultation || "未入力"}
 担当: ${lastUpdatedBy}`;
-        html = `<p>訪問診療の予約が削除されました。</p><ul><li>施設名: ${
-          deletedAppointment.facilityName || "未入力"
-        }</li><li>日時: ${deletedAppointment.date} ${
-          deletedAppointment.startTimeRange
-        } - ${deletedAppointment.endTimeRange}</li><li>診察内容: ${
-          deletedAppointment.consultation || "未入力"
-        }</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
-          process.env.SYSTEM_URL
-        }">${process.env.SYSTEM_URL}</a></p>`;
-        break;
-      case "rehab":
-        subject = "予約削除のお知らせ (通所リハ会議)";
-        text = `通所リハ会議の予約が削除されました。
+          html = `<p>訪問診療の予約がキャンセルされました。</p><ul><li>施設名: ${
+            deletedAppointment.facilityName || "未入力"
+          }</li><li>日時: ${deletedAppointment.date} ${
+            deletedAppointment.startTimeRange
+          } - ${deletedAppointment.endTimeRange}</li><li>診察内容: ${
+            deletedAppointment.consultation || "未入力"
+          }</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
+            process.env.SYSTEM_URL
+          }">${process.env.SYSTEM_URL}</a></p>`;
+          break;
+        case "rehab":
+          subject = "予約キャンセルのお知らせ (通所リハ会議)";
+          text = `通所リハ会議の予約がキャンセルされました。
 日時: ${deletedAppointment.date} ${deletedAppointment.startTimeRange} - ${deletedAppointment.endTimeRange}
 担当: ${lastUpdatedBy}`;
-        html = `<p>通所リハ会議の予約が削除されました。</p><ul><li>日時: ${deletedAppointment.date} ${deletedAppointment.startTimeRange} - ${deletedAppointment.endTimeRange}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
-        break;
-      case "special":
-        subject = "予約削除のお知らせ (特別予約)";
-        text = `特別予約が削除されました。
+          html = `<p>通所リハ会議の予約がキャンセルされました。</p><ul><li>日時: ${deletedAppointment.date} ${
+            deletedAppointment.startTimeRange
+          } - ${deletedAppointment.endTimeRange}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+          break;
+        case "special":
+          subject = "予約キャンセルのお知らせ (特別予約)";
+          text = `特別予約がキャンセルされました。
 患者名: ${deletedAppointment.patientName}
 日時: ${deletedAppointment.date} ${deletedAppointment.time}
 理由: ${deletedAppointment.reason}
 担当: ${lastUpdatedBy}`;
-        html = `<p>特別予約が削除されました。</p><ul><li>患者名: ${deletedAppointment.patientName}</li><li>日時: ${deletedAppointment.date} ${deletedAppointment.time}</li><li>理由: ${deletedAppointment.reason}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
-        break;
-      default:
-        text = `予約が削除されました。
+          html = `<p>特別予約がキャンセルされました。</p><ul><li>患者名: ${
+            deletedAppointment.patientName
+          }</li><li>日時: ${deletedAppointment.date} ${
+            deletedAppointment.time
+          }</li><li>理由: ${deletedAppointment.reason}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
+            process.env.SYSTEM_URL
+          }">${process.env.SYSTEM_URL}</a></p>`;
+          break;
+        default:
+          text = `予約がキャンセルされました。
 担当: ${lastUpdatedBy}`;
-        html = `<p>予約が削除されました。</p><p>担当: ${lastUpdatedBy}</p><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
-        break;
+          html = `<p>予約がキャンセルされました。</p><p>担当: ${lastUpdatedBy}</p><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+          break;
+      }
+
+      await notifyUsers(subject, text, html);
     }
 
-    await notifyUsers(subject, text, html);
 
     return true;
   } else {

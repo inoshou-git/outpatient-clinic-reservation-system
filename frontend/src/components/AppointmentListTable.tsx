@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -13,10 +13,17 @@ import {
   Checkbox,
   TableSortLabel,
   IconButton,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  FormControlLabel,
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
 import dayjs from "dayjs";
 import { Appointment } from "../types";
+import { useUI } from "../contexts/UIContext";
 
 interface AppointmentListTableProps {
   appointments: Appointment[];
@@ -30,7 +37,7 @@ interface AppointmentListTableProps {
   setBulkActionEnabled: (enabled: boolean) => void;
   handleEditAppointment: (appointment: Appointment) => void;
   handleEditSpecialAppointment: (appointment: Appointment) => void;
-  handleDeleteAppointment: (id: number) => void;
+  handleDeleteAppointment: (id: number, sendNotification: boolean) => Promise<void>;
   userRole?: string;
   view: "all" | "daily" | "weekly" | "monthly";
   setView: (view: "all" | "daily" | "weekly" | "monthly") => void;
@@ -53,7 +60,37 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
   view,
   setView,
 }) => {
+  const { showLoader, hideLoader } = useUI();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<number | null>(null);
+  const [sendNotification, setSendNotification] = useState(false);
+
   const isSelected = (id: number) => selectedAppointments.indexOf(id) !== -1;
+
+  const handleOpenDeleteDialog = (id: number) => {
+    setItemToDelete(id);
+    setSendNotification(false); // Reset to default
+    setDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setItemToDelete(null);
+    setDialogOpen(false);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (itemToDelete === null) return;
+
+    showLoader();
+    try {
+      await handleDeleteAppointment(itemToDelete, sendNotification);
+    } catch (error) {
+      console.error("Failed to delete appointment from list view", error);
+    } finally {
+      hideLoader();
+      handleCloseDialog();
+    }
+  };
 
   const sortedAppointments = React.useMemo(() => {
     let sortableItems = [...appointments.filter((app) => !app.isDeleted)];
@@ -275,7 +312,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
                         <Edit />
                       </IconButton>
                       <IconButton
-                        onClick={() => handleDeleteAppointment(row.id)}
+                        onClick={() => handleOpenDeleteDialog(row.id)}
                         disabled={userRole === "viewer"}
                       >
                         <Delete />
@@ -288,6 +325,29 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
           </TableBody>
         </Table>
       </TableContainer>
+      <Dialog open={dialogOpen} onClose={handleCloseDialog}>
+        <DialogTitle>予約の削除</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            本当にこの予約を削除してもよろしいですか？
+          </DialogContentText>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={sendNotification}
+                onChange={(e) => setSendNotification(e.target.checked)}
+              />
+            }
+            label="関係者に通知する"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>キャンセル</Button>
+          <Button onClick={handleConfirmDelete} color="secondary">
+            削除
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

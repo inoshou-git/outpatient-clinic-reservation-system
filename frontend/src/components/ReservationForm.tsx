@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Box,
   Button,
@@ -11,6 +11,7 @@ import {
   Alert,
   Checkbox,
   FormControlLabel,
+  Typography,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -94,16 +95,24 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const [endTimeRange, setEndTimeRange] = useState("");
   const [consultation, setConsultation] = useState("");
   const [otherConsultation, setOtherConsultation] = useState("");
-  const [sendNotification, setSendNotification] = useState(true);
+  const [sendNotification, setSendNotification] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [patientIdError, setPatientIdError] = useState("");
-  const [existingAppointments, setExistingAppointments] = useState<Appointment[]>([]); // New state for existing appointments
+  const [timeResetWarning, setTimeResetWarning] = useState("");
+  const [rangeResetWarning, setRangeResetWarning] = useState("");
+  const [existingAppointments, setExistingAppointments] = useState<
+    Appointment[]
+  >([]); // New state for existing appointments
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     const fetchAppointments = async () => {
       if (date && token) {
         try {
-          const fetchedAppointments = await getAppointments(token, date.format("YYYY-MM-DD"));
+          const fetchedAppointments = await getAppointments(
+            token,
+            date.format("YYYY-MM-DD")
+          );
           setExistingAppointments(fetchedAppointments);
         } catch (err) {
           console.error("Failed to fetch existing appointments:", err);
@@ -124,10 +133,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       setTime(appointment.time || "");
       setStartTimeRange(appointment.startTimeRange || "");
       setEndTimeRange(appointment.endTimeRange || "");
-      console.log("Editing appointment:", appointment);
-      console.log("Appointment time:", appointment.time);
-      console.log("Appointment startTimeRange:", appointment.startTimeRange);
-      console.log("Appointment endTimeRange:", appointment.endTimeRange);
 
       const existingConsultation = appointment.consultation || "";
       if (consultationOptions.includes(existingConsultation)) {
@@ -157,7 +162,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const allTimeSlots = useMemo(() => generateTimeSlots(), []);
 
   const validatePatientId = (id: string) => {
-    if (!/^[0-9]*$/.test(id)) {
+    if (id && !/^[0-9]*$/.test(id)) {
       setPatientIdError("患者IDは半角数字で入力してください。");
       return false;
     }
@@ -176,30 +181,15 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     event.preventDefault();
     setError(null);
 
-    if (!date) {
-      setError("日付は必須項目です。");
+    if (!date || !patientName) {
+      setError("日付と患者名は必須項目です。");
       return;
-    }
-
-    // Check for Wednesday afternoon
-    if (date.day() === 3) {
-      if (reservationType === "outpatient" && time >= "13:00") {
-        setError("水曜日の午後は予約できません。");
-        return;
-      }
-      if (
-        (reservationType === "visit" || reservationType === "rehab") &&
-        startTimeRange >= "13:00"
-      ) {
-        setError("水曜日の午後は予約できません。");
-        return;
-      }
     }
 
     if (reservationType === "outpatient") {
       if (!validatePatientId(patientId)) return;
-      if (!patientId || !patientName || !time) {
-        setError("患者ID、患者名、時間は必須項目です。");
+      if (!time) {
+        setError("時間は必須項目です。");
         return;
       }
     } else if (reservationType === "visit" || reservationType === "rehab") {
@@ -215,18 +205,18 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       }
     }
 
-    closeReservationForm(); // フォームを閉じる
-    showLoader(); // ローディング開始
+    closeReservationForm();
+    showLoader();
 
     const appointmentData: any = {
       date: date.format("YYYY-MM-DD"),
       reservationType,
+      patientName,
+      patientId,
       sendNotification,
     };
 
     if (reservationType === "outpatient") {
-      appointmentData.patientId = patientId;
-      appointmentData.patientName = patientName;
       appointmentData.time = time;
       appointmentData.consultation =
         consultation === "その他" ? otherConsultation : consultation;
@@ -271,7 +261,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       setError("フォームの送信中にエラーが発生しました。");
       console.error("Error submitting form:", err);
     } finally {
-      hideLoader(); // ローディング終了
+      hideLoader();
     }
   };
 
@@ -299,11 +289,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const availableTimeSlots = useMemo(() => {
     if (!date) return [];
 
-    // Filter out Wednesday afternoons
-    if (date.day() === 3) {
-      return allTimeSlots.filter((slotTime) => slotTime < "13:00");
-    }
-
     const dayBlockedSlots = blockedSlots.filter(
       (slot) => dayjs(slot.date).isSame(date, "day") && slot.startTime !== null
     );
@@ -317,7 +302,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       });
 
       const isBooked = existingAppointments.some((appt) => {
-        // If we are editing this appointment, its own time should not be considered booked
         if (appointment && appt.id === appointment.id) {
           return false;
         }
@@ -329,19 +313,14 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
       return !isBlocked && !isBooked;
     });
-  }, [date, blockedSlots, allTimeSlots, existingAppointments]);
+  }, [date, blockedSlots, allTimeSlots, existingAppointments, appointment]);
 
   const availableVisitRehabTimeSlots = useMemo(() => {
     if (!date) return [];
-    // Filter out Wednesday afternoons
-    if (date.day() === 3) {
-      return allTimeSlots.filter((slotTime) => slotTime < "13:00");
-    }
     return allTimeSlots.filter((slotTime) => {
       const currentSlotTime = dayjs(`${date.format("YYYY-MM-DD")}T${slotTime}`);
 
       const isBooked = existingAppointments.some((appt) => {
-        // If we are editing this appointment, its own time should not be considered booked
         if (appointment && appt.id === appointment.id) {
           return false;
         }
@@ -353,8 +332,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         ) {
           const apptStart = dayjs(`${appt.date}T${appt.startTimeRange}`);
           const apptEnd = dayjs(`${appt.date}T${appt.endTimeRange}`);
-          // Check if the current slot overlaps with the existing appointment's time range
-          // A slot is booked if its start time is before the apptEnd and its end time is after the apptStart
           return (
             currentSlotTime.isBefore(apptEnd) &&
             currentSlotTime.add(15, "minute").isAfter(apptStart)
@@ -364,7 +341,21 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       });
       return !isBooked;
     });
-  }, [date, allTimeSlots, existingAppointments]);
+  }, [date, allTimeSlots, existingAppointments, appointment]);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // When date changes, clear time and set generic warning
+    setTime("");
+    setStartTimeRange("");
+    setEndTimeRange("");
+    setTimeResetWarning("日付が変更されたため、時間を再選択してください。");
+    setRangeResetWarning("日付が変更されたため、時間範囲を再選択してください。");
+  }, [date]);
 
   // --- Render ---
   return (
@@ -393,28 +384,24 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
           </Select>
         </FormControl>
 
-        {reservationType === "outpatient" && (
-          <>
-            <TextField
-              label="患者ID"
-              value={patientId}
-              onChange={handlePatientIdChange}
-              fullWidth
-              required
-              sx={{ mb: 2 }}
-              error={!!patientIdError}
-              helperText={patientIdError}
-            />
-            <TextField
-              label="患者名"
-              value={patientName}
-              onChange={(e) => setPatientName(e.target.value)}
-              fullWidth
-              required
-              sx={{ mb: 2 }}
-            />
-          </>
-        )}
+        <TextField
+          label="患者ID (任意)"
+          value={patientId}
+          onChange={handlePatientIdChange}
+          fullWidth
+          sx={{ mb: 2 }}
+          error={!!patientIdError}
+          helperText={patientIdError}
+        />
+
+        <TextField
+          label="患者名"
+          value={patientName}
+          onChange={(e) => setPatientName(e.target.value)}
+          fullWidth
+          required
+          sx={{ mb: 2 }}
+        />
 
         {reservationType === "visit" && (
           <TextField
@@ -435,58 +422,77 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         />
 
         {reservationType === "outpatient" && (
-          <FormControl fullWidth required sx={{ mb: 2 }}>
-            <InputLabel>時間</InputLabel>
-            <Select
-              value={time}
-              label="時間"
-              onChange={(e: SelectChangeEvent) => setTime(e.target.value)}
-              disabled={!date}
-            >
-              {availableTimeSlots.map((slot) => (
-                <MenuItem key={slot} value={slot}>
-                  {slot}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <>
+            <FormControl fullWidth required sx={{ mb: 2 }}>
+              <InputLabel>時間</InputLabel>
+              <Select
+                value={time}
+                label="時間"
+                onChange={(e: SelectChangeEvent) => {
+                  setTime(e.target.value);
+                  setTimeResetWarning("");
+                }}
+                disabled={!date}
+              >
+                {availableTimeSlots.map((slot) => (
+                  <MenuItem key={slot} value={slot}>
+                    {slot}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {timeResetWarning && (
+              <Typography color="error" variant="caption" sx={{ mt: 1 }}>
+                {timeResetWarning}
+              </Typography>
+            )}
+          </>
         )}
 
         {(reservationType === "visit" || reservationType === "rehab") && (
-          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-            <FormControl fullWidth required>
-              <InputLabel>開始時間</InputLabel>
-              <Select
-                value={startTimeRange}
-                label="開始時間"
-                onChange={(e: SelectChangeEvent) =>
-                  setStartTimeRange(e.target.value)
-                }
-              >
-                {availableVisitRehabTimeSlots.map((slot) => (
-                  <MenuItem key={slot} value={slot}>
-                    {slot}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth required>
-              <InputLabel>終了時間</InputLabel>
-              <Select
-                value={endTimeRange}
-                label="終了時間"
-                onChange={(e: SelectChangeEvent) =>
-                  setEndTimeRange(e.target.value)
-                }
-              >
-                {availableVisitRehabTimeSlots.map((slot) => (
-                  <MenuItem key={slot} value={slot}>
-                    {slot}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
+          <>
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+              <FormControl fullWidth required>
+                <InputLabel>開始時間</InputLabel>
+                <Select
+                  value={startTimeRange}
+                  label="開始時間"
+                  onChange={(e: SelectChangeEvent) => {
+                    setStartTimeRange(e.target.value);
+                    setRangeResetWarning("");
+                  }}
+                >
+                  {availableVisitRehabTimeSlots.map((slot) => (
+                    <MenuItem key={slot} value={slot}>
+                      {slot}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth required>
+                <InputLabel>終了時間</InputLabel>
+                <Select
+                  value={endTimeRange}
+                  label="終了時間"
+                  onChange={(e: SelectChangeEvent) => {
+                    setEndTimeRange(e.target.value);
+                    setRangeResetWarning("");
+                  }}
+                >
+                  {availableVisitRehabTimeSlots.map((slot) => (
+                    <MenuItem key={slot} value={slot}>
+                      {slot}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            {rangeResetWarning && (
+              <Typography color="error" variant="caption" sx={{ mt: 1 }}>
+                {rangeResetWarning}
+              </Typography>
+            )}
+          </>
         )}
 
         {(reservationType === "outpatient" || reservationType === "visit") && (

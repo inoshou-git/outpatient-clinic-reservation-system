@@ -5,12 +5,15 @@ import {
   Box,
   Checkbox,
   FormControlLabel,
-  CircularProgress,
+  Alert,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { createSpecialAppointment, updateSpecialAppointment } from "../services/api";
+import {
+  createSpecialAppointment,
+  updateSpecialAppointment,
+} from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useUI } from "../contexts/UIContext";
 import dayjs, { Dayjs } from "dayjs";
@@ -32,7 +35,8 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
   const [date, setDate] = useState<Dayjs | null>(dayjs());
   const [time, setTime] = useState("");
   const [reason, setReason] = useState("");
-  const [sendNotification, setSendNotification] = useState(true);
+  const [sendNotification, setSendNotification] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [timeError, setTimeError] = useState("");
   const [patientIdError, setPatientIdError] = useState("");
 
@@ -46,8 +50,12 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
     }
   }, [appointment]);
 
-  const validateTime = (time: string) => {
-    if (!/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+  const validateTime = (timeStr: string) => {
+    if (!timeStr) {
+      setTimeError("時間は必須項目です。");
+      return false;
+    }
+    if (!/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeStr)) {
       setTimeError("時間はHH:mm形式で入力してください。");
       return false;
     }
@@ -56,7 +64,7 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
   };
 
   const validatePatientId = (id: string) => {
-    if (!/^[0-9]*$/.test(id)) {
+    if (id && !/^[0-9]*$/.test(id)) {
       setPatientIdError("患者IDは半角数字で入力してください。");
       return false;
     }
@@ -64,21 +72,22 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
     return true;
   };
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = e.target.value;
-    setTime(newTime);
-    validateTime(newTime);
-  };
-
-  const handlePatientIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newPatientId = e.target.value;
-    setPatientId(newPatientId);
-    validatePatientId(newPatientId);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateTime(time) || !validatePatientId(patientId) || !date) return;
+    setError(null);
+
+    const isTimeFormatValid = validateTime(time);
+    const isPatientIdFormatValid = validatePatientId(patientId);
+
+    if (!patientName || !date || !time) {
+      setError("患者名、日付、時間は必須項目です。");
+      return;
+    }
+
+    if (!isTimeFormatValid || !isPatientIdFormatValid) {
+      setError("入力形式が正しくない項目があります。");
+      return;
+    }
 
     showLoader();
     onFormSubmit();
@@ -100,9 +109,9 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
       } else {
         await createSpecialAppointment(appointmentData, token);
       }
-    } catch (error) {
-      console.error("Failed to save special appointment", error);
-      alert("特別予約の保存に失敗しました。");
+    } catch (err) {
+      console.error("Failed to save special appointment", err);
+      setError("特別予約の保存に失敗しました。");
     } finally {
       hideLoader();
     }
@@ -110,13 +119,17 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
           <TextField
-            label="患者ID"
+            label="患者ID (任意)"
             value={patientId}
-            onChange={handlePatientIdChange}
-            required
+            onChange={(e) => setPatientId(e.target.value)}
             error={!!patientIdError}
             helperText={patientIdError}
           />
@@ -124,7 +137,6 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
             label="患者名"
             value={patientName}
             onChange={(e) => setPatientName(e.target.value)}
-            required
           />
           <DatePicker
             label="日付"
@@ -135,17 +147,15 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
           <TextField
             label="時間"
             value={time}
-            onChange={handleTimeChange}
-            required
+            onChange={(e) => setTime(e.target.value)}
             placeholder="HH:mm"
             error={!!timeError}
             helperText={timeError}
           />
           <TextField
-            label="理由"
+            label="理由 (任意)"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            required
             multiline
             rows={3}
           />
@@ -156,7 +166,7 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
                 onChange={(e) => setSendNotification(e.target.checked)}
               />
             }
-            label="通知を送信する"
+            label="関係者にメールで通知する"
           />
           <Button type="submit" variant="contained">
             {appointment ? "更新" : "登録"}
