@@ -137,18 +137,16 @@ const HomePage = () => {
     openReservationForm(appointment);
   };
 
-  const handleDeleteAppointment = async (id: number) => {
-    if (window.confirm("この予約を削除してもよろしいですか？")) {
-      showLoader(); // ローディング開始
-      try {
-        await deleteAppointment(id, token);
-        fetchData();
-      } catch (error: any) {
-        console.error("Failed to delete appointment:", error.message);
-        alert(`予約の削除に失敗しました: ${error.message}`);
-      } finally {
-        hideLoader(); // ローディング終了
-      }
+  const handleDeleteAppointment = async (id: number, sendNotification: boolean) => {
+    showLoader();
+    try {
+      await deleteAppointment(id, sendNotification, token);
+      fetchData();
+    } catch (error: any) {
+      console.error("Failed to delete appointment:", error.message);
+      alert(`予約の削除に失敗しました: ${error.message}`);
+    } finally {
+      hideLoader();
     }
   };
 
@@ -216,8 +214,10 @@ const HomePage = () => {
     ) {
       showLoader(); // ローディング開始
       try {
+        // For bulk deletes, we'll default to sending notifications.
+        // A more advanced implementation could have a checkbox for this too.
         const promises = selectedAppointments.map((id) =>
-          deleteAppointment(id, token)
+          deleteAppointment(id, true, token)
         );
         await Promise.all(promises);
         fetchData();

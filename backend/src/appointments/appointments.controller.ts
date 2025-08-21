@@ -53,9 +53,11 @@ export const deleteAppointment = async (req: Request, res: Response) => {
       .json({ message: "閲覧ユーザーは予約を削除できません。" });
   }
   const id = parseInt(req.params.id, 10);
+  const { sendNotification } = req.body;
   const success = await appointmentService.deleteAppointment(
     id,
-    (req as any).user.name
+    (req as any).user.name,
+    sendNotification
   );
   if (success) {
     res.status(204).send();

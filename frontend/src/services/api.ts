@@ -73,9 +73,13 @@ export const updateAppointment = (
 
 export const deleteAppointment = (
   id: number,
+  sendNotification: boolean,
   token: string | null
 ): Promise<void> => {
-  return callApi<void>(`/appointments/${id}`, token, { method: "DELETE" });
+  return callApi<void>(`/appointments/${id}`, token, {
+    method: "DELETE",
+    body: JSON.stringify({ sendNotification }),
+  });
 };
 
 export const createSpecialAppointment = (
