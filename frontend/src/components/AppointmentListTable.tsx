@@ -19,11 +19,23 @@ import {
   DialogContentText,
   DialogTitle,
   FormControlLabel,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { Appointment } from "../types";
 import { useUI } from "../contexts/UIContext";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 
 interface AppointmentListTableProps {
   appointments: Appointment[];
@@ -43,7 +55,7 @@ interface AppointmentListTableProps {
   setView: (view: "all" | "daily" | "weekly" | "monthly") => void;
 }
 
-const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
+const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
   appointments,
   sortConfig,
   handleRequestSort,
@@ -59,11 +71,14 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
   userRole,
   view,
   setView,
-}) => {
+}): JSX.Element => {
   const { showLoader, hideLoader } = useUI();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
   const [sendNotification, setSendNotification] = useState(false);
+  const [filterReservationType, setFilterReservationType] = useState<string>("all");
+  const [filterStartDate, setFilterStartDate] = useState<Dayjs | null>(null);
+  const [filterEndDate, setFilterEndDate] = useState<Dayjs | null>(null);
 
   const isSelected = (id: number) => selectedAppointments.indexOf(id) !== -1;
 
@@ -92,13 +107,36 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
     }
   };
 
+  const handleClearFilters = () => {
+    setFilterReservationType("all");
+    setFilterStartDate(null);
+    setFilterEndDate(null);
+  };
+
   const sortedAppointments = React.useMemo(() => {
     let sortableItems = [...appointments.filter((app) => !app.isDeleted)];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         if (sortConfig.key === "date" || sortConfig.key === "time") {
-          const aDateTime = dayjs(`${a.date} ${a.time}`);
-          const bDateTime = dayjs(`${b.date} ${b.time}`);
+          // Determine the time to use for comparison based on reservation type
+          const getTimeForSort = (appt: Appointment) => {
+            if (appt.reservationType === "outpatient" || appt.reservationType === "special") {
+              return appt.time;
+            }
+            // For visit/rehab, use startTimeRange for time-based sorting
+            if (appt.reservationType === "visit" || appt.reservationType === "rehab") {
+              return appt.startTimeRange;
+            }
+            return undefined; // Should not happen if types are correct
+          };
+
+          const aTime = getTimeForSort(a);
+          const bTime = getTimeForSort(b);
+
+          // Construct dayjs objects, handling cases where time might be missing
+          const aDateTime = dayjs(`${a.date} ${aTime || '00:00'}`); // Default to '00:00' if time is missing
+          const bDateTime = dayjs(`${b.date} ${bTime || '00:00'}`); // Default to '00:00' if time is missing
+
           if (aDateTime.isBefore(bDateTime)) {
             return sortConfig.direction === "asc" ? -1 : 1;
           }
@@ -126,17 +164,36 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
     return sortableItems;
   }, [appointments, sortConfig]);
 
-  const filteredAppointments = sortedAppointments.filter((app) => {
-    return (
-      !app.isDeleted &&
-      (view === "all" ||
-        (view === "daily" && dayjs(app.date).isSame(dayjs(), "day")) ||
-        (view === "weekly" &&
-          dayjs(app.date).isAfter(dayjs().startOf("week")) &&
-          dayjs(app.date).isBefore(dayjs().endOf("week"))) ||
-        (view === "monthly" && dayjs(app.date).isSame(dayjs(), "month")))
-    );
-  });
+  const filteredAppointments = React.useMemo(() => {
+    return sortedAppointments.filter((app) => {
+      // Existing view filter
+      const matchesView =
+        !app.isDeleted &&
+        (view === "all" ||
+          (view === "daily" && dayjs(app.date).isSame(dayjs(), "day")) ||
+          (view === "weekly" &&
+            dayjs(app.date).isAfter(dayjs().startOf("week")) &&
+            dayjs(app.date).isBefore(dayjs().endOf("week"))) ||
+          (view === "monthly" && dayjs(app.date).isSame(dayjs(), "month")));
+
+      if (!matchesView) return false;
+
+      // Filter by Reservation Type
+      const matchesReservationType =
+        filterReservationType === "all" ||
+        app.reservationType === filterReservationType;
+
+      if (!matchesReservationType) return false;
+
+      // Filter by Date Range
+      const appDate = dayjs(app.date);
+      const matchesDateRange =
+        (!filterStartDate || appDate.isSameOrAfter(filterStartDate, "day")) &&
+        (!filterEndDate || appDate.isSameOrBefore(filterEndDate, "day"));
+
+      return matchesDateRange;
+    });
+  }, [sortedAppointments, view, filterReservationType, filterStartDate, filterEndDate]);
 
   return (
     <>
@@ -187,6 +244,46 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
           )}
         </Box>
       </Box>
+
+      <Box sx={{ mb: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
+        <FormControl sx={{ minWidth: 180 }}>
+          <InputLabel size="small">予約種別</InputLabel>
+          <Select
+            value={filterReservationType}
+            label="予約種別"
+            onChange={(e) => setFilterReservationType(e.target.value as string)}
+            size="small"
+          >
+            <MenuItem value="all">全て</MenuItem>
+            <MenuItem value="outpatient">外来診療</MenuItem>
+            <MenuItem value="visit">訪問診療</MenuItem>
+            <MenuItem value="rehab">通所リハ会議</MenuItem>
+            <MenuItem value="special">特別予約</MenuItem>
+          </Select>
+        </FormControl>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            label="開始日"
+            value={filterStartDate}
+            onChange={(newValue) => setFilterStartDate(newValue)}
+            slotProps={{ textField: { size: 'small' } }}
+          />
+          <DatePicker
+            label="終了日"
+            value={filterEndDate}
+            onChange={(newValue) => setFilterEndDate(newValue)}
+            slotProps={{ textField: { size: 'small' } }}
+          />
+        </LocalizationProvider>
+        <Button
+          variant="outlined"
+          onClick={handleClearFilters}
+          sx={{ height: '40px' }} // Adjust height to match small size inputs
+        >
+          クリア
+        </Button>
+      </Box>
+
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }} aria-label="simple table">
           <TableHead>
@@ -241,6 +338,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
               <TableCell>患者名</TableCell>
               <TableCell>診察内容</TableCell>
               {userRole !== "viewer" && <TableCell>最終更新者</TableCell>}
+              {userRole !== "viewer" && <TableCell>最終更新日</TableCell>}
               {userRole !== "viewer" && <TableCell>操作</TableCell>}
             </TableRow>
           </TableHead>
@@ -298,6 +396,11 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
                   </TableCell>
                   {userRole !== "viewer" && (
                     <TableCell>{row.lastUpdatedBy || "-"}</TableCell>
+                  )}
+                  {userRole !== "viewer" && (
+                    <TableCell>
+                      {row.lastUpdatedAt ? dayjs(row.lastUpdatedAt).format("YYYY-MM-DD HH:mm") : "-"}
+                    </TableCell>
                   )}
                   {userRole !== "viewer" && (
                     <TableCell>

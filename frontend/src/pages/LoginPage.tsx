@@ -23,33 +23,20 @@ const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    let retries = 0;
-    let delay = 1000; // 1 second
-    const maxRetries = 5;
-
-    while (retries < maxRetries) {
-      try {
-        const { user, token, mustChangePassword } = await loginUser(
-          userId,
-          password
-        );
-        auth.login(user, token);
-        if (mustChangePassword) {
-          navigate("/force-password-change");
-        } else {
-          navigate("/");
-        }
-        return; // Exit on success
-      } catch (err: any) {
-        retries++;
-        if (retries < maxRetries) {
-          setError(`ログインに失敗しました。再試行中... (${retries}/${maxRetries})`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          delay *= 2; // Exponential backoff
-        } else {
-          setError(err.message || "ログインに失敗しました。時間をおいてお試しください。");
-        }
+    try {
+      const { user, token, mustChangePassword } = await loginUser(
+        userId,
+        password
+      );
+      auth.login(user, token);
+      if (mustChangePassword) {
+        navigate("/force-password-change");
+      } else {
+        navigate("/");
       }
+    } catch (err: any) {
+      // Directly display the error message from the backend
+      setError(err.message || "ログインに失敗しました。");
     }
   };
 

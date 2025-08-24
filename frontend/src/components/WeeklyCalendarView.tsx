@@ -379,7 +379,13 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                           }
                         }}
                       >
-                        {!isWeekend && !blockedSlot && appointment ? (
+                        {blockedSlot ? (
+                          <Box sx={{ fontSize: "0.75rem", color: "red" }}>
+                            <strong>予約不可</strong>
+                            <br />
+                            {blockedSlot.reason}
+                          </Box>
+                        ) : !isWeekend && appointment ? (
                           <Box sx={{ fontSize: "0.75rem" }}>
                             {appointment.reservationType === "outpatient" && (
                               <>
@@ -387,23 +393,19 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                                 <br />
                                 <strong>{appointment.patientName}</strong>
                                 <br />
-                                {appointment.consultation}
+                                {Array.isArray(appointment.consultation) ? appointment.consultation.join(', ') : appointment.consultation}
                               </>
                             )}
                             {appointment.reservationType === "visit" && (
                               <>
                                 <strong>訪問診療</strong>
                                 <br />
-                                {appointment.facilityName && (
-                                  <>
-                                    {appointment.facilityName}
-                                    <br />
-                                  </>
-                                )}
+                                <strong>{appointment.patientName}</strong>
+                                <br />
                                 {appointment.startTimeRange} -{" "}
                                 {appointment.endTimeRange}
                                 <br />
-                                {appointment.consultation}
+                                {Array.isArray(appointment.consultation) ? appointment.consultation.join(', ') : appointment.consultation}
                               </>
                             )}
                             {appointment.reservationType === "rehab" && (

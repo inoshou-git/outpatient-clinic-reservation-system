@@ -17,16 +17,18 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { useUI } from "../contexts/UIContext";
 import dayjs, { Dayjs } from "dayjs";
-import { Appointment } from "../types";
+import { Appointment, BlockedSlot } from "../types";
 
 interface SpecialReservationFormProps {
   onFormSubmit: () => void;
   appointment?: Appointment | null;
+  blockedSlots: BlockedSlot[];
 }
 
 const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
   onFormSubmit,
   appointment,
+  blockedSlots,
 }) => {
   const { token } = useAuth();
   const { showLoader, hideLoader } = useUI();
@@ -70,6 +72,26 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
     }
     setPatientIdError("");
     return true;
+  };
+
+  const shouldDisableDate = (day: Dayjs) => {
+    const isWeekend = day.day() === 0 || day.day() === 6; // Sunday (0) or Saturday (6)
+    const isBlockedAllDay = blockedSlots.some((slot) => {
+      const blockedStartDate = dayjs(slot.date);
+      const blockedEndDate = slot.endDate
+        ? dayjs(slot.endDate)
+        : blockedStartDate;
+      return (
+        slot.startTime === null && // Check for all-day blocks
+        day.isBetween(
+          blockedStartDate.startOf("day"),
+          blockedEndDate.endOf("day"),
+          null,
+          "[]"
+        )
+      );
+    });
+    return isWeekend || isBlockedAllDay;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,6 +164,7 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
             label="日付"
             value={date}
             onChange={(newDate) => setDate(newDate)}
+            shouldDisableDate={shouldDisableDate}
             sx={{ width: "100%" }}
           />
           <TextField

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Box,
   Button,
@@ -11,7 +11,6 @@ import {
   Alert,
   Checkbox,
   FormControlLabel,
-  Typography,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -41,6 +40,7 @@ const consultationOptions = [
   "新患",
   "定期処方",
   "生活習慣",
+  "入職時健診",
   "特定健診",
   "企業健診",
   "健康診断",
@@ -57,17 +57,9 @@ const generateTimeSlots = (
   const slots = [];
   let time = dayjs().hour(startHour).minute(startMinute).second(0);
   const endTime = dayjs().hour(endHour).minute(endMinute).second(0);
-  const lunchStart = dayjs().hour(11).minute(45).second(0);
-  const lunchEnd = dayjs().hour(13).minute(30).second(0);
 
   while (time.isBefore(endTime) || time.isSame(endTime)) {
-    if (
-      time.isBefore(lunchStart) ||
-      time.isAfter(lunchEnd) ||
-      time.isSame(lunchEnd)
-    ) {
-      slots.push(time.format("HH:mm"));
-    }
+    slots.push(time.format("HH:mm"));
     time = time.add(15, "minute");
   }
   return slots;
@@ -88,22 +80,19 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   >(appointment?.reservationType || "outpatient");
   const [patientId, setPatientId] = useState("");
   const [patientName, setPatientName] = useState("");
-  const [facilityName, setFacilityName] = useState("");
   const [date, setDate] = useState<Dayjs | null>(dayjs());
   const [time, setTime] = useState("");
   const [startTimeRange, setStartTimeRange] = useState("");
   const [endTimeRange, setEndTimeRange] = useState("");
-  const [consultation, setConsultation] = useState("");
+  const [consultation, setConsultation] = useState<string[]>([]);
   const [otherConsultation, setOtherConsultation] = useState("");
   const [sendNotification, setSendNotification] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [patientIdError, setPatientIdError] = useState("");
-  const [timeResetWarning, setTimeResetWarning] = useState("");
-  const [rangeResetWarning, setRangeResetWarning] = useState("");
   const [existingAppointments, setExistingAppointments] = useState<
     Appointment[]
   >([]); // New state for existing appointments
-  const isInitialMount = useRef(true);
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -123,43 +112,182 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     fetchAppointments();
   }, [date, token]);
 
+  // New useEffect for conflict checking
+  useEffect(() => {
+    if (date) {
+      const conflicts = checkConflicts(
+        reservationType,
+        date,
+        time,
+        startTimeRange,
+        endTimeRange,
+        existingAppointments,
+        blockedSlots,
+        appointment?.id
+      );
+
+      if (conflicts > 0) {
+        setConflictWarning(`この期間には${conflicts}件の予約が既に存在します。`);
+      } else {
+        setConflictWarning(null);
+      }
+    } else {
+      setConflictWarning(null); // Clear warning if date is not selected
+    }
+  }, [
+    date,
+    time,
+    startTimeRange,
+    endTimeRange,
+    reservationType,
+    existingAppointments,
+    blockedSlots,
+    appointment?.id,
+  ]);
+
   useEffect(() => {
     if (appointment) {
       setReservationType(appointment.reservationType || "outpatient");
       setPatientId(appointment.patientId || "");
       setPatientName(appointment.patientName || "");
-      setFacilityName(appointment.facilityName || "");
       setDate(dayjs(appointment.date));
       setTime(appointment.time || "");
       setStartTimeRange(appointment.startTimeRange || "");
       setEndTimeRange(appointment.endTimeRange || "");
 
-      const existingConsultation = appointment.consultation || "";
-      if (consultationOptions.includes(existingConsultation)) {
+      const existingConsultation = appointment.consultation;
+      if (Array.isArray(existingConsultation)) {
         setConsultation(existingConsultation);
         setOtherConsultation("");
       } else if (existingConsultation) {
-        setConsultation("その他");
-        setOtherConsultation(existingConsultation);
+        if (consultationOptions.includes(existingConsultation)) {
+          setConsultation([existingConsultation]);
+          setOtherConsultation("");
+        } else {
+          setConsultation(["その他"]);
+          setOtherConsultation(existingConsultation);
+        }
       } else {
-        setConsultation("");
+        setConsultation([]);
         setOtherConsultation("");
       }
     } else {
       setReservationType("outpatient");
       setPatientId("");
       setPatientName("");
-      setFacilityName("");
       setDate(initialDate || dayjs());
       setTime(initialTime || "");
       setStartTimeRange("");
       setEndTimeRange("");
-      setConsultation("");
+      setConsultation([]);
       setOtherConsultation("");
     }
   }, [appointment, initialDate, initialTime]);
 
   const allTimeSlots = useMemo(() => generateTimeSlots(), []);
+
+   const checkConflicts = (
+    currentReservationType: "outpatient" | "visit" | "rehab" | "special",
+     currentDate: Dayjs | null,
+     currentTime: string, // for outpatient
+     currentStartTimeRange: string, // for visit/rehab
+     currentEndTimeRange: string, // for visit/rehab
+     existingAppointments: Appointment[],
+     blockedSlots: BlockedSlot[],
+     currentAppointmentId?: number // for editing, to ignore self
+   ): number => {
+    if (currentReservationType === "special") {
+       return 0; // Special appointments never conflict
+     }
+    if (!currentDate) {
+       return 0;
+     }
+
+     let conflicts = 0;
+
+     // Check against existing appointments
+    existingAppointments.forEach(appt => {
+       if (appt.id === currentAppointmentId) return; // Ignore current appointment if editing
+
+       if (currentReservationType === "outpatient" && currentTime) {
+         // Outpatient vs Outpatient
+         if (appt.reservationType === "outpatient" && appt.time === currentTime) {
+           conflicts++;
+         }
+         // Outpatient vs Visit/Rehab
+         if ((appt.reservationType === "visit" || appt.reservationType === "rehab") && appt.startTimeRange && appt.endTimeRange) {
+           const apptStart = dayjs(`${appt.date}T${appt.startTimeRange}`);
+           const apptEnd = dayjs(`${appt.date}T${appt.endTimeRange}`);
+           const selectedTime = dayjs(`${currentDate.format("YYYY-MM-DD")}T${currentTime}`);
+           if (selectedTime.isBetween(apptStart, apptEnd, null, "[)")) {
+              conflicts++;
+           }
+         }
+       } else if ((currentReservationType === "visit" || currentReservationType === "rehab") && currentStartTimeRange &&
+      currentEndTimeRange) {
+         const selectedStart = dayjs(`${currentDate.format("YYYY-MM-DD")}T${currentStartTimeRange}`);
+         const selectedEnd = dayjs(`${currentDate.format("YYYY-MM-DD")}T${currentEndTimeRange}`);
+
+         // Visit/Rehab vs Outpatient
+         if (appt.reservationType === "outpatient" && appt.time) {
+           const apptTime = dayjs(`${appt.date}T${appt.time}`);
+             if (apptTime.isBetween(selectedStart, selectedEnd, null, "[)")) {
+              conflicts++;
+            }
+          }
+        // Visit/Rehab vs Visit/Rehab
+          if ((appt.reservationType === "visit" || appt.reservationType === "rehab") && appt.startTimeRange && appt.endTimeRange) {
+           const apptStart = dayjs(`${appt.date}T${appt.startTimeRange}`);
+          const apptEnd = dayjs(`${appt.date}T${appt.endTimeRange}`);
+          if (selectedStart.isBefore(apptEnd) && selectedEnd.isAfter(apptStart)) {
+            conflicts++;
+           }
+         }
+      }
+     });
+
+     // Check against blocked slots
+     blockedSlots.forEach(slot => {
+       const blockedStartDate = dayjs(slot.date);
+      const blockedEndDate = slot.endDate ? dayjs(slot.endDate) : blockedStartDate;
+
+      if (currentReservationType === "outpatient" && currentTime) {
+         const selectedTime = dayjs(`${currentDate.format("YYYY-MM-DD")}T${currentTime}`);
+         if (slot.startTime === null) { // All-day blocked
+           if (selectedTime.isBetween(blockedStartDate.startOf("day"), blockedEndDate.endOf("day"), null, "[]")) {
+            conflicts++;
+           }
+        } else { // Time-specific blocked
+          const blockedStart = dayjs(`${slot.date}T${slot.startTime}`);
+           const blockedEnd = dayjs(`${slot.date}T${slot.endTime}`);
+           if (selectedTime.isBetween(blockedStart, blockedEnd, null, "[)")) {
+             conflicts++;
+           }
+         }
+       } else if ((currentReservationType === "visit" || currentReservationType === "rehab") && currentStartTimeRange &&
+      currentEndTimeRange) {
+         const selectedStart = dayjs(`${currentDate.format("YYYY-MM-DD")}T${currentStartTimeRange}`);
+         const selectedEnd = dayjs(`${currentDate.format("YYYY-MM-DD")}T${currentEndTimeRange}`);
+
+         if (slot.startTime === null) { // All-day blocked
+           if (selectedStart.isBetween(blockedStartDate.startOf("day"), blockedEndDate.endOf("day"), null, "[]") ||
+               selectedEnd.isBetween(blockedStartDate.startOf("day"), blockedEndDate.endOf("day"), null, "[]") ||
+              (blockedStartDate.startOf("day").isBetween(selectedStart, selectedEnd, null, "[]") && blockedEndDate.endOf("day").
+      isBetween(selectedStart, selectedEnd, null, "[]"))) {
+             conflicts++;
+           }
+         } else { // Time-specific blocked
+           const blockedStart = dayjs(`${slot.date}T${slot.startTime}`);
+           const blockedEnd = dayjs(`${slot.date}T${slot.endTime}`);
+           if (selectedStart.isBefore(blockedEnd) && selectedEnd.isAfter(blockedStart)) {
+             conflicts++;
+           }
+         }
+      }
+     });
+
+     return conflicts;
+   };
 
   const validatePatientId = (id: string) => {
     if (id && !/^[0-9]*$/.test(id)) {
@@ -181,7 +309,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     event.preventDefault();
     setError(null);
 
-    if (!date || !patientName) {
+    if (!date || (reservationType !== "rehab" && !patientName)) {
       setError("日付と患者名は必須項目です。");
       return;
     }
@@ -200,10 +328,26 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       if (
         dayjs(startTimeRange, "HH:mm").isAfter(dayjs(endTimeRange, "HH:mm"))
       ) {
-        setError("開始時間は終了時間より前に設定してください。");
+        setError("開始時間は終了時間より前に設定してください。他の予約と重複しています。");
         return;
       }
     }
+
+    // --- Submission Conflict Check ---
+     const conflicts = checkConflicts(
+      reservationType,
+       date,
+       time,
+       startTimeRange,
+       endTimeRange,
+       existingAppointments,
+       blockedSlots,
+       appointment?.id
+     );
+     if (conflicts > 0) {
+       setError("すでに予約が入っているので、登録できません。再度やり直してください。");
+       return;
+     }
 
     closeReservationForm();
     showLoader();
@@ -211,21 +355,19 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     const appointmentData: any = {
       date: date.format("YYYY-MM-DD"),
       reservationType,
-      patientName,
-      patientId,
       sendNotification,
     };
 
     if (reservationType === "outpatient") {
+      appointmentData.patientName = patientName;
+      appointmentData.patientId = patientId;
       appointmentData.time = time;
-      appointmentData.consultation =
-        consultation === "その他" ? otherConsultation : consultation;
+      appointmentData.consultation = consultation.includes("その他") ? otherConsultation : consultation;
     } else if (reservationType === "visit") {
-      appointmentData.facilityName = facilityName;
+      appointmentData.facilityName = patientName; // Use patientName for facilityName
       appointmentData.startTimeRange = startTimeRange;
       appointmentData.endTimeRange = endTimeRange;
-      appointmentData.consultation =
-        consultation === "その他" ? otherConsultation : consultation;
+      appointmentData.consultation = consultation.includes("その他") ? otherConsultation : consultation;
     } else if (reservationType === "rehab") {
       appointmentData.startTimeRange = startTimeRange;
       appointmentData.endTimeRange = endTimeRange;
@@ -293,8 +435,15 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       (slot) => dayjs(slot.date).isSame(date, "day") && slot.startTime !== null
     );
 
+    const lunchStart = dayjs().hour(11).minute(45).second(0); // 11:45
+    const lunchEnd = dayjs().hour(13).minute(30).second(0);   // 13:30
+
     return allTimeSlots.filter((slotTime) => {
       const currentSlotTime = dayjs(`${date.format("YYYY-MM-DD")}T${slotTime}`);
+
+      // Filter out lunch break times
+      const isDuringLunch = currentSlotTime.isBetween(lunchStart, lunchEnd, null, "[)"); // [) means inclusive start, exclusive end
+
       const isBlocked = dayBlockedSlots.some((blocked) => {
         const start = dayjs(`${blocked.date}T${blocked.startTime}`);
         const end = dayjs(`${blocked.date}T${blocked.endTime}`);
@@ -311,7 +460,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         return false;
       });
 
-      return !isBlocked && !isBooked;
+      return !isDuringLunch && !isBlocked && !isBooked;
     });
   }, [date, blockedSlots, allTimeSlots, existingAppointments, appointment]);
 
@@ -343,19 +492,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     });
   }, [date, allTimeSlots, existingAppointments, appointment]);
 
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
 
-    // When date changes, clear time and set generic warning
-    setTime("");
-    setStartTimeRange("");
-    setEndTimeRange("");
-    setTimeResetWarning("日付が変更されたため、時間を再選択してください。");
-    setRangeResetWarning("日付が変更されたため、時間範囲を再選択してください。");
-  }, [date]);
 
   // --- Render ---
   return (
@@ -384,34 +521,30 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
           </Select>
         </FormControl>
 
-        <TextField
-          label="患者ID (任意)"
-          value={patientId}
-          onChange={handlePatientIdChange}
-          fullWidth
-          sx={{ mb: 2 }}
-          error={!!patientIdError}
-          helperText={patientIdError}
-        />
+        {(reservationType === "outpatient" || reservationType === "visit") && (
+          <>
+            <TextField
+              label="患者ID (任意)"
+              value={patientId}
+              onChange={handlePatientIdChange}
+              fullWidth
+              sx={{ mb: 2 }}
+              error={!!patientIdError}
+              helperText={patientIdError}
+            />
 
-        <TextField
-          label="患者名"
-          value={patientName}
-          onChange={(e) => setPatientName(e.target.value)}
-          fullWidth
-          required
-          sx={{ mb: 2 }}
-        />
-
-        {reservationType === "visit" && (
-          <TextField
-            label="施設名 (任意)"
-            value={facilityName}
-            onChange={(e) => setFacilityName(e.target.value)}
-            fullWidth
-            sx={{ mb: 2 }}
-          />
+            <TextField
+              label={reservationType === "visit" ? "患者名/施設名" : "患者名"}
+              value={patientName}
+              onChange={(e) => setPatientName(e.target.value)}
+              fullWidth
+              required={true}
+              sx={{ mb: 2 }}
+            />
+          </>
         )}
+
+
 
         <DatePicker
           label="日付"
@@ -430,7 +563,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                 label="時間"
                 onChange={(e: SelectChangeEvent) => {
                   setTime(e.target.value);
-                  setTimeResetWarning("");
                 }}
                 disabled={!date}
               >
@@ -441,11 +573,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                 ))}
               </Select>
             </FormControl>
-            {timeResetWarning && (
-              <Typography color="error" variant="caption" sx={{ mt: 1 }}>
-                {timeResetWarning}
-              </Typography>
-            )}
+
           </>
         )}
 
@@ -459,7 +587,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                   label="開始時間"
                   onChange={(e: SelectChangeEvent) => {
                     setStartTimeRange(e.target.value);
-                    setRangeResetWarning("");
                   }}
                 >
                   {availableVisitRehabTimeSlots.map((slot) => (
@@ -476,7 +603,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                   label="終了時間"
                   onChange={(e: SelectChangeEvent) => {
                     setEndTimeRange(e.target.value);
-                    setRangeResetWarning("");
                   }}
                 >
                   {availableVisitRehabTimeSlots.map((slot) => (
@@ -487,12 +613,14 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                 </Select>
               </FormControl>
             </Box>
-            {rangeResetWarning && (
-              <Typography color="error" variant="caption" sx={{ mt: 1 }}>
-                {rangeResetWarning}
-              </Typography>
-            )}
+
           </>
+        )}
+
+        {conflictWarning && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {conflictWarning}
+          </Alert>
         )}
 
         {(reservationType === "outpatient" || reservationType === "visit") && (
@@ -500,11 +628,13 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>診察内容</InputLabel>
               <Select
+                multiple
                 value={consultation}
                 label="診察内容"
-                onChange={(e: SelectChangeEvent) =>
-                  setConsultation(e.target.value)
+                onChange={(e: SelectChangeEvent<typeof consultation>) =>
+                  setConsultation(e.target.value as string[])
                 }
+                renderValue={(selected) => (Array.isArray(selected) ? selected.join(', ') : selected)}
               >
                 {consultationOptions.map((option) => (
                   <MenuItem key={option} value={option}>
@@ -513,7 +643,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                 ))}
               </Select>
             </FormControl>
-            {consultation === "その他" && (
+            {consultation.includes("その他") && (
               <TextField
                 label="診察内容 (その他)"
                 value={otherConsultation}
