@@ -112,8 +112,25 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         if (sortConfig.key === "date" || sortConfig.key === "time") {
-          const aDateTime = dayjs(`${a.date} ${a.time}`);
-          const bDateTime = dayjs(`${b.date} ${b.time}`);
+          // Determine the time to use for comparison based on reservation type
+          const getTimeForSort = (appt: Appointment) => {
+            if (appt.reservationType === "outpatient" || appt.reservationType === "special") {
+              return appt.time;
+            }
+            // For visit/rehab, use startTimeRange for time-based sorting
+            if (appt.reservationType === "visit" || appt.reservationType === "rehab") {
+              return appt.startTimeRange;
+            }
+            return undefined; // Should not happen if types are correct
+          };
+
+          const aTime = getTimeForSort(a);
+          const bTime = getTimeForSort(b);
+
+          // Construct dayjs objects, handling cases where time might be missing
+          const aDateTime = dayjs(`${a.date} ${aTime || '00:00'}`); // Default to '00:00' if time is missing
+          const bDateTime = dayjs(`${b.date} ${bTime || '00:00'}`); // Default to '00:00' if time is missing
+
           if (aDateTime.isBefore(bDateTime)) {
             return sortConfig.direction === "asc" ? -1 : 1;
           }
@@ -256,6 +273,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
               <TableCell>患者名</TableCell>
               <TableCell>診察内容</TableCell>
               {userRole !== "viewer" && <TableCell>最終更新者</TableCell>}
+              {userRole !== "viewer" && <TableCell>最終更新日</TableCell>}
               {userRole !== "viewer" && <TableCell>操作</TableCell>}
             </TableRow>
           </TableHead>
@@ -313,6 +331,11 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
                   </TableCell>
                   {userRole !== "viewer" && (
                     <TableCell>{row.lastUpdatedBy || "-"}</TableCell>
+                  )}
+                  {userRole !== "viewer" && (
+                    <TableCell>
+                      {row.lastUpdatedAt ? dayjs(row.lastUpdatedAt).format("YYYY-MM-DD HH:mm") : "-"}
+                    </TableCell>
                   )}
                   {userRole !== "viewer" && (
                     <TableCell>
