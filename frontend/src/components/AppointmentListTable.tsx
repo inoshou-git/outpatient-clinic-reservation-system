@@ -19,11 +19,23 @@ import {
   DialogContentText,
   DialogTitle,
   FormControlLabel,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { Appointment } from "../types";
 import { useUI } from "../contexts/UIContext";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 
 interface AppointmentListTableProps {
   appointments: Appointment[];
@@ -43,7 +55,7 @@ interface AppointmentListTableProps {
   setView: (view: "all" | "daily" | "weekly" | "monthly") => void;
 }
 
-const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
+const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
   appointments,
   sortConfig,
   handleRequestSort,
@@ -59,11 +71,14 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
   userRole,
   view,
   setView,
-}) => {
+}): JSX.Element => {
   const { showLoader, hideLoader } = useUI();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
   const [sendNotification, setSendNotification] = useState(false);
+  const [filterReservationType, setFilterReservationType] = useState<string>("all");
+  const [filterStartDate, setFilterStartDate] = useState<Dayjs | null>(null);
+  const [filterEndDate, setFilterEndDate] = useState<Dayjs | null>(null);
 
   const isSelected = (id: number) => selectedAppointments.indexOf(id) !== -1;
 

@@ -391,7 +391,6 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
                   label="開始時間"
                   onChange={(e: SelectChangeEvent) => {
                     setStartTime(e.target.value);
-                    setTimeResetWarning("");
                   }}
                 >
                   {availableTimeSlots.map((slot) => (
@@ -408,7 +407,6 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
                   label="終了時間"
                   onChange={(e: SelectChangeEvent) => {
                     setEndTime(e.target.value);
-                    setTimeResetWarning("");
                   }}
                 >
                   {availableTimeSlots.map((slot) => (
@@ -419,11 +417,7 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
                 </Select>
               </FormControl>
             </Box>
-            {timeResetWarning && (
-              <Typography color="error" variant="caption" sx={{ mt: 1 }}>
-                {timeResetWarning}
-              </Typography>
-            )}
+            
           </>
         )}
         {conflictingAppointments.length > 0 && !confirmationOpen && (
