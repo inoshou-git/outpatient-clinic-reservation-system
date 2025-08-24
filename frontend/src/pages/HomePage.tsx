@@ -454,6 +454,7 @@ const HomePage = () => {
               closeSpecialReservationForm();
             }}
             appointment={editingSpecialAppointment}
+            blockedSlots={blockedSlots}
           />
         </DialogContent>
         <DialogActions>
