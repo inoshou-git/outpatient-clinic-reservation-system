@@ -57,17 +57,9 @@ const generateTimeSlots = (
   const slots = [];
   let time = dayjs().hour(startHour).minute(startMinute).second(0);
   const endTime = dayjs().hour(endHour).minute(endMinute).second(0);
-  const lunchStart = dayjs().hour(11).minute(45).second(0);
-  const lunchEnd = dayjs().hour(13).minute(30).second(0);
 
   while (time.isBefore(endTime) || time.isSame(endTime)) {
-    if (
-      time.isBefore(lunchStart) ||
-      time.isAfter(lunchEnd) ||
-      time.isSame(lunchEnd)
-    ) {
-      slots.push(time.format("HH:mm"));
-    }
+    slots.push(time.format("HH:mm"));
     time = time.add(15, "minute");
   }
   return slots;
@@ -227,7 +219,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
            const apptStart = dayjs(`${appt.date}T${appt.startTimeRange}`);
            const apptEnd = dayjs(`${appt.date}T${appt.endTimeRange}`);
            const selectedTime = dayjs(`${currentDate.format("YYYY-MM-DD")}T${currentTime}`);
-           if (selectedTime.isBetween(apptStart, apptEnd, null, "[]")) {
+           if (selectedTime.isBetween(apptStart, apptEnd, null, "[)")) {
               conflicts++;
            }
          }
@@ -239,7 +231,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
          // Visit/Rehab vs Outpatient
          if (appt.reservationType === "outpatient" && appt.time) {
            const apptTime = dayjs(`${appt.date}T${appt.time}`);
-             if (apptTime.isBetween(selectedStart, selectedEnd, null, "[]")) {
+             if (apptTime.isBetween(selectedStart, selectedEnd, null, "[)")) {
               conflicts++;
             }
           }
@@ -443,8 +435,15 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       (slot) => dayjs(slot.date).isSame(date, "day") && slot.startTime !== null
     );
 
+    const lunchStart = dayjs().hour(11).minute(45).second(0); // 11:45
+    const lunchEnd = dayjs().hour(13).minute(30).second(0);   // 13:30
+
     return allTimeSlots.filter((slotTime) => {
       const currentSlotTime = dayjs(`${date.format("YYYY-MM-DD")}T${slotTime}`);
+
+      // Filter out lunch break times
+      const isDuringLunch = currentSlotTime.isBetween(lunchStart, lunchEnd, null, "[)"); // [) means inclusive start, exclusive end
+
       const isBlocked = dayBlockedSlots.some((blocked) => {
         const start = dayjs(`${blocked.date}T${blocked.startTime}`);
         const end = dayjs(`${blocked.date}T${blocked.endTime}`);
@@ -461,7 +460,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         return false;
       });
 
-      return !isBlocked && !isBooked;
+      return !isDuringLunch && !isBlocked && !isBooked;
     });
   }, [date, blockedSlots, allTimeSlots, existingAppointments, appointment]);
 
