@@ -4,10 +4,10 @@ import * as userService from "./users.service";
 export const login = async (req: Request, res: Response) => {
   const { userId, password } = req.body;
   const result = await userService.loginUser(userId, password);
-  if (result && 'token' in result) {
+  if (result) {
     res.json(result);
   } else {
-    res.status(401).json({ message: result ? (result as any).error : "Invalid credentials" });
+    res.status(401).json({ message: "Invalid credentials or user deleted" });
   }
 };
 

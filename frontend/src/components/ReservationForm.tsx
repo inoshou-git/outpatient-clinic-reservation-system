@@ -41,7 +41,6 @@ const consultationOptions = [
   "新患",
   "定期処方",
   "生活習慣",
-  "入職時健診",
   "特定健診",
   "企業健診",
   "健康診断",
@@ -182,7 +181,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     event.preventDefault();
     setError(null);
 
-    if (!date || (reservationType !== "rehab" && !patientName)) {
+    if (!date || !patientName) {
       setError("日付と患者名は必須項目です。");
       return;
     }
@@ -212,17 +211,17 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     const appointmentData: any = {
       date: date.format("YYYY-MM-DD"),
       reservationType,
+      patientName,
+      patientId,
       sendNotification,
     };
 
     if (reservationType === "outpatient") {
-      appointmentData.patientName = patientName;
-      appointmentData.patientId = patientId;
       appointmentData.time = time;
       appointmentData.consultation =
         consultation === "その他" ? otherConsultation : consultation;
     } else if (reservationType === "visit") {
-      appointmentData.facilityName = patientName; // Use patientName for facilityName
+      appointmentData.facilityName = facilityName;
       appointmentData.startTimeRange = startTimeRange;
       appointmentData.endTimeRange = endTimeRange;
       appointmentData.consultation =
@@ -344,7 +343,19 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     });
   }, [date, allTimeSlots, existingAppointments, appointment]);
 
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
 
+    // When date changes, clear time and set generic warning
+    setTime("");
+    setStartTimeRange("");
+    setEndTimeRange("");
+    setTimeResetWarning("日付が変更されたため、時間を再選択してください。");
+    setRangeResetWarning("日付が変更されたため、時間範囲を再選択してください。");
+  }, [date]);
 
   // --- Render ---
   return (
@@ -373,30 +384,34 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
           </Select>
         </FormControl>
 
-        {(reservationType === "outpatient" || reservationType === "visit") && (
-          <>
-            <TextField
-              label="患者ID (任意)"
-              value={patientId}
-              onChange={handlePatientIdChange}
-              fullWidth
-              sx={{ mb: 2 }}
-              error={!!patientIdError}
-              helperText={patientIdError}
-            />
+        <TextField
+          label="患者ID (任意)"
+          value={patientId}
+          onChange={handlePatientIdChange}
+          fullWidth
+          sx={{ mb: 2 }}
+          error={!!patientIdError}
+          helperText={patientIdError}
+        />
 
-            <TextField
-              label={reservationType === "visit" ? "患者名/施設名" : "患者名"}
-              value={patientName}
-              onChange={(e) => setPatientName(e.target.value)}
-              fullWidth
-              required={reservationType !== "rehab"}
-              sx={{ mb: 2 }}
-            />
-          </>
+        <TextField
+          label="患者名"
+          value={patientName}
+          onChange={(e) => setPatientName(e.target.value)}
+          fullWidth
+          required
+          sx={{ mb: 2 }}
+        />
+
+        {reservationType === "visit" && (
+          <TextField
+            label="施設名 (任意)"
+            value={facilityName}
+            onChange={(e) => setFacilityName(e.target.value)}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
         )}
-
-        
 
         <DatePicker
           label="日付"

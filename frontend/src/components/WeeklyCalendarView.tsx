@@ -356,13 +356,6 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                       <TableCell
                         key={day.toString()}
                         align="center"
-                        onClick={() => {
-                          if (appointment) {
-                            handleAppointmentClick(appointment);
-                          } else if (clickable) {
-                            onSlotClick(day, time);
-                          }
-                        }}
                         sx={{
                           border: "1px solid #eee",
                           height: 60,
@@ -378,15 +371,15 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                                 : backgroundColor, // Lighter grey for hover on empty slots only if canEdit
                           },
                         }}
-
+                        onClick={() => {
+                          if (appointment) {
+                            handleAppointmentClick(appointment);
+                          } else if (canEdit && !isWeekend && !blockedSlot) {
+                            onSlotClick(day, time);
+                          }
+                        }}
                       >
-                        {blockedSlot ? (
-                          <Box sx={{ fontSize: "0.75rem", color: "red" }}>
-                            <strong>予約不可</strong>
-                            <br />
-                            {blockedSlot.reason}
-                          </Box>
-                        ) : !isWeekend && appointment ? (
+                        {!isWeekend && !blockedSlot && appointment ? (
                           <Box sx={{ fontSize: "0.75rem" }}>
                             {appointment.reservationType === "outpatient" && (
                               <>
@@ -401,12 +394,16 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                               <>
                                 <strong>訪問診療</strong>
                                 <br />
-                                {appointment.patientName}
-                                <br />
+                                {appointment.facilityName && (
+                                  <>
+                                    {appointment.facilityName}
+                                    <br />
+                                  </>
+                                )}
                                 {appointment.startTimeRange} -{" "}
                                 {appointment.endTimeRange}
                                 <br />
-                                {Array.isArray(appointment.consultation) ? appointment.consultation.join(', ') : appointment.consultation}
+                                {appointment.consultation}
                               </>
                             )}
                             {appointment.reservationType === "rehab" && (
@@ -465,9 +462,12 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
               )}
               {selectedAppointment.reservationType === "visit" && (
                 <>
-                  <Typography variant="subtitle1">
-                    <strong>患者名/施設名:</strong> {selectedAppointment.patientName}
-                  </Typography>
+                  {selectedAppointment.facilityName && (
+                    <Typography variant="subtitle1">
+                      <strong>施設名:</strong>{" "}
+                      {selectedAppointment.facilityName}
+                    </Typography>
+                  )}
                   <Typography variant="subtitle1">
                     <strong>時間帯:</strong>{" "}
                     {selectedAppointment.startTimeRange} -{" "}

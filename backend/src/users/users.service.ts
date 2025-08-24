@@ -16,22 +16,20 @@ export const loginUser = async (
   token: string;
   user: Partial<User>;
   mustChangePassword?: boolean;
-} | { error: string }> => {
+} | null> => {
   const db = await readDb();
   const user = db.users.find(
-    (u) => u.userId === userId && !u.isDeleted
+    (u) => u.userId === userId && u.password === password && !u.isDeleted
   );
-
-  if (!user || user.password !== password) {
-    return { error: "ユーザーIDかパスワードが間違っています" };
+  if (user) {
+    const { password, ...userResult } = user;
+    return {
+      token: user.userId, // Using userId as token for now
+      user: userResult,
+      mustChangePassword: user.mustChangePassword || false,
+    };
   }
-
-  const { password: userPassword, ...userResult } = user;
-  return {
-    token: user.userId, // Using userId as token for now
-    user: userResult,
-    mustChangePassword: user.mustChangePassword || false,
-  };
+  return null;
 };
 
 export const setUserPassword = async (

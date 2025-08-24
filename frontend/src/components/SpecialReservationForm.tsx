@@ -17,21 +17,16 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { useUI } from "../contexts/UIContext";
 import dayjs, { Dayjs } from "dayjs";
-import { Appointment, BlockedSlot } from "../types";
-import isBetween from "dayjs/plugin/isBetween";
-
-dayjs.extend(isBetween);
+import { Appointment } from "../types";
 
 interface SpecialReservationFormProps {
   onFormSubmit: () => void;
   appointment?: Appointment | null;
-  blockedSlots: BlockedSlot[];
 }
 
 const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
   onFormSubmit,
   appointment,
-  blockedSlots,
 }) => {
   const { token } = useAuth();
   const { showLoader, hideLoader } = useUI();
@@ -44,26 +39,6 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [timeError, setTimeError] = useState("");
   const [patientIdError, setPatientIdError] = useState("");
-
-  const shouldDisableDate = (day: Dayjs) => {
-    const isWeekend = day.day() === 0 || day.day() === 6; // Sunday (0) or Saturday (6)
-    const isBlockedAllDay = blockedSlots.some((slot) => {
-      const blockedStartDate = dayjs(slot.date);
-      const blockedEndDate = slot.endDate
-        ? dayjs(slot.endDate)
-        : blockedStartDate;
-      return (
-        slot.startTime === null &&
-        day.isBetween(
-          blockedStartDate.startOf("day"),
-          blockedEndDate.endOf("day"),
-          null,
-          "[]"
-        )
-      );
-    });
-    return isWeekend || isBlockedAllDay;
-  };
 
   useEffect(() => {
     if (appointment) {
@@ -167,7 +142,6 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
             label="日付"
             value={date}
             onChange={(newDate) => setDate(newDate)}
-            shouldDisableDate={shouldDisableDate}
             sx={{ width: "100%" }}
           />
           <TextField

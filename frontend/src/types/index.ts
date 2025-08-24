@@ -13,8 +13,6 @@ export interface Appointment {
   endTimeRange?: string;
   reason?: string;
   sendNotification?: boolean;
-  createdAt?: string;
-  lastUpdatedAt?: string;
 }
 
 export interface SpecialAppointment {

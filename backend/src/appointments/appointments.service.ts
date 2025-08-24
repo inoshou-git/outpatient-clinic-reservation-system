@@ -4,9 +4,6 @@ import dayjs from "dayjs";
 import { sendEmail } from "../emailService";
 import { getAllUsers } from "../users/users.service";
 import { io } from "../index"; // Import the io instance
-import isBetween from "dayjs/plugin/isBetween";
-
-dayjs.extend(isBetween);
 
 const notifyUsers = async (subject: string, text: string, html: string) => {
   const users = await getAllUsers();
@@ -47,11 +44,11 @@ export const createAppointment = async (
   }
 
   if (reservationType === "outpatient") {
-    if (!patientName || !time) {
-      return { error: "外来診療の場合、患者名、時間は必須項目です。" };
+    if (!patientId || !patientName || !time) {
+      return { error: "外来診療の場合、患者ID、患者名、時間は必須項目です。" };
     }
-    if (patientId && !/^[0-9]+$/.test(patientId)) {
-      return { error: "患者IDは半角数字のみで入力してください。" };
+    if (!/^[0-9]+$/.test(patientId)) {
+      return { error: "患者IDは数字のみで入力してください。" };
     }
   } else if (reservationType === "visit" || reservationType === "rehab") {
     if (!startTimeRange || !endTimeRange) {
@@ -65,55 +62,13 @@ export const createAppointment = async (
     }
   }
 
-  
-
-  const db = await readDb();
-
-  // ダブルブッキングチェック
-  const newIsTimeBased = !!time;
-  const newIsRangeBased = !!startTimeRange && !!endTimeRange;
-
-  const conflicting = db.appointments.find(a => {
-    if (a.isDeleted || a.date !== date || a.reservationType === "special") { // Ignore special appointments
-      return false;
-    }
-
-    const existingIsTimeBased = !!a.time;
-    const existingIsRangeBased = !!a.startTimeRange && !!a.endTimeRange;
-
-    if (newIsTimeBased) {
-      const newTime = dayjs(`${date} ${time}`);
-      if (existingIsTimeBased) {
-        return newTime.isSame(dayjs(`${a.date} ${a.time}`));
-      }
-      if (existingIsRangeBased) {
-        const existingStart = dayjs(`${a.date} ${a.startTimeRange}`);
-        const existingEnd = dayjs(`${a.date} ${a.endTimeRange}`);
-        return newTime.isBetween(existingStart, existingEnd, 'minute', '[)');
-      }
-    }
-
-    if (newIsRangeBased) {
-      const newStart = dayjs(`${date} ${startTimeRange}`);
-      const newEnd = dayjs(`${date} ${endTimeRange}`);
-      if (existingIsTimeBased) {
-        const existingTime = dayjs(`${a.date} ${a.time}`);
-        return existingTime.isBetween(newStart, newEnd, 'minute', '[)');
-      }
-      if (existingIsRangeBased) {
-        const existingStart = dayjs(`${a.date} ${a.startTimeRange}`);
-        const existingEnd = dayjs(`${a.date} ${a.endTimeRange}`);
-        return newStart.isBefore(existingEnd) && newEnd.isAfter(existingStart);
-      }
-    }
-
-    return false;
-  });
-
-  if (conflicting) {
-    return { error: "すでに予約が入っている為、登録できませんでした。再度やり直してください。" };
+  // Add validation for Wednesday afternoon
+  const appointmentDate = dayjs(appointmentData.date);
+  if (appointmentDate.day() === 3 && appointmentData.time >= "13:00") {
+    throw new Error("水曜日の午後は予約できません。");
   }
 
+  const db = await readDb();
   const newId =
     db.appointments.length > 0
       ? Math.max(...db.appointments.map((a) => a.id)) + 1
@@ -124,8 +79,6 @@ export const createAppointment = async (
     reservationType,
     lastUpdatedBy,
     isDeleted: false,
-    createdAt: new Date().toISOString(),
-    lastUpdatedAt: new Date().toISOString(),
   };
 
   if (reservationType === "outpatient") {
@@ -153,15 +106,14 @@ export const createAppointment = async (
     let subject = "";
     let text = "";
     let html = "";
-    const consultationText = Array.isArray(consultation) ? consultation.join(', ') : consultation;
 
     if (reservationType === "outpatient") {
       subject = "新規予約登録のお知らせ (外来診療)";
       text = `新しい外来診療の予約が登録されました.\n患者名: ${patientName}\n日時: ${date} ${time}\n診察内容: ${
-        consultationText || "未入力"
+        consultation || "未入力"
       }\n担当: ${lastUpdatedBy}`;
       html = `<p>新しい外来診療の予約が登録されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${time}</li><li>診察内容: ${
-        consultationText || "未入力"
+        consultation || "未入力"
       }</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
         process.env.SYSTEM_URL
       }">${process.env.SYSTEM_URL}</a></p>`;
@@ -170,12 +122,12 @@ export const createAppointment = async (
       text = `新しい訪問診療の予約が登録されました.\n施設名: ${
         facilityName || "未入力"
       }\n日時: ${date} ${startTimeRange} - ${endTimeRange}\n診察内容: ${
-        consultationText || "未入力"
+        consultation || "未入力"
       }\n担当: ${lastUpdatedBy}`;
       html = `<p>新しい訪問診療の予約が登録されました。</p><ul><li>施設名: ${
         facilityName || "未入力"
       }</li><li>日時: ${date} ${startTimeRange} - ${endTimeRange}</li><li>診察内容: ${
-        consultationText || "未入力"
+        consultation || "未入力"
       }</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
         process.env.SYSTEM_URL
       }">${process.env.SYSTEM_URL}</a></p>`;
@@ -201,72 +153,30 @@ export const updateAppointment = async (
   if (appointmentIndex !== -1) {
     const oldAppointment = { ...db.appointments[appointmentIndex] };
 
-    
+    // Add validation for Wednesday afternoon
+    const appointmentDate = dayjs(appointmentData.date);
+    if (appointmentDate.day() === 3 && appointmentData.time >= "13:00") {
+      throw new Error("水曜日の午後は予約できません。");
+    }
 
     const updatedAppointment = {
       ...db.appointments[appointmentIndex],
       ...appointmentData,
       lastUpdatedBy,
-      lastUpdatedAt: new Date().toISOString(),
     };
-
-    // ダブルブッキングチェック
-    const { date, time, startTimeRange, endTimeRange } = updatedAppointment;
-    const newIsTimeBased = !!time;
-    const newIsRangeBased = !!startTimeRange && !!endTimeRange;
-
-    const conflicting = db.appointments.find(a => {
-      if (a.id === id || a.isDeleted || a.date !== date || a.reservationType === "special") { // Ignore special appointments
-        return false;
-      }
-
-      const existingIsTimeBased = !!a.time;
-      const existingIsRangeBased = !!a.startTimeRange && !!a.endTimeRange;
-
-      if (newIsTimeBased) {
-        const newTime = dayjs(`${date} ${time}`);
-        if (existingIsTimeBased) {
-          return newTime.isSame(dayjs(`${a.date} ${a.time}`));
-        }
-        if (existingIsRangeBased) {
-          const existingStart = dayjs(`${a.date} ${a.startTimeRange}`);
-          const existingEnd = dayjs(`${a.date} ${a.endTimeRange}`);
-          return newTime.isBetween(existingStart, existingEnd, 'minute', '[)');
-        }
-      }
-
-      if (newIsRangeBased) {
-        const newStart = dayjs(`${date} ${startTimeRange}`);
-        const newEnd = dayjs(`${date} ${endTimeRange}`);
-        if (existingIsTimeBased) {
-          const existingTime = dayjs(`${a.date} ${a.time}`);
-          return existingTime.isBetween(newStart, newEnd, 'minute', '[)');
-        }
-        if (existingIsRangeBased) {
-          const existingStart = dayjs(`${a.date} ${a.startTimeRange}`);
-          const existingEnd = dayjs(`${a.date} ${a.endTimeRange}`);
-          return newStart.isBefore(existingEnd) && newEnd.isAfter(existingStart);
-        }
-      }
-
-      return false;
-    });
-
-    if (conflicting) {
-      return { error: "すでに予約が入っている為、登録できませんでした。再度やり直してください。" };
-    }
 
     if (updatedAppointment.reservationType === "outpatient") {
       if (
+        !updatedAppointment.patientId ||
         !updatedAppointment.patientName ||
         !updatedAppointment.time
       ) {
         return {
-          error: "外来診療の場合、患者名、時間は必須項目です。",
+          error: "外来診療の場合、患者ID、患者名、時間は必須項目です。",
         };
       }
-      if (updatedAppointment.patientId && !/^[0-9]+$/.test(updatedAppointment.patientId)) {
-        return { error: "患者IDは半角数字のみで入力してください。" };
+      if (!/^[0-9]+$/.test(updatedAppointment.patientId)) {
+        return { error: "患者IDは数字のみで入力してください。" };
       }
       updatedAppointment.facilityName = undefined;
       updatedAppointment.startTimeRange = undefined;
@@ -328,10 +238,10 @@ export const updateAppointment = async (
           changes += `<li>時間: ${oldAppointment.time || "未入力"} → ${
             updatedAppointment.time || "未入力"
           }</li>`;
-        const oldConsultationText = Array.isArray(oldAppointment.consultation) ? oldAppointment.consultation.join(', ') : oldAppointment.consultation;
-        const newConsultationText = Array.isArray(updatedAppointment.consultation) ? updatedAppointment.consultation.join(', ') : updatedAppointment.consultation;
-        if (oldConsultationText !== newConsultationText)
-          changes += `<li>診察内容: ${oldConsultationText || "未入力"} → ${newConsultationText || "未入力"}</li>`;
+        if (oldAppointment.consultation !== updatedAppointment.consultation)
+          changes += `<li>診察内容: ${
+            oldAppointment.consultation || "未入力"
+          } → ${updatedAppointment.consultation || "未入力"}</li>`;
         subject = "予約更新のお知らせ (外来診療)";
         text = `外来診療の予約が更新されました.\n患者名: ${
           updatedAppointment.patientName
@@ -354,10 +264,10 @@ export const updateAppointment = async (
           changes += `<li>終了時間: ${
             oldAppointment.endTimeRange || "未入力"
           } → ${updatedAppointment.endTimeRange || "未入力"}</li>`;
-        const oldConsultationText = Array.isArray(oldAppointment.consultation) ? oldAppointment.consultation.join(', ') : oldAppointment.consultation;
-        const newConsultationText = Array.isArray(updatedAppointment.consultation) ? updatedAppointment.consultation.join(', ') : updatedAppointment.consultation;
-        if (oldConsultationText !== newConsultationText)
-          changes += `<li>診察内容: ${oldConsultationText || "未入力"} → ${newConsultationText || "未入力"}</li>`;
+        if (oldAppointment.consultation !== updatedAppointment.consultation)
+          changes += `<li>診察内容: ${
+            oldAppointment.consultation || "未入力"
+          } → ${updatedAppointment.consultation || "未入力"}</li>`;
         subject = "予約更新のお知らせ (訪問診療)";
         text = `訪問診療の予約が更新されました.\n施設名: ${
           updatedAppointment.facilityName || "未入力"
@@ -510,37 +420,15 @@ export const createSpecialAppointment = async (
     sendNotification,
   } = appointmentData;
 
-  if (!patientName || !date) {
-    return { error: "患者名, 日付, 時間, 理由は必須項目です。" };
+  if (!patientId || !patientName || !date || !time || !reason) {
+    return { error: "患者ID, 患者名, 日付, 時間, 理由は必須項目です。" };
   }
 
-  if (patientId && !/^[0-9]+$/.test(patientId)) {
-    return { error: "患者IDは半角数字のみで入力してください。" };
+  if (!/^[0-9]+$/.test(patientId)) {
+    return { error: "患者IDは数字のみで入力してください。" };
   }
 
   const db = await readDb();
-
-  // ダブルブッキングチェック
-  const conflicting = db.appointments.find(a => {
-    if (a.isDeleted || a.date !== date) {
-      return false;
-    }
-    const newTime = dayjs(`${date} ${time}`);
-    if (a.time) { // vs time-based
-      return newTime.isSame(dayjs(`${a.date} ${a.time}`));
-    }
-    if (a.startTimeRange && a.endTimeRange) { // vs range-based
-      const existingStart = dayjs(`${a.date} ${a.startTimeRange}`);
-      const existingEnd = dayjs(`${a.date} ${a.endTimeRange}`);
-      return newTime.isBetween(existingStart, existingEnd, 'minute', '[)');
-    }
-    return false;
-  });
-
-  if (conflicting) {
-    return { error: "すでに予約が入っている為、登録できませんでした。再度やり直してください。" };
-  }
-
   const newId =
     db.appointments.length > 0
       ? Math.max(...db.appointments.map((a) => a.id)) + 1
@@ -555,8 +443,6 @@ export const createSpecialAppointment = async (
     reservationType: "special",
     lastUpdatedBy,
     isDeleted: false,
-    createdAt: new Date().toISOString(),
-    lastUpdatedAt: new Date().toISOString(),
   };
 
   db.appointments.push(newAppointment);
@@ -589,40 +475,20 @@ export const updateSpecialAppointment = async (
       ...db.appointments[appointmentIndex],
       ...appointmentData,
       lastUpdatedBy,
-      lastUpdatedAt: new Date().toISOString(),
     };
 
-    // ダブルブッキングチェック
-    const { date, time } = updatedAppointment;
-    const conflicting = db.appointments.find(a => {
-      if (a.id === id || a.isDeleted || a.date !== date) {
-        return false;
-      }
-      const newTime = dayjs(`${date} ${time}`);
-      if (a.time) { // vs time-based
-        return newTime.isSame(dayjs(`${a.date} ${a.time}`));
-      }
-      if (a.startTimeRange && a.endTimeRange) { // vs range-based
-        const existingStart = dayjs(`${a.date} ${a.startTimeRange}`);
-        const existingEnd = dayjs(`${a.date} ${a.endTimeRange}`);
-        return newTime.isBetween(existingStart, existingEnd, 'minute', '[)');
-      }
-      return false;
-    });
-
-    if (conflicting) {
-      return { error: "すでに予約が入っている為、登録できませんでした。再度やり直してください。" };
-    }
-
     if (
+      !updatedAppointment.patientId ||
       !updatedAppointment.patientName ||
-      !updatedAppointment.date
+      !updatedAppointment.date ||
+      !updatedAppointment.time ||
+      !updatedAppointment.reason
     ) {
-      return { error: "患者名, 日付, 時間, 理由は必須項目です。" };
+      return { error: "患者ID, 患者名, 日付, 時間, 理由は必須項目です。" };
     }
 
-    if (updatedAppointment.patientId && !/^[0-9]+$/.test(updatedAppointment.patientId)) {
-      return { error: "患者IDは半角数字のみで入力してください。" };
+    if (!/^[0-9]+$/.test(updatedAppointment.patientId)) {
+      return { error: "患者IDは数字のみで入力してください。" };
     }
 
     db.appointments[appointmentIndex] = updatedAppointment;

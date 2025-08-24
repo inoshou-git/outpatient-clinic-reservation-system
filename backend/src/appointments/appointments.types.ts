@@ -4,7 +4,7 @@ export interface Appointment {
   patientName?: string;
   date: string;
   time?: string;
-  consultation?: string | string[];
+  consultation?: string;
   lastUpdatedBy?: string;
   isDeleted?: boolean;
   reservationType: "outpatient" | "visit" | "rehab" | "special";
@@ -12,6 +12,4 @@ export interface Appointment {
   startTimeRange?: string;
   endTimeRange?: string;
   reason?: string;
-  createdAt?: string;
-  lastUpdatedAt?: string;
 }
