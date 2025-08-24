@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { useNavigate, Link as RouterLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Container,
   Box,
@@ -8,7 +8,6 @@ import {
   Button,
   Typography,
   Alert,
-  Link,
 } from "@mui/material";
 
 import { loginUser } from "../services/api";
@@ -23,33 +22,19 @@ const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    let retries = 0;
-    let delay = 1000; // 1 second
-    const maxRetries = 5;
-
-    while (retries < maxRetries) {
-      try {
-        const { user, token, mustChangePassword } = await loginUser(
-          userId,
-          password
-        );
-        auth.login(user, token);
-        if (mustChangePassword) {
-          navigate("/force-password-change");
-        } else {
-          navigate("/");
-        }
-        return; // Exit on success
-      } catch (err: any) {
-        retries++;
-        if (retries < maxRetries) {
-          setError(`ログインに失敗しました。再試行中... (${retries}/${maxRetries})`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          delay *= 2; // Exponential backoff
-        } else {
-          setError(err.message || "ログインに失敗しました。時間をおいてお試しください。");
-        }
+    try {
+      const { user, token, mustChangePassword } = await loginUser(
+        userId,
+        password
+      );
+      auth.login(user, token);
+      if (mustChangePassword) {
+        navigate("/force-password-change");
+      } else {
+        navigate("/");
       }
+    } catch (err: any) {
+      setError(err.message || "ログインに失敗しました。");
     }
   };
 

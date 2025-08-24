@@ -19,11 +19,18 @@ import {
   DialogContentText,
   DialogTitle,
   FormControlLabel,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { Appointment } from "../types";
 import { useUI } from "../contexts/UIContext";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 interface AppointmentListTableProps {
   appointments: Appointment[];
@@ -64,6 +71,9 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
   const [sendNotification, setSendNotification] = useState(false);
+  const [filterReservationType, setFilterReservationType] = useState<string>("all");
+  const [filterStartDate, setFilterStartDate] = useState<Dayjs | null>(null);
+  const [filterEndDate, setFilterEndDate] = useState<Dayjs | null>(null);
 
   const isSelected = (id: number) => selectedAppointments.indexOf(id) !== -1;
 
@@ -97,8 +107,9 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         if (sortConfig.key === "date" || sortConfig.key === "time") {
-          const aDateTime = dayjs(`${a.date} ${a.time}`);
-          const bDateTime = dayjs(`${b.date} ${b.time}`);
+          const getTime = (item: Appointment) => item.time || item.startTimeRange || "00:00";
+          const aDateTime = dayjs(`${a.date} ${getTime(a)}`);
+          const bDateTime = dayjs(`${b.date} ${getTime(b)}`);
           if (aDateTime.isBefore(bDateTime)) {
             return sortConfig.direction === "asc" ? -1 : 1;
           }
@@ -127,8 +138,15 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
   }, [appointments, sortConfig]);
 
   const filteredAppointments = sortedAppointments.filter((app) => {
+    const matchesType = filterReservationType === "all" || app.reservationType === filterReservationType;
+    const matchesStartDate = !filterStartDate || dayjs(app.date).isSameOrAfter(filterStartDate, "day");
+    const matchesEndDate = !filterEndDate || dayjs(app.date).isSameOrBefore(filterEndDate, "day");
+
     return (
       !app.isDeleted &&
+      matchesType &&
+      matchesStartDate &&
+      matchesEndDate &&
       (view === "all" ||
         (view === "daily" && dayjs(app.date).isSame(dayjs(), "day")) ||
         (view === "weekly" &&
@@ -139,8 +157,8 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
   });
 
   return (
-    <>
-      <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <ButtonGroup
           variant="contained"
           aria-label="outlined primary button group"
@@ -164,7 +182,37 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
             全て
           </Button>
         </ButtonGroup>
-        <Box>
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+          <FormControl sx={{ minWidth: 120 }}>
+            <InputLabel>予約種別</InputLabel>
+            <Select
+              value={filterReservationType}
+              label="予約種別"
+              onChange={(e) => setFilterReservationType(e.target.value as string)}
+            >
+              <MenuItem value="all">全て</MenuItem>
+              <MenuItem value="outpatient">外来診療</MenuItem>
+              <MenuItem value="visit">訪問診療</MenuItem>
+              <MenuItem value="rehab">通所リハ会議</MenuItem>
+              <MenuItem value="special">特別予約</MenuItem>
+            </Select>
+          </FormControl>
+          <DatePicker
+            label="開始日"
+            value={filterStartDate}
+            onChange={(newValue) => setFilterStartDate(newValue)}
+            slotProps={{
+              textField: { size: "small" },
+            }}
+          />
+          <DatePicker
+            label="終了日"
+            value={filterEndDate}
+            onChange={(newValue) => setFilterEndDate(newValue)}
+            slotProps={{
+              textField: { size: "small" },
+            }}
+          />
           {userRole !== "viewer" &&
             bulkActionEnabled &&
             selectedAppointments.length > 0 && (
@@ -237,10 +285,11 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
                 </TableSortLabel>
               </TableCell>
               <TableCell>予約種別</TableCell>
-              <TableCell>患者ID/施設名</TableCell>
-              <TableCell>患者名</TableCell>
+              <TableCell>患者ID</TableCell>
+              <TableCell>患者名/施設名</TableCell>
               <TableCell>診察内容</TableCell>
               {userRole !== "viewer" && <TableCell>最終更新者</TableCell>}
+              {userRole !== "viewer" && <TableCell>最終更新日時</TableCell>}
               {userRole !== "viewer" && <TableCell>操作</TableCell>}
             </TableRow>
           </TableHead>
@@ -284,12 +333,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
                       ? "特別予約"
                       : "-"}
                   </TableCell>
-                  <TableCell>
-                    {row.reservationType === "outpatient" ||
-                    row.reservationType === "special"
-                      ? row.patientId
-                      : row.facilityName || "-"}
-                  </TableCell>
+                  <TableCell>{row.patientId || "-"}</TableCell>
                   <TableCell>{row.patientName || "-"}</TableCell>
                   <TableCell>
                     {row.reservationType === "special"
@@ -298,6 +342,9 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
                   </TableCell>
                   {userRole !== "viewer" && (
                     <TableCell>{row.lastUpdatedBy || "-"}</TableCell>
+                  )}
+                  {userRole !== "viewer" && (
+                    <TableCell>{row.lastUpdatedAt ? dayjs(row.lastUpdatedAt).format('YYYY-MM-DD HH:mm') : "-"}</TableCell>
                   )}
                   {userRole !== "viewer" && (
                     <TableCell>
@@ -348,7 +395,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
-    </>
+    </LocalizationProvider>
   );
 };
 
