@@ -11,7 +11,7 @@ import blockedSlotsRouter from "./blocked-slots/blocked-slots.routes";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3334;
+const port = parseInt(process.env.PORT || "3334", 10);
 
 app.use(cors());
 app.use(express.json());
