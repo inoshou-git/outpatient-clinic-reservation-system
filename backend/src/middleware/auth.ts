@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import jwt from 'jsonwebtoken';
 import { findUserById } from "../users/users.service";
 
 export const authenticateToken = async (
@@ -7,24 +8,25 @@ export const authenticateToken = async (
   next: NextFunction
 ) => {
   const authHeader = req.headers["authorization"];
-  let userid: string | undefined;
+  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
 
-  if (authHeader) {
-    const parts = authHeader.split(" ");
-    if (parts.length === 2 && parts[0] === "Bearer") {
-      userid = parts[1];
-    } else {
-      userid = authHeader; // No Bearer prefix, assume the whole header is the token
-    }
+  if (token == null) {
+    return res.sendStatus(401); // if there isn't any token
   }
 
-  if (userid == null) return res.sendStatus(401);
+  jwt.verify(token, process.env.JWT_SECRET as string, async (err: any, decoded: any) => {
+    if (err) {
+      return res.sendStatus(403); // if token is no longer valid
+    }
 
-  const user = await findUserById(userid); // Assuming token is userId for now
-  if (!user) return res.sendStatus(403);
-
-  (req as any).user = user;
-  next();
+    const user = await findUserById(decoded.userid);
+    if (!user) {
+      return res.sendStatus(403); // if user not found
+    }
+    
+    (req as any).user = user;
+    next(); // proceed to the next middleware or route handler
+  });
 };
 
 export const adminOnly = (req: Request, res: Response, next: NextFunction) => {

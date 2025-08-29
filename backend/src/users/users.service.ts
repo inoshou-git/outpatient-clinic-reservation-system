@@ -2,6 +2,7 @@ import { supabase } from "../lib/supabaseClient";
 import { User } from "./users.types";
 import { sendEmail } from "../emailService";
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 export const findUserById = async (
   userid: string
@@ -64,10 +65,18 @@ export const loginUser = async (
   }
 
   const { password: userPassword, ...userResult } = user;
+
+  // Create JWT
+  const token = jwt.sign(
+    { userid: user.userid, role: user.role },
+    process.env.JWT_SECRET as string,
+    { expiresIn: '1d' } // Token expires in 1 day
+  );
+
   console.log("Login successful for user:", user.userid); // 追加
   console.log("--- Login Attempt End (Success) ---"); // 追加
   return {
-    token: user.userid, // Using userid as token for now
+    token,
     user: userResult,
     mustChangePassword: user.mustChangePassword || false,
   };
