@@ -1,10 +1,11 @@
-FROM node:20-alpine as build
+FROM node:20-alpine AS build
 
 ARG ENV_NAME
 
 WORKDIR /app
 COPY package*.json ./
 RUN npm cache clean --force && npm install
+
 COPY . .
 
 RUN npm run build
