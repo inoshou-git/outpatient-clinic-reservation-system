@@ -37,7 +37,7 @@ export interface BlockedSlot {
 }
 
 export interface User {
-  userId: string;
+  userid: string;
   password?: string;
   name: string;
   department: string;

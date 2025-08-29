@@ -7,20 +7,20 @@ export const authenticateToken = async (
   next: NextFunction
 ) => {
   const authHeader = req.headers["authorization"];
-  let token: string | undefined;
+  let userid: string | undefined;
 
   if (authHeader) {
     const parts = authHeader.split(" ");
     if (parts.length === 2 && parts[0] === "Bearer") {
-      token = parts[1];
+      userid = parts[1];
     } else {
-      token = authHeader; // No Bearer prefix, assume the whole header is the token
+      userid = authHeader; // No Bearer prefix, assume the whole header is the token
     }
   }
 
-  if (token == null) return res.sendStatus(401);
+  if (userid == null) return res.sendStatus(401);
 
-  const user = await findUserById(token); // Assuming token is userId for now
+  const user = await findUserById(userid); // Assuming token is userId for now
   if (!user) return res.sendStatus(403);
 
   (req as any).user = user;

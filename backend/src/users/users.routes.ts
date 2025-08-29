@@ -17,7 +17,7 @@ router.post("/users/set-password", authenticateToken, setPassword);
 router.get("/me", authenticateToken, getCurrentUser);
 router.get("/users", authenticateToken, adminOnly, getAllUsers);
 router.post("/users/create", authenticateToken, adminOnly, createUser);
-router.put("/users/:userId", authenticateToken, adminOnly, updateUser);
-router.delete("/users/:userId", authenticateToken, adminOnly, deleteUser);
+router.put("/users/:userid", authenticateToken, adminOnly, updateUser);
+router.delete("/users/:userid", authenticateToken, adminOnly, deleteUser);
 
 export default router;

@@ -1,5 +1,5 @@
+import { supabase } from "../lib/supabaseClient";
 import { Appointment } from "./appointments.types";
-import { readDb, writeDb } from "../data/db";
 import dayjs from "dayjs";
 import { sendEmail } from "../emailService";
 import { getAllUsers } from "../users/users.service";
@@ -17,12 +17,23 @@ const notifyUsers = async (subject: string, text: string, html: string) => {
 };
 
 export const getAllAppointments = async (date?: string): Promise<Appointment[]> => {
-  const db = await readDb();
-  let appointments = db.appointments.filter((a) => !a.isDeleted);
+  let query = supabase
+    .from('appointments')
+    .select('*')
+    .eq('isDeleted', false);
+
   if (date) {
-    appointments = appointments.filter((a) => a.date === date);
+    query = query.eq('date', date);
   }
-  return appointments;
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching appointments:', error);
+    throw new Error('予約の取得に失敗しました。');
+  }
+
+  return data || [];
 };
 
 export const createAppointment = async (
@@ -46,12 +57,14 @@ export const createAppointment = async (
     return { error: "予約種別と日付は必須項目です。" };
   }
 
+  // Validate patientId format if it exists
+  if (patientId && !/^[0-9]+$/.test(patientId)) {
+    return { error: "患者IDは半角数字のみで入力してください。" };
+  }
+
   if (reservationType === "outpatient") {
     if (!patientName || !time) {
       return { error: "外来診療の場合、患者名、時間は必須項目です。" };
-    }
-    if (patientId && !/^[0-9]+$/.test(patientId)) {
-      return { error: "患者IDは半角数字のみで入力してください。" };
     }
   } else if (reservationType === "visit" || reservationType === "rehab") {
     if (!startTimeRange || !endTimeRange) {
@@ -65,17 +78,23 @@ export const createAppointment = async (
     }
   }
 
-  const db = await readDb();
-
   // ダブルブッキングチェック
+  const { data: existingAppointments, error: fetchError } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('date', date)
+    .eq('isDeleted', false)
+    .neq('reservationType', 'special');
+
+  if (fetchError) {
+    console.error("Error fetching existing appointments:", fetchError);
+    return { error: "既存の予約の確認に失敗しました。" };
+  }
+
   const newIsTimeBased = !!time;
   const newIsRangeBased = !!startTimeRange && !!endTimeRange;
 
-  const conflicting = db.appointments.find(a => {
-    if (a.isDeleted || a.date !== date || a.reservationType === "special") { // Ignore special appointments
-      return false;
-    }
-
+  const conflicting = existingAppointments.find(a => {
     const existingIsTimeBased = !!a.time;
     const existingIsRangeBased = !!a.startTimeRange && !!a.endTimeRange;
 
@@ -104,7 +123,6 @@ export const createAppointment = async (
         return newStart.isBefore(existingEnd) && newEnd.isAfter(existingStart);
       }
     }
-
     return false;
   });
 
@@ -112,37 +130,51 @@ export const createAppointment = async (
     return { error: "すでに予約が入っている為、登録できませんでした。再度やり直してください。" };
   }
 
-  const newId =
-    db.appointments.length > 0
-      ? Math.max(...db.appointments.map((a) => a.id)) + 1
-      : 1;
-  const newAppointment: Appointment = {
-    id: newId,
+  const newAppointmentData: Omit<Appointment, 'id' | 'createdAt' | 'lastUpdatedAt'> = {
     date,
     reservationType,
     lastUpdatedBy,
     isDeleted: false,
-    createdAt: new Date().toISOString(),
-    lastUpdatedAt: new Date().toISOString(),
+    patientId: patientId || undefined,
+    patientName: patientName || undefined,
+    time: time || undefined,
+    consultation: Array.isArray(consultation) ? consultation.join(', ') : consultation || undefined,
+    facilityName: facilityName || undefined,
+    startTimeRange: startTimeRange || undefined,
+    endTimeRange: endTimeRange || undefined,
+    reason: undefined, // reason is not part of the form for these types
   };
 
   if (reservationType === "outpatient") {
-    newAppointment.patientId = patientId;
-    newAppointment.patientName = patientName;
-    newAppointment.time = time;
-    newAppointment.consultation = consultation;
+    newAppointmentData.patientId = patientId;
+    newAppointmentData.patientName = patientName;
+    newAppointmentData.time = time;
+    newAppointmentData.consultation = consultation;
   } else if (reservationType === "visit") {
-    newAppointment.facilityName = facilityName;
-    newAppointment.startTimeRange = startTimeRange;
-    newAppointment.endTimeRange = endTimeRange;
-    newAppointment.consultation = consultation;
+    newAppointmentData.patientId = patientId;
+    newAppointmentData.facilityName = facilityName;
+    newAppointmentData.startTimeRange = startTimeRange;
+    newAppointmentData.endTimeRange = endTimeRange;
+    newAppointmentData.consultation = consultation;
   } else if (reservationType === "rehab") {
-    newAppointment.startTimeRange = startTimeRange;
-    newAppointment.endTimeRange = endTimeRange;
+    newAppointmentData.startTimeRange = startTimeRange;
+    newAppointmentData.endTimeRange = endTimeRange;
   }
 
-  db.appointments.push(newAppointment);
-  await writeDb(db);
+  const { data: newAppointment, error: insertError } = await supabase
+    .from('appointments')
+    .insert([newAppointmentData]) // insert expects an array
+    .select()
+    .single();
+
+  if (insertError) {
+    console.error("Error creating appointment:", insertError);
+    return { error: "予約の作成に失敗しました。" };
+  }
+  
+  if (!newAppointment) {
+      return { error: "予約の作成に失敗しました。" };
+  }
 
   // Emit WebSocket event
   io.emit("appointmentCreated", newAppointment);
@@ -155,7 +187,7 @@ export const createAppointment = async (
 
     if (reservationType === "outpatient") {
       subject = "新規予約登録のお知らせ (外来診療)";
-      text = `新しい外来診療の予約が登録されました.\n患者名: ${patientName}\n日時: ${date} ${time}\n診察内容: ${
+      text = `新しい外来診療の予約が登録されました。\n患者名: ${patientName}\n日時: ${date} ${time}\n診察内容: ${
         consultationText || "未入力"
       }\n担当: ${lastUpdatedBy}`;
       html = `<p>新しい外来診療の予約が登録されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${time}</li><li>診察内容: ${
@@ -165,7 +197,7 @@ export const createAppointment = async (
        }">${process.env.SYSTEM_URL}</a></p>`;
     } else if (reservationType === "visit") {
       subject = "新規予約登録のお知らせ (訪問診療)";
-      text = `新しい訪問診療の予約が登録されました.\n施設名: ${
+      text = `新しい訪問診療の予約が登録されました。\n施設名: ${
         facilityName || "未入力"
       }\n日時: ${date} ${startTimeRange} - ${endTimeRange}\n診察内容: ${
         consultationText || "未入力"
@@ -179,7 +211,7 @@ export const createAppointment = async (
        }">${process.env.SYSTEM_URL}</a></p>`;
     } else if (reservationType === "rehab") {
       subject = "新規予約登録のお知らせ (通所リハ会議)";
-      text = `新しい通所リハ会議の予約が登録されました.\n日時: ${date} ${startTimeRange} - ${endTimeRange}\n担当: ${lastUpdatedBy}`;
+      text = `新しい通所リハ会議の予約が登録されました。\n日時: ${date} ${startTimeRange} - ${endTimeRange}\n担当: ${lastUpdatedBy}`;
       html = `<p>新しい通所リハ会議の予約が登録されました。</p><ul><li>日時: ${date} ${startTimeRange} - ${endTimeRange}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
     }
     await notifyUsers(subject, text, html);
@@ -193,29 +225,56 @@ export const updateAppointment = async (
   appointmentData: any,
   lastUpdatedBy: string
 ): Promise<{ appointment?: Appointment; error?: string; status?: number }> => {
-  const db = await readDb();
-  const appointmentIndex = db.appointments.findIndex((a) => a.id === id);
+  const { data: existingAppointment, error: fetchError } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-  if (appointmentIndex !== -1) {
-    const oldAppointment = { ...db.appointments[appointmentIndex] };
+  if (fetchError) {
+    console.error("Error fetching appointment:", fetchError);
+    return { error: "予約の取得に失敗しました。", status: 500 };
+  }
 
-    const updatedAppointment = {
-      ...db.appointments[appointmentIndex],
-      ...appointmentData,
-      lastUpdatedBy,
-      lastUpdatedAt: new Date().toISOString(),
-    };
+  if (!existingAppointment) {
+    return { error: "Appointment not found", status: 404 };
+  }
+
+  const oldAppointment = { ...existingAppointment };
+
+  const { sendNotification, ...restOfAppointmentData } = appointmentData;
+
+  // Transform consultation if it's an array, making it consistent with create logic
+  if (restOfAppointmentData.consultation && Array.isArray(restOfAppointmentData.consultation)) {
+    (restOfAppointmentData.consultation as any) = (restOfAppointmentData.consultation as string[]).join(', ');
+  }
+
+  const updatedAppointment = {
+    ...existingAppointment,
+    ...restOfAppointmentData,
+    lastUpdatedBy,
+    lastUpdatedAt: new Date().toISOString(),
+  };
 
     // ダブルブッキングチェック
     const { date, time, startTimeRange, endTimeRange } = updatedAppointment;
     const newIsTimeBased = !!time;
     const newIsRangeBased = !!startTimeRange && !!endTimeRange;
 
-    const conflicting = db.appointments.find(a => {
-      if (a.id === id || a.isDeleted || a.date !== date || a.reservationType === "special") { // Ignore special appointments
-        return false;
-      }
+    const { data: existingAppointments, error: fetchError2 } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('date', date)
+      .eq('isDeleted', false)
+      .neq('reservationType', 'special')
+      .neq('id', id); // Exclude the current appointment being updated
 
+    if (fetchError2) {
+      console.error("Error fetching existing appointments:", fetchError2);
+      return { error: "既存の予約の確認に失敗しました。", status: 500 };
+    }
+
+    const conflicting = existingAppointments?.find(a => {
       const existingIsTimeBased = !!a.time;
       const existingIsRangeBased = !!a.startTimeRange && !!a.endTimeRange;
 
@@ -252,6 +311,16 @@ export const updateAppointment = async (
       return { error: "すでに予約が入っている為、登録できませんでした。再度やり直してください。" };
     }
 
+    // Allow patientId to be cleared by submitting an empty string
+    if (updatedAppointment.patientId === "") {
+      (updatedAppointment.patientId as any) = null;
+    }
+
+    // Validate patientId format if it exists
+    if (updatedAppointment.patientId && !/^[0-9]+$/.test(updatedAppointment.patientId)) {
+      return { error: "患者IDは半角数字のみで入力してください。" };
+    }
+
     if (updatedAppointment.reservationType === "outpatient") {
       if (
         !updatedAppointment.patientName ||
@@ -260,9 +329,6 @@ export const updateAppointment = async (
         return {
           error: "外来診療の場合、患者名、時間は必須項目です。",
         };
-      }
-      if (updatedAppointment.patientId && !/^[0-9]+$/.test(updatedAppointment.patientId)) {
-        return { error: "患者IDは半角数字のみで入力してください。" };
       }
       updatedAppointment.facilityName = undefined;
       updatedAppointment.startTimeRange = undefined;
@@ -287,97 +353,110 @@ export const updateAppointment = async (
       ) {
         return { error: "開始時間は終了時間より前に設定してください。" };
       }
-      updatedAppointment.patientId = undefined;
-      updatedAppointment.patientName = undefined;
       updatedAppointment.time = undefined;
       if (updatedAppointment.reservationType === "rehab") {
+        updatedAppointment.patientId = undefined;
+        updatedAppointment.patientName = undefined;
         updatedAppointment.facilityName = undefined;
         updatedAppointment.consultation = undefined;
       }
     }
 
-    db.appointments[appointmentIndex] = updatedAppointment;
-    await writeDb(db);
+    delete updatedAppointment.id;
+    delete updatedAppointment.createdAt;
+
+    const { data: updatedAppointmentResult, error: updateError } = await supabase
+      .from('appointments')
+      .update(updatedAppointment)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("Error updating appointment:", updateError);
+      return { error: "予約の更新に失敗しました。", status: 500 };
+    }
+
+    if (!updatedAppointmentResult) {
+      return { error: "予約の更新に失敗しました。", status: 500 };
+    }
 
     // Emit WebSocket event
-    io.emit("appointmentUpdated", updatedAppointment);
+    io.emit("appointmentUpdated", updatedAppointmentResult);
 
-    if (appointmentData.sendNotification) {
+    if (sendNotification) {
       let subject = "";
       let text = "";
       let html = "";
       let changes = "";
 
-      if (oldAppointment.reservationType !== updatedAppointment.reservationType)
-        changes += `<li>予約種別: ${oldAppointment.reservationType} → ${updatedAppointment.reservationType}</li>`;
+      if (oldAppointment.reservationType !== updatedAppointmentResult.reservationType)
+        changes += `<li>予約種別: ${oldAppointment.reservationType} → ${updatedAppointmentResult.reservationType}</li>`;
 
-      if (updatedAppointment.reservationType === "outpatient") {
-        if (oldAppointment.patientId !== updatedAppointment.patientId)
+      if (updatedAppointmentResult.reservationType === "outpatient") {
+        if (oldAppointment.patientId !== updatedAppointmentResult.patientId)
           changes += `<li>患者ID: ${oldAppointment.patientId || "未入力"} → ${
-            updatedAppointment.patientId || "未入力"
+            updatedAppointmentResult.patientId || "未入力"
           }</li>`;
-        if (oldAppointment.patientName !== updatedAppointment.patientName)
+        if (oldAppointment.patientName !== updatedAppointmentResult.patientName)
           changes += `<li>患者名: ${oldAppointment.patientName || "未入力"} → ${
-            updatedAppointment.patientName || "未入力"
+            updatedAppointmentResult.patientName || "未入力"
           }</li>`;
-        if (oldAppointment.time !== updatedAppointment.time)
+        if (oldAppointment.time !== updatedAppointmentResult.time)
           changes += `<li>時間: ${oldAppointment.time || "未入力"} → ${
-            updatedAppointment.time || "未入力"
+            updatedAppointmentResult.time || "未入力"
           }</li>`;
         const oldConsultationText = Array.isArray(oldAppointment.consultation) ? oldAppointment.consultation.join(', ') : oldAppointment.consultation;
-        const newConsultationText = Array.isArray(updatedAppointment.consultation) ? updatedAppointment.consultation.join(', ') : updatedAppointment.consultation;
+        const newConsultationText = Array.isArray(updatedAppointmentResult.consultation) ? updatedAppointmentResult.consultation.join(', ') : updatedAppointmentResult.consultation;
         if (oldConsultationText !== newConsultationText)
           changes += `<li>診察内容: ${oldConsultationText || "未入力"} → ${newConsultationText || "未入力"}</li>`;
         subject = "予約更新のお知らせ (外来診療)";
         text = `外来診療の予約が更新されました.\n患者名: ${
-          updatedAppointment.patientName
-        }\n日時: ${updatedAppointment.date} ${
-          updatedAppointment.time
+          updatedAppointmentResult.patientName
+        }\n日時: ${updatedAppointmentResult.date} ${
+          updatedAppointmentResult.time
         }\n担当: ${lastUpdatedBy}\n\n変更点:\n${changes
           .replace(/<li>/g, "")
           .replace(/<\/li>/g, "\n")}`;
-        html = `<p>外来診療の予約が更新されました。</p><ul><li>患者名: ${updatedAppointment.patientName}</li><li>日時: ${updatedAppointment.date} ${updatedAppointment.time}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}<\/a><\/p>`;
-      } else if (updatedAppointment.reservationType === "visit") {
-        if (oldAppointment.facilityName !== updatedAppointment.facilityName)
-          changes += `<li>施設名: ${oldAppointment.facilityName || "未入力"} → ${updatedAppointment.facilityName || "未入力"}</li>`;
-        if (oldAppointment.startTimeRange !== updatedAppointment.startTimeRange)
-          changes += `<li>開始時間: ${oldAppointment.startTimeRange || "未入力"} → ${updatedAppointment.startTimeRange || "未入力"}</li>`;
-        if (oldAppointment.endTimeRange !== updatedAppointment.endTimeRange)
-          changes += `<li>終了時間: ${oldAppointment.endTimeRange || "未入力"} → ${updatedAppointment.endTimeRange || "未入力"}</li>`;
+        html = `<p>外来診療の予約が更新されました。</p><ul><li>患者名: ${updatedAppointmentResult.patientName}</li><li>日時: ${updatedAppointmentResult.date} ${updatedAppointmentResult.time}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}<\/a><\/p>`;
+      } else if (updatedAppointmentResult.reservationType === "visit") {
+        if (oldAppointment.facilityName !== updatedAppointmentResult.facilityName)
+          changes += `<li>施設名: ${oldAppointment.facilityName || "未入力"} → ${updatedAppointmentResult.facilityName || "未入力"}</li>`;
+        if (oldAppointment.startTimeRange !== updatedAppointmentResult.startTimeRange)
+          changes += `<li>開始時間: ${oldAppointment.startTimeRange || "未入力"} → ${updatedAppointmentResult.startTimeRange || "未入力"}</li>`;
+        if (oldAppointment.endTimeRange !== updatedAppointmentResult.endTimeRange)
+          changes += `<li>終了時間: ${oldAppointment.endTimeRange || "未入力"} → ${updatedAppointmentResult.endTimeRange || "未入力"}</li>`;
         const oldConsultationText = Array.isArray(oldAppointment.consultation) ? oldAppointment.consultation.join(', ') : oldAppointment.consultation;
-        const newConsultationText = Array.isArray(updatedAppointment.consultation) ? updatedAppointment.consultation.join(', ') : updatedAppointment.consultation;
+        const newConsultationText = Array.isArray(updatedAppointmentResult.consultation) ? updatedAppointmentResult.consultation.join(', ') : updatedAppointmentResult.consultation;
         if (oldConsultationText !== newConsultationText)
           changes += `<li>診察内容: ${oldConsultationText || "未入力"} → ${newConsultationText || "未入力"}</li>`;
         subject = "予約更新のお知らせ (訪問診療)";
-        text = `訪問診療の予約が更新されました.\n施設名: ${updatedAppointment.facilityName || "未入力"}\n日時: ${updatedAppointment.date} ${updatedAppointment.startTimeRange} - ${updatedAppointment.endTimeRange}\n診察内容: ${newConsultationText || "未入力"}\n担当: ${lastUpdatedBy}\n\n変更点:\n${changes.replace(/<li>/g, "").replace(/<\/li>/g, "\n")}`;
-        html = `<p>訪問診療の予約が更新されました。</p><ul><li>施設名: ${updatedAppointment.facilityName || "未入力"}</li><li>日時: ${updatedAppointment.date} ${updatedAppointment.startTimeRange} - ${updatedAppointment.endTimeRange}</li><li>診察内容: ${newConsultationText || "未入力"}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
-      } else if (updatedAppointment.reservationType === "rehab") {
-        if (oldAppointment.startTimeRange !== updatedAppointment.startTimeRange)
+        text = `訪問診療の予約が更新されました.\n施設名: ${updatedAppointmentResult.facilityName || "未入力"}\n日時: ${updatedAppointmentResult.date} ${updatedAppointmentResult.startTimeRange} - ${updatedAppointmentResult.endTimeRange}\n診察内容: ${newConsultationText || "未入力"}\n担当: ${lastUpdatedBy}\n\n変更点:\n${changes.replace(/<li>/g, "").replace(/<\/li>/g, "\n")}`;
+        html = `<p>訪問診療の予約が更新されました。</p><ul><li>施設名: ${updatedAppointmentResult.facilityName || "未入力"}</li><li>日時: ${updatedAppointmentResult.date} ${updatedAppointmentResult.startTimeRange} - ${updatedAppointmentResult.endTimeRange}</li><li>診察内容: ${newConsultationText || "未入力"}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+      } else if (updatedAppointmentResult.reservationType === "rehab") {
+        if (oldAppointment.startTimeRange !== updatedAppointmentResult.startTimeRange)
           changes += `<li>開始時間: ${
             oldAppointment.startTimeRange || "未入力"
-          } → ${updatedAppointment.startTimeRange || "未入力"}</li>`;
-        if (oldAppointment.endTimeRange !== updatedAppointment.endTimeRange)
+          } → ${updatedAppointmentResult.startTimeRange || "未入力"}</li>`;
+        if (oldAppointment.endTimeRange !== updatedAppointmentResult.endTimeRange)
           changes += `<li>終了時間: ${
-            updatedAppointment.endTimeRange || "未入力"
-          } → ${updatedAppointment.endTimeRange || "未入力"}</li>`;
+            oldAppointment.endTimeRange || "未入力"
+          } → ${updatedAppointmentResult.endTimeRange || "未入力"}</li>`;
         subject = "予約更新のお知らせ (通所リハ会議)";
         text = `通所リハ会議の予約が更新されました.\n日時: ${
-          updatedAppointment.date
-        } ${updatedAppointment.startTimeRange} - ${
-          updatedAppointment.endTimeRange
+          updatedAppointmentResult.date
+        } ${updatedAppointmentResult.startTimeRange} - ${
+          updatedAppointmentResult.endTimeRange
         }\n担当: ${lastUpdatedBy}\n\n変更点:\n${changes
           .replace(/<li>/g, "")
           .replace(/<\/li>/g, "\n")}`;
-        html = `<p>通所リハ会議の予約が更新されました。</p><ul><li>日時: ${updatedAppointment.date} ${updatedAppointment.startTimeRange} - ${updatedAppointment.endTimeRange}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+        html = `<p>通所リハ会議の予約が更新されました。</p><ul><li>日時: ${updatedAppointmentResult.date} ${updatedAppointmentResult.startTimeRange} - ${updatedAppointmentResult.endTimeRange}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
       }
 
       await notifyUsers(subject, text, html);
     }
 
-    return { appointment: db.appointments[appointmentIndex] };
-  } else {
-    return { error: "Appointment not found", status: 404 };
-  }
+    return { appointment: updatedAppointmentResult };
 };
 
 export const deleteAppointment = async (
@@ -385,14 +464,31 @@ export const deleteAppointment = async (
   lastUpdatedBy: string,
   sendNotification: boolean
 ): Promise<boolean> => {
-  const db = await readDb();
-  const appointmentIndex = db.appointments.findIndex((a) => a.id === id);
+  const { data: deletedAppointment, error: fetchError } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-  if (appointmentIndex !== -1) {
-    const deletedAppointment = db.appointments[appointmentIndex];
-    db.appointments[appointmentIndex].isDeleted = true;
-    db.appointments[appointmentIndex].lastUpdatedBy = lastUpdatedBy;
-    await writeDb(db);
+  if (fetchError) {
+    console.error("Error fetching appointment for deletion:", fetchError);
+    return false;
+  }
+
+  if (!deletedAppointment) {
+    return false;
+  }
+
+  if (deletedAppointment) {
+    const { error: updateError } = await supabase
+      .from('appointments')
+      .update({ isDeleted: true, lastUpdatedBy, lastUpdatedAt: new Date().toISOString() })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error("Error marking appointment as deleted:", updateError);
+      return false;
+    }
 
     // Emit WebSocket event
     io.emit("appointmentDeleted", id);
@@ -501,13 +597,19 @@ export const createSpecialAppointment = async (
     return { error: "患者IDは半角数字のみで入力してください。" };
   }
 
-  const db = await readDb();
+  const { data: existingAppointments, error: fetchError } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('date', date)
+    .eq('isDeleted', false)
+    .neq('reservationType', 'special');
 
-  // ダブルブッキングチェック
-  const conflicting = db.appointments.find(a => {
-    if (a.isDeleted || a.date !== date) {
-      return false;
-    }
+  if (fetchError) {
+    console.error("Error fetching existing appointments:", fetchError);
+    return { error: "既存の予約の確認に失敗しました。" };
+  }
+
+  const conflicting = existingAppointments.find(a => {
     const newTime = dayjs(`${date} ${time}`);
     if (a.time) { // vs time-based
       return newTime.isSame(dayjs(`${a.date} ${a.time}`));
@@ -524,12 +626,7 @@ export const createSpecialAppointment = async (
     return { error: "すでに予約が入っている為、登録できませんでした。再度やり直してください。" };
   }
 
-  const newId =
-    db.appointments.length > 0
-      ? Math.max(...db.appointments.map((a) => a.id)) + 1
-      : 1;
-  const newAppointment: Appointment = {
-    id: newId,
+  const newAppointmentData: Omit<Appointment, 'id' | 'createdAt' | 'lastUpdatedAt'> = {
     patientId,
     patientName,
     date,
@@ -538,12 +635,22 @@ export const createSpecialAppointment = async (
     reservationType: "special",
     lastUpdatedBy,
     isDeleted: false,
-    createdAt: new Date().toISOString(),
-    lastUpdatedAt: new Date().toISOString(),
   };
 
-  db.appointments.push(newAppointment);
-  await writeDb(db);
+  const { data: newAppointment, error: insertError } = await supabase
+    .from('appointments')
+    .insert([newAppointmentData])
+    .select()
+    .single();
+
+  if (insertError) {
+    console.error("Error creating special appointment:", insertError);
+    return { error: "特別予約の作成に失敗しました。" };
+  }
+
+  if (!newAppointment) {
+    return { error: "特別予約の作成に失敗しました。" };
+  }
 
   io.emit("appointmentCreated", newAppointment);
 
@@ -562,25 +669,48 @@ export const updateSpecialAppointment = async (
   appointmentData: any,
   lastUpdatedBy: string
 ): Promise<{ appointment?: Appointment; error?: string; status?: number }> => {
-  const db = await readDb();
-  const appointmentIndex = db.appointments.findIndex((a) => a.id === id);
+  const { data: existingAppointment, error: fetchError } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-  if (appointmentIndex !== -1) {
-    const oldAppointment = { ...db.appointments[appointmentIndex] };
+  if (fetchError) {
+    console.error("Error fetching special appointment:", fetchError);
+    return { error: "特別予約の取得に失敗しました。", status: 500 };
+  }
 
-    const updatedAppointment = {
-      ...db.appointments[appointmentIndex],
-      ...appointmentData,
-      lastUpdatedBy,
-      lastUpdatedAt: new Date().toISOString(),
-    };
+  if (!existingAppointment) {
+    return { error: "Special Appointment not found", status: 404 };
+  }
+
+  const oldAppointment = { ...existingAppointment };
+
+  const { sendNotification, ...restOfAppointmentData } = appointmentData;
+
+  const updatedAppointment = {
+    ...existingAppointment,
+    ...restOfAppointmentData,
+    lastUpdatedBy,
+    lastUpdatedAt: new Date().toISOString(),
+  };
 
     // ダブルブッキングチェック
     const { date, time } = updatedAppointment;
-    const conflicting = db.appointments.find(a => {
-      if (a.id === id || a.isDeleted || a.date !== date) {
-        return false;
-      }
+    const { data: existingAppointments, error: fetchError2 } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('date', date)
+      .eq('isDeleted', false)
+      .neq('reservationType', 'special')
+      .neq('id', id); // Exclude the current appointment being updated
+
+    if (fetchError2) {
+      console.error("Error fetching existing appointments:", fetchError2);
+      return { error: "既存の予約の確認に失敗しました。", status: 500 };
+    }
+
+    const conflicting = existingAppointments?.find(a => {
       const newTime = dayjs(`${date} ${time}`);
       if (a.time) { // vs time-based
         return newTime.isSame(dayjs(`${a.date} ${a.time}`));
@@ -608,24 +738,33 @@ export const updateSpecialAppointment = async (
       return { error: "患者IDは半角数字のみで入力してください。" };
     }
 
-    db.appointments[appointmentIndex] = updatedAppointment;
-    await writeDb(db);
+    delete updatedAppointment.id;
+    delete updatedAppointment.createdAt;
 
-    io.emit("appointmentUpdated", updatedAppointment);
+    const { data: updatedAppointmentResult, error: updateError } = await supabase
+      .from('appointments')
+      .update(updatedAppointment)
+      .eq('id', id)
+      .select()
+      .single();
 
-    if (appointmentData.sendNotification) {
+    if (updateError) {
+      console.error("Error updating special appointment:", updateError);
+      return { error: "特別予約の更新に失敗しました。", status: 500 };
+    }
+
+    if (!updatedAppointmentResult) {
+      return { error: "特別予約の更新に失敗しました。", status: 500 };
+    }
+
+    io.emit("appointmentUpdated", updatedAppointmentResult);
+
+    if (sendNotification) {
       const subject = "予約更新のお知らせ (特別予約)";
-      const text = `特別予約が更新されました。
-患者名: ${updatedAppointment.patientName}
-日時: ${updatedAppointment.date} ${updatedAppointment.time}
-理由: ${updatedAppointment.reason}
-担当: ${lastUpdatedBy}`;
-      const html = `<p>特別予約が更新されました。</p><ul><li>患者名: ${updatedAppointment.patientName}</li><li>日時: ${updatedAppointment.date} ${updatedAppointment.time}</li><li>理由: ${updatedAppointment.reason}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
+      const text = `特別予約が更新されました。\n患者名: ${updatedAppointmentResult.patientName}\n日時: ${updatedAppointmentResult.date} ${updatedAppointmentResult.time}\n理由: ${updatedAppointmentResult.reason}\n担当: ${lastUpdatedBy}`;
+      const html = `<p>特別予約が更新されました。</p><ul><li>患者名: ${updatedAppointmentResult.patientName}</li><li>日時: ${updatedAppointmentResult.date} ${updatedAppointmentResult.time}</li><li>理由: ${updatedAppointmentResult.reason}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
       await notifyUsers(subject, text, html);
     }
 
-    return { appointment: db.appointments[appointmentIndex] };
-  } else {
-    return { error: "Appointment not found", status: 404 };
-  }
+    return { appointment: updatedAppointmentResult };
 };

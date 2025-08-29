@@ -1,5 +1,5 @@
+import { supabase } from "../lib/supabaseClient";
 import { BlockedSlot } from './blocked-slots.types';
-import { readDb, writeDb } from '../data/db';
 import dayjs from 'dayjs';
 import axios from 'axios';
 import { sendEmail } from '../emailService';
@@ -15,17 +15,37 @@ const notifyUsers = async (subject: string, text: string, html: string) => {
 };
 
 export const getAllBlockedSlots = async (): Promise<BlockedSlot[]> => {
-    const db = await readDb();
-    return db.blockedSlots.filter(s => !s.isDeleted);
+    const { data, error } = await supabase
+        .from('blocked_slots')
+        .select('*')
+        .eq('isDeleted', false);
+
+    if (error) {
+        console.error('Error fetching blocked slots:', error);
+        throw new Error('予約不可枠の取得に失敗しました。');
+    }
+
+    return data || [];
 };
 
 export const createBlockedSlot = async (slotData: any, lastUpdatedBy: string): Promise<BlockedSlot> => {
     const { date, endDate, startTime, endTime, reason, sendNotification } = slotData;
-    const db = await readDb();
-    const newId = db.blockedSlots.length > 0 ? Math.max(...db.blockedSlots.map(s => s.id)) + 1 : 1;
-    const newBlockedSlot: BlockedSlot = { id: newId, date, endDate, startTime, endTime, reason, lastUpdatedBy };
-    db.blockedSlots.push(newBlockedSlot);
-    await writeDb(db);
+    const newBlockedSlotData = { date, endDate, startTime, endTime, reason, lastUpdatedBy, isDeleted: false };
+
+    const { data: newBlockedSlot, error: insertError } = await supabase
+        .from('blocked_slots')
+        .insert([newBlockedSlotData])
+        .select()
+        .single();
+
+    if (insertError) {
+        console.error("Error creating blocked slot:", insertError);
+        throw new Error("予約不可枠の作成に失敗しました。");
+    }
+
+    if (!newBlockedSlot) {
+        throw new Error("予約不可枠の作成に失敗しました。");
+    }
 
     // Emit WebSocket event
     io.emit('blockedSlotCreated', newBlockedSlot);
@@ -41,59 +61,94 @@ export const createBlockedSlot = async (slotData: any, lastUpdatedBy: string): P
 };
 
 export const updateBlockedSlot = async (id: number, slotData: any, lastUpdatedBy: string): Promise<BlockedSlot | null> => {
-    const db = await readDb();
-    const slotIndex = db.blockedSlots.findIndex(s => s.id === id);
+    const { data: existingSlot, error: fetchError } = await supabase
+        .from('blocked_slots')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    if (slotIndex !== -1) {
-        db.blockedSlots[slotIndex] = { ...db.blockedSlots[slotIndex], ...slotData, lastUpdatedBy };
-        await writeDb(db);
+    if (fetchError) {
+        console.error("Error fetching blocked slot:", fetchError);
+        return null;
+    }
 
-        // Emit WebSocket event
-        io.emit('blockedSlotUpdated', db.blockedSlots[slotIndex]);
+    if (!existingSlot) {
+        return null;
+    }
+
+    const updatedSlotData = { ...existingSlot, ...slotData, lastUpdatedBy, lastUpdatedAt: new Date().toISOString() };
+
+    const { data: updatedSlot, error: updateError } = await supabase
+        .from('blocked_slots')
+        .update(updatedSlotData)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (updateError) {
+        console.error("Error updating blocked slot:", updateError);
+        throw new Error("予約不可枠の更新に失敗しました。");
+    }
+
+    if (!updatedSlot) {
+        throw new Error("予約不可枠の更新に失敗しました。");
+    }
+
+    // Emit WebSocket event
+    io.emit('blockedSlotUpdated', updatedSlot);
 
         if (slotData.sendNotification) {
-            const { date, endDate, startTime, endTime, reason } = db.blockedSlots[slotIndex];
+            const { date, endDate, startTime, endTime, reason } = updatedSlot;
             const subject = '予約不可設定更新のお知らせ';
             const text = `予約不可設定が更新されました。\n期間: ${date}${endDate ? '〜' + endDate : ''}\n時間: ${startTime || '終日'}${endTime ? '〜' + endTime : ''}\n理由: ${reason}\n担当: ${lastUpdatedBy}`;
             const html = `<p>予約不可設定が更新されました。</p><ul><li>期間: ${date}${endDate ? '〜' + endDate : ''}</li><li>時間: ${startTime || '終日'}${endTime ? '〜' + endTime : ''}</li><li>理由: ${reason}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
             await notifyUsers(subject, text, html);
         }
 
-        return db.blockedSlots[slotIndex];
-    } else {
-        return null;
-    }
+        return updatedSlot;
 };
 
 export const deleteBlockedSlot = async (id: number, lastUpdatedBy: string): Promise<boolean> => {
-    const db = await readDb();
-    const slotIndex = db.blockedSlots.findIndex(s => s.id === id);
+    const { data: deletedSlot, error: fetchError } = await supabase
+        .from('blocked_slots')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    if (slotIndex !== -1) {
-        const deletedSlot = db.blockedSlots[slotIndex];
-        db.blockedSlots[slotIndex].isDeleted = true;
-        db.blockedSlots[slotIndex].lastUpdatedBy = lastUpdatedBy;
-        await writeDb(db);
+    if (fetchError) {
+        console.error("Error fetching blocked slot for deletion:", fetchError);
+        return false;
+    }
 
-        // Emit WebSocket event
-        io.emit('blockedSlotDeleted', id);
+    if (!deletedSlot) {
+        return false;
+    }
+
+    const { error: updateError } = await supabase
+        .from('blocked_slots')
+        .update({ isDeleted: true, lastUpdatedBy, lastUpdatedAt: new Date().toISOString() })
+        .eq('id', id);
+
+    if (updateError) {
+        console.error("Error marking blocked slot as deleted:", updateError);
+        return false;
+    }
+
+    // Emit WebSocket event
+    io.emit('blockedSlotDeleted', id);
 
         const subject = '予約不可設定削除のお知らせ';
-        const text = `予約不可設定が削除されました。\n期間: ${deletedSlot.date}${deletedSlot.endDate ? '〜' + deletedSlot.endDate : ''}\n時間: ${deletedSlot.startTime || '終日'}${deletedSlot.endTime ? '〜' + deletedSlot.endTime : ''}\n理由: ${deletedSlot.reason}\n担当: ${lastUpdatedBy}`;
+        const text = `予約不可設定が削除されました.\n期間: ${deletedSlot.date}${deletedSlot.endDate ? '〜' + deletedSlot.endDate : ''}\n時間: ${deletedSlot.startTime || '終日'}${deletedSlot.endTime ? '〜' + deletedSlot.endTime : ''}\n理由: ${deletedSlot.reason}\n担当: ${lastUpdatedBy}`;
         const html = `<p>予約不可設定が削除されました。</p><ul><li>期間: ${deletedSlot.date}${deletedSlot.endDate ? '〜' + deletedSlot.endDate : ''}</li><li>時間: ${deletedSlot.startTime || '終日'}${deletedSlot.endTime ? '〜' + deletedSlot.endTime : ''}</li><li>理由: ${deletedSlot.reason}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;
         await notifyUsers(subject, text, html);
 
         return true;
-    } else {
-        return false;
-    }
 };
 
 export const registerHolidays = async (lastUpdatedBy: string): Promise<{ message: string, status: number }> => {
     try {
         const response = await axios.get('https://holidays-jp.github.io/api/v1/date.json');
         const holidays = response.data;
-        const db = await readDb();
 
         let addedCount = 0;
 
@@ -101,28 +156,42 @@ export const registerHolidays = async (lastUpdatedBy: string): Promise<{ message
             const holidayDate = dayjs(date).format('YYYY-MM-DD');
             const holidayName = holidays[date];
 
-            const isAlreadyBlocked = db.blockedSlots.some(
-                (slot) => slot.date === holidayDate && slot.reason === holidayName
-            );
+            const { data: existingBlockedSlots, error: fetchError } = await supabase
+                .from('blocked_slots')
+                .select('*')
+                .eq('date', holidayDate)
+                .eq('reason', holidayName);
+
+            if (fetchError) {
+                console.error("Error checking existing blocked slots for holidays:", fetchError);
+                continue; // Skip this holiday and try the next one
+            }
+
+            const isAlreadyBlocked = existingBlockedSlots && existingBlockedSlots.length > 0;
 
             if (!isAlreadyBlocked) {
-                const newId = db.blockedSlots.length > 0 ? Math.max(...db.blockedSlots.map(s => s.id)) + 1 : 1;
-                const newBlockedSlot: BlockedSlot = {
-                    id: newId,
+                const newBlockedSlotData = {
                     date: holidayDate,
                     endDate: null,
                     startTime: null,
                     endTime: null,
                     reason: holidayName,
                     lastUpdatedBy,
+                    isDeleted: false,
                 };
-                db.blockedSlots.push(newBlockedSlot);
+                const { error: insertError } = await supabase
+                    .from('blocked_slots')
+                    .insert([newBlockedSlotData]);
+
+                if (insertError) {
+                    console.error("Error inserting new blocked slot for holiday:", insertError);
+                    continue; // Skip this holiday and try the next one
+                }
                 addedCount++;
             }
         }
 
         if (addedCount > 0) {
-            await writeDb(db);
             return { message: `${addedCount}件の祝日を登録しました。`, status: 201 };
         } else {
             return { message: '新しい祝日はありませんでした。', status: 200 };

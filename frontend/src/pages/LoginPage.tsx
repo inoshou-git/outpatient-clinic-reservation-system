@@ -14,7 +14,7 @@ import {
 import { loginUser } from "../services/api";
 
 const LoginPage = () => {
-  const [userId, setUserId] = useState("");
+  const [userid, setUserid] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const auth = useAuth();
@@ -25,7 +25,7 @@ const LoginPage = () => {
     setError("");
     try {
       const { user, token, mustChangePassword } = await loginUser(
-        userId,
+        userid,
         password
       );
       auth.login(user, token);
@@ -58,13 +58,13 @@ const LoginPage = () => {
             margin="normal"
             required
             fullWidth
-            id="userId"
+            id="userid"
             label="ユーザーID"
-            name="userId"
+            name="userid"
             autoComplete="username"
             autoFocus
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
+            value={userid}
+            onChange={(e) => setUserid(e.target.value)}
           />
           <TextField
             margin="normal"

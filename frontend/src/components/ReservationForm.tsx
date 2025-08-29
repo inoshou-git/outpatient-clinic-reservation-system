@@ -11,6 +11,7 @@ import {
   Alert,
   Checkbox,
   FormControlLabel,
+  ListItemText,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -101,6 +102,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     Appointment[]
   >([]); // New state for existing appointments
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+  const [consultationSelectOpen, setConsultationSelectOpen] = useState(false);
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -164,17 +166,26 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       setEndTimeRange(appointment.endTimeRange || "");
 
       const existingConsultation = appointment.consultation;
-      if (Array.isArray(existingConsultation)) {
+      if (typeof existingConsultation === 'string') {
+        // Split the string into an array
+        const consultationArray = existingConsultation.split(', ');
+        
+        // Separate known options from "other" text
+        const knownOptions = consultationArray.filter(c => consultationOptions.includes(c));
+        const otherText = consultationArray.filter(c => !consultationOptions.includes(c)).join(', ');
+
+        if (otherText) {
+          // If there's text not in the options, add "その他" to the selection
+          setConsultation([...knownOptions, "その他"]);
+          setOtherConsultation(otherText);
+        } else {
+          setConsultation(knownOptions);
+          setOtherConsultation("");
+        }
+      } else if (Array.isArray(existingConsultation)) {
+        // This case might still be useful for robustness
         setConsultation(existingConsultation);
         setOtherConsultation("");
-      } else if (existingConsultation) {
-        if (consultationOptions.includes(existingConsultation)) {
-          setConsultation([existingConsultation]);
-          setOtherConsultation("");
-        } else {
-          setConsultation(["その他"]);
-          setOtherConsultation(existingConsultation);
-        }
       } else {
         setConsultation([]);
         setOtherConsultation("");
@@ -372,7 +383,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       appointmentData.time = time;
       appointmentData.consultation = consultation.includes("その他") ? otherConsultation : consultation;
     } else if (reservationType === "visit") {
-      appointmentData.facilityName = patientName; // Use patientName for facilityName
+      appointmentData.patientName = patientName;
+      appointmentData.facilityName = patientName; // Use patientName for facilityName as well
       appointmentData.startTimeRange = startTimeRange;
       appointmentData.endTimeRange = endTimeRange;
       appointmentData.consultation = consultation.includes("その他") ? otherConsultation : consultation;
@@ -639,6 +651,9 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                 multiple
                 value={consultation}
                 label="診察内容"
+                open={consultationSelectOpen}
+                onOpen={() => setConsultationSelectOpen(true)}
+                onClose={() => setConsultationSelectOpen(false)}
                 onChange={(e: SelectChangeEvent<typeof consultation>) =>
                   setConsultation(e.target.value as string[])
                 }
@@ -646,9 +661,13 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
               >
                 {consultationOptions.map((option) => (
                   <MenuItem key={option} value={option}>
-                    {option}
+                    <Checkbox checked={consultation.indexOf(option) > -1} />
+                    <ListItemText primary={option} />
                   </MenuItem>
                 ))}
+                <Box sx={{ position: 'sticky', bottom: 0, background: 'white', p: 1, display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #ddd' }}>
+                  <Button size="small" onClick={() => setConsultationSelectOpen(false)}>閉じる</Button>
+                </Box>
               </Select>
             </FormControl>
             {consultation.includes("その他") && (

@@ -50,6 +50,19 @@ const formatAppointmentPrimaryText = (app: Appointment): string => {
   }
 };
 
+const formatConsultation = (consultation: string | undefined | null): string | null => {
+  if (!consultation) return null;
+  if (consultation.startsWith('[') && consultation.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(consultation);
+      return Array.isArray(parsed) ? parsed.join(', ') : consultation;
+    } catch (e) {
+      return consultation; // In case of invalid JSON
+    }
+  }
+  return consultation;
+};
+
 // --- Component ---
 const CalendarView: React.FC<CalendarViewProps> = ({
   appointments,
@@ -208,13 +221,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               <ListItem key={app.id}>
                 <ListItemText
                   primary={formatAppointmentPrimaryText(app)}
-                  secondary={
+                  secondary={formatConsultation(
                     app.reservationType === "outpatient"
                       ? app.consultation
                       : app.reservationType === "visit"
                       ? app.consultation
                       : null
-                  }
+                  )}
                 />
               </ListItem>
             ))}

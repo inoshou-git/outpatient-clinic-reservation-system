@@ -21,7 +21,7 @@ const callApi = async <T>(
   };
 
   if (token) {
-    headers["Authorization"] = `${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -30,8 +30,13 @@ const callApi = async <T>(
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || "API call failed");
+    const errorText = await response.text();
+    try {
+      const errorData = JSON.parse(errorText);
+      throw new Error(errorData.message || "API call failed");
+    } catch (e) {
+      throw new Error(errorText || "API call failed");
+    }
   }
 
   if (response.status === 204) {
@@ -150,13 +155,12 @@ export const registerHolidays = (
 
 // Users
 export const loginUser = (
-  userId: string,
+  userid: string,
   password?: string
 ): Promise<{ token: string; user: User; mustChangePassword?: boolean }> => {
-  return callApi<{ token: string; user: User; mustChangePassword?: boolean }>(
-    "/login",
+  return callApi<{ token: string; user: User; mustChangePassword?: boolean }>(    "/login",
     null,
-    { method: "POST", body: JSON.stringify({ userId, password }) }
+    { method: "POST", body: JSON.stringify({ userid, password }) }
   );
 };
 

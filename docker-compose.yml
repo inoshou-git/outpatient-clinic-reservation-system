@@ -9,7 +9,7 @@ services:
       - ./backend:/app
       - /app/node_modules
     env_file:
-      - ./backend/.env.development
+      - ./.env
     command: npx ts-node-dev src/index.ts
     restart: always
     healthcheck:
@@ -30,5 +30,5 @@ services:
       backend:
         condition: service_healthy
     env_file:
-      - ./frontend/.env.development
+      - ./.env
     restart: always

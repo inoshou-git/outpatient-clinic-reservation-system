@@ -27,6 +27,7 @@ import {
 import { Edit, Delete } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
 import { useUI } from "../contexts/UIContext";
+import { Navigate } from "react-router-dom";
 
 import { User } from "../types";
 
@@ -38,17 +39,16 @@ import {
 } from "../services/api";
 
 const UserManagementPage = () => {
-  const { token } = useAuth();
+  const { token, user, isAuthLoading } = useAuth(); // isAuthLoading と user を追加
   const { showLoader, hideLoader } = useUI();
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const [currentUser, setCurrentUser] = useState<Partial<User> | null>(null);
   const [isNewUser, setIsNewUser] = useState(false);
   const [openForm, setOpenForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
-    setLoading(true);
+    if (!token) return;
     showLoader(); // ローディング開始
     try {
       const data = await getAllUsers(token);
@@ -57,19 +57,20 @@ const UserManagementPage = () => {
       console.error("Error fetching users:", error);
       setError("ユーザーの取得に失敗しました。");
     } finally {
-      setLoading(false);
       hideLoader(); // ローディング終了
     }
-  }, [token]);
+  }, [token, showLoader, hideLoader]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    if (!isAuthLoading && user?.role === 'admin') {
+        fetchUsers();
+    }
+  }, [isAuthLoading, user, fetchUsers]);
 
   const handleOpenForm = (user: Partial<User> | null, isNew: boolean) => {
     setCurrentUser(
       user || {
-        userId: "",
+        userid: "",
         name: "",
         department: "",
         email: "",
@@ -81,11 +82,11 @@ const UserManagementPage = () => {
     setError(null);
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (window.confirm(`ユーザー ${userId} を削除してもよろしいですか？`)) {
+  const handleDeleteUser = async (userid: string) => {
+    if (window.confirm(`ユーザー ${userid} を削除してもよろしいですか？`)) {
       showLoader(); // ローディング開始
       try {
-        await deleteUser(userId, token);
+        await deleteUser(userid, token);
         fetchUsers();
       } catch (error: any) {
         console.error("Failed to delete user", error);
@@ -108,7 +109,7 @@ const UserManagementPage = () => {
       if (isNewUser) {
         await createUser(currentUser as User, token);
       } else {
-        await updateUser(currentUser.userId!, currentUser, token);
+        await updateUser(currentUser.userid!, currentUser, token);
       }
       fetchUsers();
       setOpenForm(false);
@@ -120,6 +121,20 @@ const UserManagementPage = () => {
       hideLoader(); // ローディング終了
     }
   };
+
+  // 認証情報読み込み中
+  if (isAuthLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // 管理者でない場合はホームページにリダイレクト
+  if (user?.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -137,12 +152,7 @@ const UserManagementPage = () => {
         </Button>
       </Box>
 
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <TableContainer component={Paper}>
+      <TableContainer component={Paper}>
           <Table sx={{ minWidth: 650 }} aria-label="users table">
             <TableHead>
               <TableRow>
@@ -156,8 +166,8 @@ const UserManagementPage = () => {
             </TableHead>
             <TableBody>
               {users.map((user) => (
-                <TableRow key={user.userId}>
-                  <TableCell>{user.userId}</TableCell>
+                <TableRow key={user.userid}>
+                  <TableCell>{user.userid}</TableCell>
                   <TableCell>{user.name}</TableCell>
                   <TableCell>{user.department}</TableCell>
                   <TableCell>{user.email}</TableCell>
@@ -166,7 +176,7 @@ const UserManagementPage = () => {
                     <IconButton onClick={() => handleOpenForm(user, false)}>
                       <Edit />
                     </IconButton>
-                    <IconButton onClick={() => handleDeleteUser(user.userId)}>
+                    <IconButton onClick={() => handleDeleteUser(user.userid)}>
                       <Delete />
                     </IconButton>
                   </TableCell>
@@ -175,7 +185,6 @@ const UserManagementPage = () => {
             </TableBody>
           </Table>
         </TableContainer>
-      )}
 
       <Dialog open={openForm} onClose={() => setOpenForm(false)}>
         <DialogTitle>
@@ -198,12 +207,12 @@ const UserManagementPage = () => {
                 margin="normal"
                 required
                 fullWidth
-                id="userId"
+                id="userid"
                 label="ユーザーID"
-                name="userId"
-                value={currentUser.userId}
+                name="userid"
+                value={currentUser.userid}
                 onChange={(e) =>
-                  setCurrentUser({ ...currentUser, userId: e.target.value })
+                  setCurrentUser({ ...currentUser, userid: e.target.value })
                 }
                 disabled={!isNewUser}
                 sx={{ mb: 2 }}
@@ -262,7 +271,7 @@ const UserManagementPage = () => {
                     })
                   }
                 >
-                  <MenuItem value="user">一般</MenuItem>
+                  <MenuItem value="general">一般</MenuItem>
                   <MenuItem value="viewer">閲覧</MenuItem>
                   <MenuItem value="admin">管理者</MenuItem>
                 </Select>

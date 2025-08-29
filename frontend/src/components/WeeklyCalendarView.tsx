@@ -72,6 +72,20 @@ const generateTimeSlots = (displayPeriod: DisplayPeriod) => {
   return slots;
 };
 
+const formatConsultation = (consultation: string | undefined | null): string | null => {
+  if (!consultation) return null;
+  if (Array.isArray(consultation)) return consultation.join(', ');
+  if (consultation.startsWith('[') && consultation.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(consultation);
+      return Array.isArray(parsed) ? parsed.join(', ') : consultation;
+    } catch (e) {
+      return consultation; // In case of invalid JSON
+    }
+  }
+  return consultation;
+};
+
 // --- Component ---
 const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
   appointments,
@@ -393,7 +407,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                                 <br />
                                 <strong>{appointment.patientName}</strong>
                                 <br />
-                                {Array.isArray(appointment.consultation) ? appointment.consultation.join(', ') : appointment.consultation}
+                                {formatConsultation(appointment.consultation)}
                               </>
                             )}
                             {appointment.reservationType === "visit" && (
@@ -405,7 +419,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                                 {appointment.startTimeRange} -{" "}
                                 {appointment.endTimeRange}
                                 <br />
-                                {Array.isArray(appointment.consultation) ? appointment.consultation.join(', ') : appointment.consultation}
+                                {formatConsultation(appointment.consultation)}
                               </>
                             )}
                             {appointment.reservationType === "rehab" && (
@@ -491,7 +505,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                 selectedAppointment.consultation && (
                   <Typography variant="subtitle1">
                     <strong>診察内容:</strong>{" "}
-                    {selectedAppointment.consultation}
+                    {formatConsultation(selectedAppointment.consultation)}
                   </Typography>
                 )}
               {selectedAppointment.reservationType === "special" &&

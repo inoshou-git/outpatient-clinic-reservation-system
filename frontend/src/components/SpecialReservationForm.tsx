@@ -53,11 +53,7 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
   }, [appointment]);
 
   const validateTime = (timeStr: string) => {
-    if (!timeStr) {
-      setTimeError("時間は必須項目です。");
-      return false;
-    }
-    if (!/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeStr)) {
+    if (timeStr && !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeStr)) {
       setTimeError("時間はHH:mm形式で入力してください。");
       return false;
     }
@@ -101,8 +97,8 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
     const isTimeFormatValid = validateTime(time);
     const isPatientIdFormatValid = validatePatientId(patientId);
 
-    if (!patientName || !date || !time) {
-      setError("患者名、日付、時間は必須項目です。");
+    if (!patientName || !date) {
+      setError("患者名と日付は必須項目です。");
       return;
     }
 

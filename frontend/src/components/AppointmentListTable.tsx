@@ -80,6 +80,19 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
   const [filterStartDate, setFilterStartDate] = useState<Dayjs | null>(null);
   const [filterEndDate, setFilterEndDate] = useState<Dayjs | null>(null);
 
+  const formatConsultation = (consultation: string | undefined | null): string => {
+    if (!consultation) return "-";
+    if (consultation.startsWith('[') && consultation.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(consultation);
+        return Array.isArray(parsed) ? parsed.join(', ') : consultation;
+      } catch (e) {
+        return consultation; // In case of invalid JSON
+      }
+    }
+    return consultation;
+  };
+
   const isSelected = (id: number) => selectedAppointments.indexOf(id) !== -1;
 
   const handleOpenDeleteDialog = (id: number) => {
@@ -334,8 +347,8 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
                 </TableSortLabel>
               </TableCell>
               <TableCell>予約種別</TableCell>
-              <TableCell>患者ID/施設名</TableCell>
-              <TableCell>患者名</TableCell>
+              <TableCell>患者ID</TableCell>
+              <TableCell>患者名/施設名</TableCell>
               <TableCell>診察内容</TableCell>
               {userRole !== "viewer" && <TableCell>最終更新者</TableCell>}
               {userRole !== "viewer" && <TableCell>最終更新日</TableCell>}
@@ -383,16 +396,15 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
                       : "-"}
                   </TableCell>
                   <TableCell>
-                    {row.reservationType === "outpatient" ||
-                    row.reservationType === "special"
-                      ? row.patientId
-                      : row.facilityName || "-"}
+                    {row.patientId || "-"}
                   </TableCell>
-                  <TableCell>{row.patientName || "-"}</TableCell>
+                  <TableCell>
+                    {row.patientName || "-"}
+                  </TableCell>
                   <TableCell>
                     {row.reservationType === "special"
                       ? row.reason
-                      : row.consultation || "-"}
+                      : formatConsultation(row.consultation)}
                   </TableCell>
                   {userRole !== "viewer" && (
                     <TableCell>{row.lastUpdatedBy || "-"}</TableCell>

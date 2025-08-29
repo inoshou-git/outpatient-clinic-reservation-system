@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import * as userService from "./users.service";
 
 export const login = async (req: Request, res: Response) => {
-  const { userId, password } = req.body;
-  const result = await userService.loginUser(userId, password);
+  const { userid, password } = req.body;
+  const result = await userService.loginUser(userid, password);
   if (result && 'token' in result) {
     res.json(result);
   } else {
@@ -18,7 +18,7 @@ export const setPassword = async (req: Request, res: Response) => {
     return res.status(400).json({ message: "New password is required" });
   }
   const success = await userService.setUserPassword(
-    userFromToken.userId,
+    userFromToken.userid,
     newPassword
   );
   if (success) {
@@ -43,8 +43,8 @@ export const getAllUsers = async (req: Request, res: Response) => {
 };
 
 export const createUser = async (req: Request, res: Response) => {
-  const { userId, name, department, email, role } = req.body;
-  if (!userId || !name || !department || !email || !role) {
+  const { userid, name, department, email, role } = req.body;
+  if (!userid || !name || !department || !email || !role) {
     return res.status(400).json({ message: "全ての項目を入力してください。" });
   }
   try {
@@ -60,8 +60,8 @@ export const createUser = async (req: Request, res: Response) => {
 };
 
 export const updateUser = async (req: Request, res: Response) => {
-  const { userId } = req.params;
-  const updatedUser = await userService.updateUser(userId, req.body);
+  const { userid } = req.params;
+  const updatedUser = await userService.updateUser(userid, req.body);
   if (updatedUser) {
     res.json(updatedUser);
   } else {
@@ -70,9 +70,9 @@ export const updateUser = async (req: Request, res: Response) => {
 };
 
 export const deleteUser = async (req: Request, res: Response) => {
-  const { userId } = req.params;
+  const { userid } = req.params;
   const lastUpdatedBy = (req as any).user.name;
-  const success = await userService.deleteUser(userId, lastUpdatedBy);
+  const success = await userService.deleteUser(userid, lastUpdatedBy);
   if (success) {
     res.status(204).send();
   } else {
