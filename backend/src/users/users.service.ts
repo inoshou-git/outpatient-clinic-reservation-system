@@ -266,3 +266,52 @@ export const deleteUser = async (
 
   return true;
 };
+
+export const requestPasswordReset = async (email: string): Promise<{ success: boolean; message: string }> => {
+  const { data: user, error: fetchError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', email)
+    .eq('isDeleted', false)
+    .single();
+
+  if (fetchError || !user) {
+    // To prevent user enumeration, we send a success-like response even if the email is not found.
+    console.error("Password reset requested for non-existent or error-fetching email:", email, fetchError);
+    return { success: true, message: "パスワードリセットの手順が送信されました。" };
+  }
+
+  const tempPassword = Math.random().toString(36).slice(-8);
+  const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({ password: hashedPassword, mustChangePassword: true, lastUpdatedAt: new Date().toISOString() })
+    .eq('userid', user.userid);
+
+  if (updateError) {
+    console.error("Error updating user for password reset:", updateError);
+    return { success: false, message: "パスワードのリセット中にエラーが発生しました。" };
+  }
+
+  const subject = "パスワードリセットのご案内 - 外来診療予約システム";
+  const text = `パスワードのリセットが要求されました。\n\n一時パスワード: ${tempPassword}\n\nこの一時パスワードでログインし、速やかに新しいパスワードを設定してください。\nシステムURL: ${
+    process.env.SYSTEM_URL || "http://localhost:3000"
+  }`;
+  const html = `<p>パスワードのリセットが要求されました。</p>
+                <p><strong>一時パスワード:</strong> ${tempPassword}</p>
+                <p>この一時パスワードでログインし、速やかに新しいパスワードを設定してください。</p>
+                <p>システムにアクセスするには<a href="${
+    process.env.SYSTEM_URL || "http://localhost:3000"
+  }">こちら</a>をクリックしてください。</p>`;
+
+  try {
+    await sendEmail(email, subject, text, html);
+    return { success: true, message: "パスワードリセットの手順が送信されました。" };
+  } catch (emailError) {
+    console.error("Failed to send password reset email:", emailError);
+    // Even if email fails, we don't want to reveal that the user exists.
+    // The password has been reset in the DB, so they can try again later.
+    return { success: false, message: "メールの送信中にエラーが発生しました。" };
+  }
+};

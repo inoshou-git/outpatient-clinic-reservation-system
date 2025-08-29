@@ -158,9 +158,20 @@ export const loginUser = (
   userid: string,
   password?: string
 ): Promise<{ token: string; user: User; mustChangePassword?: boolean }> => {
-  return callApi<{ token: string; user: User; mustChangePassword?: boolean }>(    "/login",
+  return callApi<{ token: string; user: User; mustChangePassword?: boolean }>(
+    "/login",
     null,
     { method: "POST", body: JSON.stringify({ userid, password }) }
+  );
+};
+
+export const requestPasswordReset = (
+  email: string
+): Promise<{ success: boolean; message: string }> => {
+  return callApi<{ success: boolean; message: string }>(
+    "/users/request-password-reset",
+    null,
+    { method: "POST", body: JSON.stringify({ email }) }
   );
 };
 

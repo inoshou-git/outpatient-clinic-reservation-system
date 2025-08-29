@@ -12,11 +12,13 @@ import {
 } from "@mui/material";
 
 import { loginUser } from "../services/api";
+import ForgotPasswordDialog from "../components/ForgotPasswordDialog";
 
 const LoginPage = () => {
   const [userid, setUserid] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [openForgotPasswordDialog, setOpenForgotPasswordDialog] = useState(false);
   const auth = useAuth();
   const navigate = useNavigate();
 
@@ -91,8 +93,22 @@ const LoginPage = () => {
           >
             ログイン
           </Button>
+          <Link
+            component="button"
+            variant="body2"
+            onClick={() => setOpenForgotPasswordDialog(true)}
+            sx={{ mt: 1, mb: 2 }}
+          >
+            パスワードを忘れた方へ
+          </Link>
         </Box>
       </Box>
+
+      {/* Forgot Password Dialog */}
+      <ForgotPasswordDialog
+        open={openForgotPasswordDialog}
+        onClose={() => setOpenForgotPasswordDialog(false)}
+      />
     </Container>
   );
 };

@@ -79,3 +79,18 @@ export const deleteUser = async (req: Request, res: Response) => {
     res.status(404).json({ message: "User not found" });
   }
 };
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: "Email is required." });
+  }
+  try {
+    const result = await userService.requestPasswordReset(email);
+    // Always return 200 OK to prevent user enumeration, even if email not found
+    res.status(200).json({ message: result.message });
+  } catch (error) {
+    console.error("Failed to request password reset:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};

@@ -7,6 +7,7 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  requestPasswordReset,
 } from "./users.controller";
 import { authenticateToken, adminOnly } from "../middleware/auth";
 
@@ -19,5 +20,6 @@ router.get("/users", authenticateToken, adminOnly, getAllUsers);
 router.post("/users/create", authenticateToken, adminOnly, createUser);
 router.put("/users/:userid", authenticateToken, adminOnly, updateUser);
 router.delete("/users/:userid", authenticateToken, adminOnly, deleteUser);
+router.post("/users/request-password-reset", requestPasswordReset);
 
 export default router;
