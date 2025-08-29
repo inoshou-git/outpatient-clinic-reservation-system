@@ -37,8 +37,9 @@ const LoginPage = () => {
         navigate("/");
       }
     } catch (err: any) {
-      // Directly display the error message from the backend
-      setError(err.message || "ログインに失敗しました。");
+      // Display a user-friendly error message
+      console.error("Login error:", err); // Log full error for debugging
+      setError("ログインに失敗しました。ユーザーIDまたはパスワードが間違っています。");
     }
   };
 
@@ -95,8 +96,12 @@ const LoginPage = () => {
           </Button>
           <Link
             component="button"
+            type="button"
             variant="body2"
-            onClick={() => setOpenForgotPasswordDialog(true)}
+            onClick={() => {
+              setOpenForgotPasswordDialog(true);
+              setError(""); // Clear login error when opening forgot password dialog
+            }}
             sx={{ mt: 1, mb: 2 }}
           >
             パスワードを忘れた方へ

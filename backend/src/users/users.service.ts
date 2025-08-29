@@ -278,7 +278,7 @@ export const requestPasswordReset = async (email: string): Promise<{ success: bo
   if (fetchError || !user) {
     // To prevent user enumeration, we send a success-like response even if the email is not found.
     console.error("Password reset requested for non-existent or error-fetching email:", email, fetchError);
-    return { success: true, message: "パスワードリセットの手順が送信されました。" };
+    return { success: true, message: "パスワードリセットメールを送信しました。" };
   }
 
   const tempPassword = Math.random().toString(36).slice(-8);
@@ -307,7 +307,7 @@ export const requestPasswordReset = async (email: string): Promise<{ success: bo
 
   try {
     await sendEmail(email, subject, text, html);
-    return { success: true, message: "パスワードリセットの手順が送信されました。" };
+    return { success: true, message: "パスワードリセットメールを送信しました。" };
   } catch (emailError) {
     console.error("Failed to send password reset email:", emailError);
     // Even if email fails, we don't want to reveal that the user exists.
