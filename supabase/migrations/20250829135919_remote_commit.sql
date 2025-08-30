@@ -182,15 +182,23 @@ CREATE POLICY "Enable delete for authenticated users only" ON "public"."users" F
 
 
 
-CREATE POLICY "Enable insert for authenticated users only" ON "public"."users" FOR INSERT TO "authenticated" WITH CHECK (("auth"."role"() = 'authenticated'::"text"));
+CREATE POLICY "Allow admin to insert users" ON "public"."users" FOR INSERT TO "authenticated" WITH CHECK ( (select auth.jwt() ->> 'role') = 'admin' );
 
 
 
-CREATE POLICY "Enable read access for all users" ON "public"."users" FOR SELECT TO "authenticated", "anon" USING (true);
+CREATE POLICY "Allow admin to read users" ON "public"."users" FOR SELECT USING ( (select auth.jwt() ->> 'role') = 'admin' );
 
 
 
-CREATE POLICY "Enable update for authenticated users only" ON "public"."users" FOR UPDATE TO "authenticated" USING ((("auth"."uid"())::"text" = "userid")) WITH CHECK ((("auth"."uid"())::"text" = "userid"));
+CREATE POLICY "Allow admin to update users" ON "public"."users" FOR UPDATE USING ( (select auth.jwt() ->> 'role') = 'admin' ) WITH CHECK ( (select auth.jwt() ->> 'role') = 'admin' );
+
+
+
+ALTER TABLE "public"."appointments" ENABLE ROW LEVEL SECURITY;
+
+
+
+ALTER TABLE "public"."blocked_slots" ENABLE ROW LEVEL SECURITY;
 
 
 
