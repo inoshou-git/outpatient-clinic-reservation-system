@@ -24,11 +24,12 @@
     "react-scripts": "5.0.1",
     "socket.io-client": "^4.7.5",
     "typescript": "^4.9.5",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "cross-env": "^7.0.3"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "cross-env REACT_APP_API_URL=$REACT_APP_API_URL react-scripts start",
+    "build": "cross-env REACT_APP_API_URL=$REACT_APP_API_URL react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
