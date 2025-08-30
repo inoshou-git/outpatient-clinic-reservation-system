@@ -19,7 +19,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 import { useAuth } from "../contexts/AuthContext";
 import { useUI } from "../contexts/UIContext";
-import { getAppointments } from "../services/api"; // Import getAppointments
+import { getAppointments, createAppointment, updateAppointment } from "../services/api"; // Import getAppointments
 
 import { Appointment, BlockedSlot } from "../types";
 
@@ -308,14 +308,14 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
      return conflicts;
    };
 
-  const validatePatientId = (id: string) => {
-    if (id && !/^[0-9]*$/.test(id)) {
-      setPatientIdError("患者IDは半角数字で入力してください。");
-      return false;
-    }
-    setPatientIdError("");
-    return true;
-  };
+  // const validatePatientId = (id: string) => {
+   //   if (id && !/^[0-9]*$/.test(id)) {
+   //     setPatientIdError("患者IDは半角数字で入力してください。");
+   //     return false;
+   //   }
+   //   setPatientIdError("");
+   //   return true;
+   // };
 
   const handlePatientIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newPatientId = e.target.value;
@@ -334,7 +334,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     }
 
     if (reservationType === "outpatient") {
-      if (!validatePatientId(patientId)) return;
+      // if (!validatePatientId(patientId)) return;
       if (!time) {
         setError("時間は必須項目です。");
         return;
@@ -393,34 +393,18 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       appointmentData.endTimeRange = endTimeRange;
     }
 
-    const url = appointment
-      ? `/api/appointments/${appointment.id}`
-      : "/api/appointments";
-    const method = appointment ? "PUT" : "POST";
-
     try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(appointmentData),
-      });
-
-      if (response.ok) {
-        onFormSubmit();
+      if (appointment) {
+        await updateAppointment(appointment.id, appointmentData, token);
       } else {
-        const errorData = await response.json();
-        setError(
-          errorData.message ||
-            (appointment
-              ? "予約の更新に失敗しました。"
-              : "予約の作成に失敗しました。")
-        );
+        await createAppointment(appointmentData, token);
       }
-    } catch (err) {
-      setError("フォームの送信中にエラーが発生しました。");
+      onFormSubmit();
+    } catch (err: any) {
+      setError(
+        err.message ||
+          (appointment ? "予約の更新に失敗しました。" : "予約の作成に失敗しました。")
+      );
       console.error("Error submitting form:", err);
     } finally {
       hideLoader();
@@ -525,8 +509,11 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         )}
 
         <FormControl fullWidth required sx={{ mb: 2 }}>
-          <InputLabel>予約種別</InputLabel>
+          <InputLabel id="reservation-type-label">予約種別</InputLabel>
           <Select
+            labelId="reservation-type-label"
+            id="reservation-type"
+            name="reservationType"
             value={reservationType}
             label="予約種別"
             onChange={(e: SelectChangeEvent) =>
@@ -544,6 +531,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         {(reservationType === "outpatient" || reservationType === "visit") && (
           <>
             <TextField
+              id="patient-id"
+              name="patientId"
               label="患者ID (任意)"
               value={patientId}
               onChange={handlePatientIdChange}
@@ -554,6 +543,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
             />
 
             <TextField
+              id="patient-name"
+              name="patientName"
               label={reservationType === "visit" ? "患者名/施設名" : "患者名"}
               value={patientName}
               onChange={(e) => setPatientName(e.target.value)}
@@ -577,8 +568,11 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         {reservationType === "outpatient" && (
           <>
             <FormControl fullWidth required sx={{ mb: 2 }}>
-              <InputLabel>時間</InputLabel>
+              <InputLabel id="time-select-label">時間</InputLabel>
               <Select
+                labelId="time-select-label"
+                id="time-select"
+                name="time"
                 value={time}
                 label="時間"
                 onChange={(e: SelectChangeEvent) => {
@@ -601,8 +595,11 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
           <>
             <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
               <FormControl fullWidth required>
-                <InputLabel>開始時間</InputLabel>
+                <InputLabel id="start-time-range-label">開始時間</InputLabel>
                 <Select
+                  labelId="start-time-range-label"
+                  id="start-time-range"
+                  name="startTimeRange"
                   value={startTimeRange}
                   label="開始時間"
                   onChange={(e: SelectChangeEvent) => {
@@ -617,8 +614,11 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                 </Select>
               </FormControl>
               <FormControl fullWidth required>
-                <InputLabel>終了時間</InputLabel>
+                <InputLabel id="end-time-range-label">終了時間</InputLabel>
                 <Select
+                  labelId="end-time-range-label"
+                  id="end-time-range"
+                  name="endTimeRange"
                   value={endTimeRange}
                   label="終了時間"
                   onChange={(e: SelectChangeEvent) => {
@@ -646,8 +646,11 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         {(reservationType === "outpatient" || reservationType === "visit") && (
           <>
             <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>診察内容</InputLabel>
+              <InputLabel id="consultation-label">診察内容</InputLabel>
               <Select
+                labelId="consultation-label"
+                id="consultation-select"
+                name="consultation"
                 multiple
                 value={consultation}
                 label="診察内容"
@@ -672,6 +675,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
             </FormControl>
             {consultation.includes("その他") && (
               <TextField
+                id="other-consultation"
+                name="otherConsultation"
                 label="診察内容 (その他)"
                 value={otherConsultation}
                 onChange={(e) => setOtherConsultation(e.target.value)}
