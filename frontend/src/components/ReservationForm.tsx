@@ -320,7 +320,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const handlePatientIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newPatientId = e.target.value;
     setPatientId(newPatientId);
-    validatePatientId(newPatientId);
+    // validatePatientId(newPatientId);
   };
 
   // --- Event Handlers ---
