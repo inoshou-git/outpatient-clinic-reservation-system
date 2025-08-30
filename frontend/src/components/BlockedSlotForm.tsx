@@ -249,12 +249,16 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
       isInitialMount.current = false;
       return;
     }
-    setStartTime(null);
-    setEndTime(null);
-    setTimeResetWarning(
-      "日付が変更されたため、時間範囲を再選択してください。"
-    );
-  }, [startDate]);
+    // Only clear times if not in edit mode (i.e., blockedSlot is null)
+    // or if the date is manually changed in a new form
+    if (!blockedSlot) { // Add this condition
+      setStartTime(null);
+      setEndTime(null);
+      setTimeResetWarning(
+        "日付が変更されたため、時間範囲を再選択してください。"
+      );
+    }
+  }, [startDate, blockedSlot]); // Add blockedSlot to dependency array
 
   const proceedToSubmit = async () => {
     if (!startDate || !reason) {
@@ -371,8 +375,11 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
           <>
             <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
               <FormControl fullWidth>
-                <InputLabel>開始時間</InputLabel>
+                <InputLabel id="blocked-start-time-label">開始時間</InputLabel>
                 <Select
+                  labelId="blocked-start-time-label"
+                  id="blocked-start-time"
+                  name="startTime"
                   value={startTime || ""}
                   label="開始時間"
                   onChange={(e: SelectChangeEvent) => {
@@ -387,8 +394,11 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
                 </Select>
               </FormControl>
               <FormControl fullWidth>
-                <InputLabel>終了時間</InputLabel>
+                <InputLabel id="blocked-end-time-label">終了時間</InputLabel>
                 <Select
+                  labelId="blocked-end-time-label"
+                  id="blocked-end-time"
+                  name="endTime"
                   value={endTime || ""}
                   label="終了時間"
                   onChange={(e: SelectChangeEvent) => {
@@ -413,6 +423,8 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
           </Alert>
         )}
         <TextField
+          id="blocked-reason"
+          name="reason"
           label="理由"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
