@@ -16,9 +16,9 @@ const port = parseInt(process.env.PORT || "3334", 10);
 app.use(cors());
 app.use(express.json());
 
-app.use("/api", usersRouter);
 app.use("/api/appointments", appointmentsRouter);
 app.use("/api/blocked-slots", blockedSlotsRouter);
+app.use("/api", usersRouter);
 
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
