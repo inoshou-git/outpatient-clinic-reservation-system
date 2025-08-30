@@ -228,8 +228,8 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
     if (!startDate) return [];
 
     const dayBlockedSlots = existingBlockedSlots.filter((slot) => {
-      if (slot.id === blockedSlot?.id) return false;
-      return dayjs(slot.date).isSame(startDate, "day") && slot.startTime;
+      // Exclude the current blocked slot from the list of blocked slots to check against
+      return slot.id !== blockedSlot?.id && dayjs(slot.date).isSame(startDate, "day") && slot.startTime;
     });
 
     return allTimeSlots.filter((slotTime) => {

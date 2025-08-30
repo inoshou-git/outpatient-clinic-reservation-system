@@ -167,23 +167,28 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
       const existingConsultation = appointment.consultation;
       if (typeof existingConsultation === 'string') {
-        // Split the string into an array
-        const consultationArray = existingConsultation.split(', ');
+        const consultationArray = existingConsultation.split(', ').filter(item => item !== '');
         
-        // Separate known options from "other" text
-        const knownOptions = consultationArray.filter(c => consultationOptions.includes(c));
-        const otherText = consultationArray.filter(c => !consultationOptions.includes(c)).join(', ');
+        const knownOptions = consultationArray.filter(c => consultationOptions.includes(c) && c !== "その他"); // Exclude "その他" from known options initially
+        const customTextOptions = consultationArray.filter(c => !consultationOptions.includes(c)); // These are truly custom texts
 
-        if (otherText) {
-          // If there's text not in the options, add "その他" to the selection
-          setConsultation([...knownOptions, "その他"]);
-          setOtherConsultation(otherText);
-        } else {
-          setConsultation(knownOptions);
-          setOtherConsultation("");
+        let finalConsultationSelection: string[] = [...knownOptions];
+        let finalOtherConsultationText: string = "";
+
+        if (customTextOptions.length > 0) {
+          // If there's custom text, then "その他" must be selected
+          finalConsultationSelection.push("その他");
+          finalOtherConsultationText = customTextOptions.join(', ');
+        } else if (consultationArray.includes("その他")) {
+          // If "その他" was explicitly selected but no custom text, just include "その他"
+          finalConsultationSelection.push("その他");
         }
+
+        setConsultation(finalConsultationSelection);
+        setOtherConsultation(finalOtherConsultationText);
+
       } else if (Array.isArray(existingConsultation)) {
-        // This case might still be useful for robustness
+        // Fallback for array type, though backend should send string
         setConsultation(existingConsultation);
         setOtherConsultation("");
       } else {
