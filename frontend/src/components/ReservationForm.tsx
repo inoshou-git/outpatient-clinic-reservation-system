@@ -166,35 +166,43 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       setEndTimeRange(appointment.endTimeRange || "");
 
       const existingConsultation = appointment.consultation;
+      let parsedConsultation: string[] = [];
+
       if (typeof existingConsultation === 'string') {
-        const consultationArray = existingConsultation.split(', ').filter(item => item !== '');
-        
-        const knownOptions = consultationArray.filter(c => consultationOptions.includes(c) && c !== "その他"); // Exclude "その他" from known options initially
-        const customTextOptions = consultationArray.filter(c => !consultationOptions.includes(c)); // These are truly custom texts
-
-        let finalConsultationSelection: string[] = [...knownOptions];
-        let finalOtherConsultationText: string = "";
-
-        if (customTextOptions.length > 0) {
-          // If there's custom text, then "その他" must be selected
-          finalConsultationSelection.push("その他");
-          finalOtherConsultationText = customTextOptions.join(', ');
-        } else if (consultationArray.includes("その他")) {
-          // If "その他" was explicitly selected but no custom text, just include "その他"
-          finalConsultationSelection.push("その他");
+        try {
+          // Try to parse as JSON array first
+          const jsonParsed = JSON.parse(existingConsultation);
+          if (Array.isArray(jsonParsed)) {
+            parsedConsultation = jsonParsed;
+          } else {
+            // Not a JSON array, treat as comma-separated string
+            parsedConsultation = existingConsultation.split(', ').filter(item => item !== '');
+          }
+        } catch (e) {
+          // Not valid JSON, treat as comma-separated string
+          parsedConsultation = existingConsultation.split(', ').filter(item => item !== '');
         }
-
-        setConsultation(finalConsultationSelection);
-        setOtherConsultation(finalOtherConsultationText);
-
       } else if (Array.isArray(existingConsultation)) {
-        // Fallback for array type, though backend should send string
-        setConsultation(existingConsultation);
-        setOtherConsultation("");
+        parsedConsultation = existingConsultation;
       } else {
-        setConsultation([]);
-        setOtherConsultation("");
+        parsedConsultation = [];
       }
+
+      const knownOptions = parsedConsultation.filter(c => consultationOptions.includes(c) && c !== "その他");
+      const customTextOptions = parsedConsultation.filter(c => !consultationOptions.includes(c));
+
+      let finalConsultationSelection: string[] = [...knownOptions];
+      let finalOtherConsultationText: string = "";
+
+      if (customTextOptions.length > 0) {
+        finalConsultationSelection.push("その他");
+        finalOtherConsultationText = customTextOptions.join(', ');
+      } else if (parsedConsultation.includes("その他")) {
+        finalConsultationSelection.push("その他");
+      }
+
+      setConsultation(finalConsultationSelection);
+      setOtherConsultation(finalOtherConsultationText);
     } else {
       setReservationType("outpatient");
       setPatientId("");
