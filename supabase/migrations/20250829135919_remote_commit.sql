@@ -158,6 +158,10 @@ ALTER TABLE ONLY "public"."users"
 
 
 
+CREATE POLICY "Allow insert for general and admin users on appointments" ON "public"."appointments" FOR INSERT WITH CHECK (((( SELECT ("auth"."jwt"() ->> 'role'::"text")) = 'general'::"text") OR (( SELECT ("auth"."jwt"() ->> 'role'::"text")) = 'admin'::"text")));
+
+
+
 CREATE POLICY "Allow delete for general and admin users on appointments" ON "public"."appointments" FOR DELETE USING (((( SELECT ("auth"."jwt"() ->> 'role'::"text")) = 'general'::"text") OR (( SELECT ("auth"."jwt"() ->> 'role'::"text")) = 'admin'::"text")));
 
 
