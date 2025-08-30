@@ -25,7 +25,7 @@ import dayjs, { Dayjs } from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { useAuth } from "../contexts/AuthContext";
 import { useUI } from "../contexts/UIContext";
-import { getAppointments, getBlockedSlots } from "../services/api";
+import { createBlockedSlot, updateBlockedSlot, getAppointments, getBlockedSlots } from "../services/api";
 import { BlockedSlot, Appointment } from "../types";
 
 dayjs.extend(isBetween);
@@ -291,32 +291,18 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
       sendNotification,
     };
 
-    const url = blockedSlot
-      ? `/api/blocked-slots/${blockedSlot.id}`
-      : "/api/blocked-slots";
-    const method = blockedSlot ? "PUT" : "POST";
-
     try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(blockedSlotData),
-      });
-
-      if (response.ok) {
-        onFormSubmit();
+      if (blockedSlot) {
+        await updateBlockedSlot(blockedSlot.id, blockedSlotData, token);
       } else {
-        const errorData = await response.json();
-        setError(
-          errorData.message ||
-            (blockedSlot ? "更新に失敗しました。" : "登録に失敗しました。")
-        );
+        await createBlockedSlot(blockedSlotData, token);
       }
-    } catch (err) {
-      setError("フォームの送信中にエラーが発生しました。");
+      onFormSubmit();
+    } catch (err: any) {
+      setError(
+        err.message ||
+          (blockedSlot ? "更新に失敗しました。" : "登録に失敗しました。")
+      );
       console.error("Error submitting form:", err);
     } finally {
       hideLoader();

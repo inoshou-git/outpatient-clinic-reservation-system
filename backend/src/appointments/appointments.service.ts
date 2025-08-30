@@ -39,7 +39,7 @@ export const getAllAppointments = async (date?: string): Promise<Appointment[]> 
 export const createAppointment = async (
   appointmentData: any,
   lastUpdatedBy: string
-): Promise<{ appointment?: Appointment; error?: string }> => {
+): Promise<Appointment> => {
   const {
     reservationType,
     patientId,
@@ -54,27 +54,26 @@ export const createAppointment = async (
   } = appointmentData;
 
   if (!reservationType || !date) {
-    return { error: "予約種別と日付は必須項目です。" };
+    throw new Error("予約種別と日付は必須項目です。");
   }
 
   // Validate patientId format if it exists
-  if (patientId && !/^[0-9]+$/.test(patientId)) {
-    return { error: "患者IDは半角数字のみで入力してください。" };
-  }
+  // if (patientId && !/^[0-9]+$/.test(patientId)) {
+  //   throw new Error("患者IDは半角数字のみで入力してください。");
+  // }
 
   if (reservationType === "outpatient") {
     if (!patientName || !time) {
-      return { error: "外来診療の場合、患者名、時間は必須項目です。" };
+      throw new Error("外来診療の場合、患者名、時間は必須項目です。");
     }
   } else if (reservationType === "visit" || reservationType === "rehab") {
     if (!startTimeRange || !endTimeRange) {
-      return {
-        error:
-          "訪問診療または通所リハ会議の場合、開始時間と終了時間は必須項目です。",
-      };
+      throw new Error(
+        "訪問診療または通所リハ会議の場合、開始時間と終了時間は必須項目です。"
+      );
     }
     if (dayjs(startTimeRange, "HH:mm").isAfter(dayjs(endTimeRange, "HH:mm"))) {
-      return { error: "開始時間は終了時間より前に設定してください。" };
+      throw new Error("開始時間は終了時間より前に設定してください。");
     }
   }
 
@@ -88,7 +87,7 @@ export const createAppointment = async (
 
   if (fetchError) {
     console.error("Error fetching existing appointments:", fetchError);
-    return { error: "既存の予約の確認に失敗しました。" };
+    throw new Error("既存の予約の確認に失敗しました。");
   }
 
   const newIsTimeBased = !!time;
@@ -127,7 +126,7 @@ export const createAppointment = async (
   });
 
   if (conflicting) {
-    return { error: "すでに予約が入っている為、登録できませんでした。再度やり直してください。" };
+    throw new Error("すでに予約が入っている為、登録できませんでした。再度やり直してください。");
   }
 
   const newAppointmentData: Omit<Appointment, 'id' | 'createdAt' | 'lastUpdatedAt'> = {
@@ -169,11 +168,11 @@ export const createAppointment = async (
 
   if (insertError) {
     console.error("Error creating appointment:", insertError);
-    return { error: "予約の作成に失敗しました。" };
+    throw new Error("予約の作成に失敗しました。");
   }
   
   if (!newAppointment) {
-      return { error: "予約の作成に失敗しました。" };
+      throw new Error("予約の作成に失敗しました。");
   }
 
   // Emit WebSocket event
@@ -217,14 +216,14 @@ export const createAppointment = async (
     await notifyUsers(subject, text, html);
   }
 
-  return { appointment: newAppointment };
+  return newAppointment;
 };
 
 export const updateAppointment = async (
   id: number,
   appointmentData: any,
   lastUpdatedBy: string
-): Promise<{ appointment?: Appointment; error?: string; status?: number }> => {
+): Promise<Appointment> => {
   const { data: existingAppointment, error: fetchError } = await supabase
     .from('appointments')
     .select('*')
@@ -233,11 +232,11 @@ export const updateAppointment = async (
 
   if (fetchError) {
     console.error("Error fetching appointment:", fetchError);
-    return { error: "予約の取得に失敗しました。", status: 500 };
+    throw new Error("予約の取得に失敗しました。");
   }
 
   if (!existingAppointment) {
-    return { error: "Appointment not found", status: 404 };
+    throw new Error("Appointment not found");
   }
 
   const oldAppointment = { ...existingAppointment };
@@ -271,7 +270,7 @@ export const updateAppointment = async (
 
     if (fetchError2) {
       console.error("Error fetching existing appointments:", fetchError2);
-      return { error: "既存の予約の確認に失敗しました。", status: 500 };
+      throw new Error("既存の予約の確認に失敗しました。");
     }
 
     const conflicting = existingAppointments?.find(a => {
@@ -308,7 +307,7 @@ export const updateAppointment = async (
     });
 
     if (conflicting) {
-      return { error: "すでに予約が入っている為、登録できませんでした。再度やり直してください。" };
+      throw new Error("すでに予約が入っている為、登録できませんでした。再度やり直してください。");
     }
 
     // Allow patientId to be cleared by submitting an empty string
@@ -317,18 +316,16 @@ export const updateAppointment = async (
     }
 
     // Validate patientId format if it exists
-    if (updatedAppointment.patientId && !/^[0-9]+$/.test(updatedAppointment.patientId)) {
-      return { error: "患者IDは半角数字のみで入力してください。" };
-    }
+    // if (updatedAppointment.patientId && !/^[0-9]+$/.test(updatedAppointment.patientId)) {
+    //   throw new Error("患者IDは半角数字のみで入力してください。");
+    // }
 
     if (updatedAppointment.reservationType === "outpatient") {
       if (
         !updatedAppointment.patientName ||
         !updatedAppointment.time
       ) {
-        return {
-          error: "外来診療の場合、患者名、時間は必須項目です。",
-        };
+        throw new Error("外来診療の場合、患者名、時間は必須項目です。");
       }
       updatedAppointment.facilityName = undefined;
       updatedAppointment.startTimeRange = undefined;
@@ -341,17 +338,16 @@ export const updateAppointment = async (
         !updatedAppointment.startTimeRange ||
         !updatedAppointment.endTimeRange
       ) {
-        return {
-          error:
-            "訪問診療または通所リハ会議の場合、開始時間と終了時間は必須項目です。",
-        };
+        throw new Error(
+          "訪問診療または通所リハ会議の場合、開始時間と終了時間は必須項目です。"
+        );
       }
       if (
         dayjs(updatedAppointment.startTimeRange, "HH:mm").isAfter(
           dayjs(updatedAppointment.endTimeRange, "HH:mm")
         )
       ) {
-        return { error: "開始時間は終了時間より前に設定してください。" };
+        throw new Error("開始時間は終了時間より前に設定してください。");
       }
       updatedAppointment.time = undefined;
       if (updatedAppointment.reservationType === "rehab") {
@@ -374,11 +370,11 @@ export const updateAppointment = async (
 
     if (updateError) {
       console.error("Error updating appointment:", updateError);
-      return { error: "予約の更新に失敗しました。", status: 500 };
+      throw new Error("予約の更新に失敗しました。");
     }
 
     if (!updatedAppointmentResult) {
-      return { error: "予約の更新に失敗しました。", status: 500 };
+      throw new Error("予約の更新に失敗しました。");
     }
 
     // Emit WebSocket event
@@ -456,7 +452,7 @@ export const updateAppointment = async (
       await notifyUsers(subject, text, html);
     }
 
-    return { appointment: updatedAppointmentResult };
+    return updatedAppointmentResult;
 };
 
 export const deleteAppointment = async (
@@ -579,7 +575,7 @@ export const deleteAppointment = async (
 export const createSpecialAppointment = async (
   appointmentData: any,
   lastUpdatedBy: string
-): Promise<{ appointment?: Appointment; error?: string }> => {
+): Promise<Appointment> => {
   const {
     patientId,
     patientName,
@@ -590,11 +586,11 @@ export const createSpecialAppointment = async (
   } = appointmentData;
 
   if (!patientName || !date) {
-    return { error: "患者名, 日付, 時間, 理由は必須項目です。" };
+    throw new Error("患者名, 日付, 時間, 理由は必須項目です。");
   }
 
   if (patientId && !/^[0-9]+$/.test(patientId)) {
-    return { error: "患者IDは半角数字のみで入力してください。" };
+    throw new Error("患者IDは半角数字のみで入力してください。");
   }
 
   const { data: existingAppointments, error: fetchError } = await supabase
@@ -606,7 +602,7 @@ export const createSpecialAppointment = async (
 
   if (fetchError) {
     console.error("Error fetching existing appointments:", fetchError);
-    return { error: "既存の予約の確認に失敗しました。" };
+    throw new Error("既存の予約の確認に失敗しました。");
   }
 
   const conflicting = existingAppointments.find(a => {
@@ -623,7 +619,7 @@ export const createSpecialAppointment = async (
   });
 
   if (conflicting) {
-    return { error: "すでに予約が入っている為、登録できませんでした。再度やり直してください。" };
+    throw new Error("すでに予約が入っている為、登録できませんでした。再度やり直してください。");
   }
 
   const newAppointmentData: Omit<Appointment, 'id' | 'createdAt' | 'lastUpdatedAt'> = {
@@ -645,11 +641,11 @@ export const createSpecialAppointment = async (
 
   if (insertError) {
     console.error("Error creating special appointment:", insertError);
-    return { error: "特別予約の作成に失敗しました。" };
+    throw new Error("特別予約の作成に失敗しました。");
   }
 
   if (!newAppointment) {
-    return { error: "特別予約の作成に失敗しました。" };
+    throw new Error("特別予約の作成に失敗しました。");
   }
 
   io.emit("appointmentCreated", newAppointment);
@@ -661,14 +657,14 @@ export const createSpecialAppointment = async (
     await notifyUsers(subject, text, html);
   }
 
-  return { appointment: newAppointment };
+  return newAppointment;
 };
 
 export const updateSpecialAppointment = async (
   id: number,
   appointmentData: any,
   lastUpdatedBy: string
-): Promise<{ appointment?: Appointment; error?: string; status?: number }> => {
+): Promise<Appointment> => {
   const { data: existingAppointment, error: fetchError } = await supabase
     .from('appointments')
     .select('*')
@@ -677,11 +673,11 @@ export const updateSpecialAppointment = async (
 
   if (fetchError) {
     console.error("Error fetching special appointment:", fetchError);
-    return { error: "特別予約の取得に失敗しました。", status: 500 };
+    throw new Error("特別予約の取得に失敗しました。");
   }
 
   if (!existingAppointment) {
-    return { error: "Special Appointment not found", status: 404 };
+    throw new Error("Special Appointment not found");
   }
 
   const oldAppointment = { ...existingAppointment };
@@ -707,7 +703,7 @@ export const updateSpecialAppointment = async (
 
     if (fetchError2) {
       console.error("Error fetching existing appointments:", fetchError2);
-      return { error: "既存の予約の確認に失敗しました。", status: 500 };
+      throw new Error("既存の予約の確認に失敗しました。");
     }
 
     const conflicting = existingAppointments?.find(a => {
@@ -724,18 +720,18 @@ export const updateSpecialAppointment = async (
     });
 
     if (conflicting) {
-      return { error: "すでに予約が入っている為、登録できませんでした。再度やり直してください。" };
+      throw new Error("すでに予約が入っている為、登録できませんでした。再度やり直してください。");
     }
 
     if (
       !updatedAppointment.patientName ||
       !updatedAppointment.date
     ) {
-      return { error: "患者名, 日付, 時間, 理由は必須項目です。" };
+      throw new Error("患者名, 日付, 時間, 理由は必須項目です。");
     }
 
     if (updatedAppointment.patientId && !/^[0-9]+$/.test(updatedAppointment.patientId)) {
-      return { error: "患者IDは半角数字のみで入力してください。" };
+      throw new Error("患者IDは半角数字のみで入力してください。");
     }
 
     delete updatedAppointment.id;
@@ -750,11 +746,11 @@ export const updateSpecialAppointment = async (
 
     if (updateError) {
       console.error("Error updating special appointment:", updateError);
-      return { error: "特別予約の更新に失敗しました。", status: 500 };
+      throw new Error("特別予約の更新に失敗しました。");
     }
 
     if (!updatedAppointmentResult) {
-      return { error: "特別予約の更新に失敗しました。", status: 500 };
+      throw new Error("特別予約の更新に失敗しました。");
     }
 
     io.emit("appointmentUpdated", updatedAppointmentResult);
@@ -766,5 +762,5 @@ export const updateSpecialAppointment = async (
       await notifyUsers(subject, text, html);
     }
 
-    return { appointment: updatedAppointmentResult };
+    return updatedAppointmentResult;
 };

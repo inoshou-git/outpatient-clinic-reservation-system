@@ -12,11 +12,15 @@ export const createBlockedSlot = async (req: Request, res: Response) => {
       .status(403)
       .json({ message: "閲覧ユーザーは予約不可設定を作成できません。" });
   }
-  const result = await blockedSlotService.createBlockedSlot(
-    req.body,
-    (req as any).user.name
-  );
-  res.status(201).json(result);
+  try {
+    const result = await blockedSlotService.createBlockedSlot(
+      req.body,
+      (req as any).user.name
+    );
+    res.status(201).json(result);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 export const updateBlockedSlot = async (req: Request, res: Response) => {
@@ -25,16 +29,20 @@ export const updateBlockedSlot = async (req: Request, res: Response) => {
       .status(403)
       .json({ message: "閲覧ユーザーは予約不可設定を更新できません。" });
   }
-  const id = parseInt(req.params.id, 10);
-  const result = await blockedSlotService.updateBlockedSlot(
-    id,
-    req.body,
-    (req as any).user.name
-  );
-  if (result) {
-    res.json(result);
-  } else {
-    res.status(404).json({ message: "Blocked slot not found" });
+  try {
+    const id = parseInt(req.params.id, 10);
+    const result = await blockedSlotService.updateBlockedSlot(
+      id,
+      req.body,
+      (req as any).user.name
+    );
+    if (result) {
+      res.json(result);
+    } else {
+      res.status(404).json({ message: "Blocked slot not found" });
+    }
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
   }
 };
 

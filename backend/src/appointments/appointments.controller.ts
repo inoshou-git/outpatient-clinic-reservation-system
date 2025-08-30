@@ -13,14 +13,15 @@ export const createAppointment = async (req: Request, res: Response) => {
       .status(403)
       .json({ message: "閲覧ユーザーは予約を作成できません。" });
   }
-  const result = await appointmentService.createAppointment(
-    req.body,
-    (req as any).user.name
-  );
-  if (result.error) {
-    return res.status(400).json({ message: result.error });
+  try {
+    const appointment = await appointmentService.createAppointment(
+      req.body,
+      (req as any).user.name
+    );
+    res.status(201).json(appointment);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
   }
-  res.status(201).json(result.appointment);
 };
 
 export const updateAppointment = async (req: Request, res: Response) => {
@@ -29,20 +30,20 @@ export const updateAppointment = async (req: Request, res: Response) => {
       .status(403)
       .json({ message: "閲覧ユーザーは予約を更新できません。" });
   }
-  const id = parseInt(req.params.id, 10);
-  const result = await appointmentService.updateAppointment(
-    id,
-    req.body,
-    (req as any).user.name
-  );
-
-  if (result.error) {
-    return res.status(result.status || 400).json({ message: result.error });
-  }
-  if (result.appointment) {
-    res.json(result.appointment);
-  } else {
-    res.status(404).json({ message: "Appointment not found" });
+  try {
+    const id = parseInt(req.params.id, 10);
+    const appointment = await appointmentService.updateAppointment(
+      id,
+      req.body,
+      (req as any).user.name
+    );
+    res.json(appointment);
+  } catch (error: any) {
+    if (error.message === "Appointment not found") {
+      res.status(404).json({ message: error.message });
+    } else {
+      res.status(400).json({ message: error.message });
+    }
   }
 };
 
@@ -72,14 +73,15 @@ export const createSpecialAppointment = async (req: Request, res: Response) => {
       .status(403)
       .json({ message: "閲覧ユーザーは予約を作成できません。" });
   }
-  const result = await appointmentService.createSpecialAppointment(
-    req.body,
-    (req as any).user.name
-  );
-  if (result.error) {
-    return res.status(400).json({ message: result.error });
+  try {
+    const appointment = await appointmentService.createSpecialAppointment(
+      req.body,
+      (req as any).user.name
+    );
+    res.status(201).json(appointment);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
   }
-  res.status(201).json(result.appointment);
 };
 
 export const updateSpecialAppointment = async (req: Request, res: Response) => {
@@ -88,19 +90,19 @@ export const updateSpecialAppointment = async (req: Request, res: Response) => {
       .status(403)
       .json({ message: "閲覧ユーザーは予約を更新できません。" });
   }
-  const id = parseInt(req.params.id, 10);
-  const result = await appointmentService.updateSpecialAppointment(
-    id,
-    req.body,
-    (req as any).user.name
-  );
-
-  if (result.error) {
-    return res.status(result.status || 400).json({ message: result.error });
-  }
-  if (result.appointment) {
-    res.json(result.appointment);
-  } else {
-    res.status(404).json({ message: "Appointment not found" });
+  try {
+    const id = parseInt(req.params.id, 10);
+    const appointment = await appointmentService.updateSpecialAppointment(
+      id,
+      req.body,
+      (req as any).user.name
+    );
+    res.json(appointment);
+  } catch (error: any) {
+    if (error.message === "Special Appointment not found") {
+      res.status(404).json({ message: error.message });
+    } else {
+      res.status(400).json({ message: error.message });
+    }
   }
 };
