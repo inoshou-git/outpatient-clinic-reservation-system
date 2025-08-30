@@ -5,9 +5,10 @@ import React, {
   ReactNode,
   useEffect,
   useCallback,
+  useRef, // Import useRef
 } from "react";
 import dayjs, { Dayjs } from "dayjs";
-import { io, Socket } from "socket.io-client"; // Import socket.io-client and Socket type
+import { io, Socket } from "socket.io-client";
 import { Appointment, BlockedSlot } from "../types";
 
 interface UIContextType {
@@ -87,11 +88,22 @@ export const UIProvider = ({ children }: { children: ReactNode }) => {
     setBlockedSlotChangeCallback(null);
   }, []);
 
+  // Use refs to hold the latest callbacks without re-triggering the effect
+  const appointmentChangeCallbackRef = useRef(appointmentChangeCallback);
+  const blockedSlotChangeCallbackRef = useRef(blockedSlotChangeCallback);
+
   useEffect(() => {
-    const socketURL = process.env.REACT_APP_WEBSOCKET_URL || window.location.origin.replace(/^http/, 'ws');
+    appointmentChangeCallbackRef.current = appointmentChangeCallback;
+    blockedSlotChangeCallbackRef.current = blockedSlotChangeCallback;
+  }, [appointmentChangeCallback, blockedSlotChangeCallback]);
+
+  useEffect(() => {
+    const socketURL =
+      process.env.REACT_APP_WEBSOCKET_URL ||
+      window.location.origin.replace(/^http/, "ws");
     const socket: Socket = io(socketURL, {
-      transports: ['websocket', 'polling'], // Add polling as a fallback
-    }); // Connect to backend WebSocket server
+      transports: ["websocket", "polling"],
+    });
 
     socket.on("connect", () => {
       console.log("Connected to WebSocket server");
@@ -99,54 +111,54 @@ export const UIProvider = ({ children }: { children: ReactNode }) => {
 
     socket.on("appointmentCreated", (newAppointment: Appointment) => {
       console.log("Appointment created:", newAppointment);
-      if (appointmentChangeCallback) {
-        appointmentChangeCallback(); // Trigger refresh
+      if (appointmentChangeCallbackRef.current) {
+        appointmentChangeCallbackRef.current();
       }
     });
 
     socket.on("appointmentUpdated", (updatedAppointment: Appointment) => {
       console.log("Appointment updated:", updatedAppointment);
-      if (appointmentChangeCallback) {
-        appointmentChangeCallback(); // Trigger refresh
+      if (appointmentChangeCallbackRef.current) {
+        appointmentChangeCallbackRef.current();
       }
     });
 
     socket.on("appointmentDeleted", (deletedAppointmentId: number) => {
       console.log("Appointment deleted:", deletedAppointmentId);
-      if (appointmentChangeCallback) {
-        appointmentChangeCallback(); // Trigger refresh
+      if (appointmentChangeCallbackRef.current) {
+        appointmentChangeCallbackRef.current();
       }
     });
 
     socket.on("blockedSlotCreated", (newBlockedSlot: BlockedSlot) => {
       console.log("Blocked slot created:", newBlockedSlot);
-      if (blockedSlotChangeCallback) {
-        blockedSlotChangeCallback(); // Trigger refresh
+      if (blockedSlotChangeCallbackRef.current) {
+        blockedSlotChangeCallbackRef.current();
       }
     });
 
     socket.on("blockedSlotUpdated", (updatedBlockedSlot: BlockedSlot) => {
       console.log("Blocked slot updated:", updatedBlockedSlot);
-      if (blockedSlotChangeCallback) {
-        blockedSlotChangeCallback(); // Trigger refresh
+      if (blockedSlotChangeCallbackRef.current) {
+        blockedSlotChangeCallbackRef.current();
       }
     });
 
     socket.on("blockedSlotDeleted", (deletedBlockedSlotId: number) => {
       console.log("Blocked slot deleted:", deletedBlockedSlotId);
-      if (blockedSlotChangeCallback) {
-        blockedSlotChangeCallback(); // Trigger refresh
+      if (blockedSlotChangeCallbackRef.current) {
+        blockedSlotChangeCallbackRef.current();
       }
     });
 
-    socket.on("disconnect", () => {
-      console.log("Disconnected from WebSocket server");
+    socket.on("disconnect", (reason) => {
+      console.log("Disconnected from WebSocket server:", reason);
     });
 
     return () => {
       socket.disconnect();
     };
-  }, [appointmentChangeCallback, blockedSlotChangeCallback]); // Re-run effect if callback changes
+  }, []); // Empty dependency array ensures this runs only once
 
   const openReservationForm = (
     appointment?: Appointment | null,
@@ -201,7 +213,7 @@ export const UIProvider = ({ children }: { children: ReactNode }) => {
 
 export const useUI = () => {
   const context = useContext(UIContext);
-  if (context === undefined) {
+if (context === undefined) {
     throw new Error("useUI must be used within a UIProvider");
   }
   return context;
