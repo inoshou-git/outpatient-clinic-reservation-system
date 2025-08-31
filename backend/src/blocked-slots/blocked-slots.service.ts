@@ -109,6 +109,7 @@ export const updateBlockedSlot = async (id: number, slotData: any, lastUpdatedBy
 };
 
 export const deleteBlockedSlot = async (id: number, lastUpdatedBy: string): Promise<boolean> => {
+    console.log(`Attempting to delete blocked slot with ID: ${id}`); // Added log
     const { data: deletedSlot, error: fetchError } = await supabase
         .from('blocked_slots')
         .select('*')
