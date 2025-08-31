@@ -76,11 +76,18 @@ export const updateBlockedSlot = async (id: number, slotData: any, lastUpdatedBy
         return null;
     }
 
-    const updatedSlotData = { ...existingSlot, ...slotData, lastUpdatedBy, lastUpdatedAt: new Date().toISOString() };
-
+    const { sendNotification, ...restOfSlotData } = slotData;
+    const updatedDataForDb = {
+        date: restOfSlotData.date,
+        endDate: restOfSlotData.endDate,
+        startTime: restOfSlotData.startTime,
+        endTime: restOfSlotData.endTime,
+        reason: restOfSlotData.reason,
+        lastUpdatedBy: lastUpdatedBy,
+    };
     const { data: updatedSlot, error: updateError } = await supabase
         .from('blocked_slots')
-        .update(updatedSlotData)
+        .update(updatedDataForDb)
         .eq('id', id)
         .select()
         .single();
