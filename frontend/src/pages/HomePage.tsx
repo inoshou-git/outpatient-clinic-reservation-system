@@ -65,6 +65,7 @@ const HomePage = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [view, setView] = useState<"all" | "daily" | "weekly" | "monthly">(
     "daily"
   );
@@ -427,14 +428,20 @@ const HomePage = () => {
         <DialogTitle>予約不可時間帯登録</DialogTitle>
         <DialogContent>
           <BlockedSlotForm
-            onFormSubmit={() => {
-              fetchData();
-              closeBlockedSlotForm();
+            onFormSubmit={async () => {
+              setIsProcessing(true);
+              try {
+                await fetchData();
+              } finally {
+                closeBlockedSlotForm();
+                setIsProcessing(false);
+              }
             }}
+            isProcessing={isProcessing}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeBlockedSlotForm}>キャンセル</Button>
+          <Button onClick={closeBlockedSlotForm} disabled={isProcessing}>キャンセル</Button>
         </DialogActions>
       </Dialog>
 

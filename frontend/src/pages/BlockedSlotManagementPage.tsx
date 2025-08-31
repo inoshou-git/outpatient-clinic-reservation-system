@@ -47,6 +47,7 @@ const BlockedSlotManagementPage = () => {
   const [selectedBlockedSlots, setSelectedBlockedSlots] = useState<number[]>(
     []
   );
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [bulkActionEnabled, setBulkActionEnabled] = useState(false);
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
   const { isBlockedSlotFormOpen, openBlockedSlotForm, closeBlockedSlotForm } =
@@ -70,9 +71,14 @@ const BlockedSlotManagementPage = () => {
     fetchBlockedSlots();
   }, [fetchBlockedSlots]);
 
-  const handleFormSubmit = () => {
-    fetchBlockedSlots();
-    setEditingBlockedSlot(null);
+  const handleFormSubmit = async () => {
+    setIsProcessing(true);
+    try {
+      await fetchBlockedSlots();
+    } finally {
+      setEditingBlockedSlot(null);
+      setIsProcessing(false);
+    }
   };
 
   const handleEditBlockedSlot = (slot: BlockedSlot) => {
@@ -82,12 +88,15 @@ const BlockedSlotManagementPage = () => {
 
   const handleDeleteBlockedSlot = async (id: number) => {
     if (window.confirm("この予約不可設定を削除してもよろしいですか？")) {
+      setIsProcessing(true);
       try {
         await deleteBlockedSlot(id, token);
         fetchBlockedSlots();
       } catch (error: any) {
         console.error("Failed to delete blocked slot:", error.message);
         alert(`予約不可設定の削除に失敗しました: ${error.message}`);
+      } finally {
+        setIsProcessing(false);
       }
     }
   };
@@ -126,6 +135,7 @@ const BlockedSlotManagementPage = () => {
         `${selectedBlockedSlots.length}件の予約不可設定を削除してもよろしいですか？`
       )
     ) {
+      setIsProcessing(true);
       try {
         const promises = selectedBlockedSlots.map((id) =>
           deleteBlockedSlot(id, token)
@@ -137,6 +147,8 @@ const BlockedSlotManagementPage = () => {
       } catch (error: any) {
         console.error("Failed to bulk delete blocked slots", error.message);
         alert("予約不可設定の一括削除中にエラーが発生しました。");
+      } finally {
+        setIsProcessing(false);
       }
     }
   };
@@ -202,6 +214,7 @@ const BlockedSlotManagementPage = () => {
               color="secondary"
               onClick={handleBulkDelete}
               sx={{ mr: 1 }}
+              disabled={isProcessing}
             >
               選択した項目を削除
             </Button>
@@ -210,13 +223,14 @@ const BlockedSlotManagementPage = () => {
             variant="outlined"
             onClick={() => setBulkActionEnabled(!bulkActionEnabled)}
             sx={{ mr: 1 }}
+            disabled={isProcessing}
           >
             {bulkActionEnabled ? "キャンセル" : "一括操作"}
           </Button>
           <Button
             variant="contained"
             onClick={handleRegisterHolidays}
-            disabled={!canEdit}
+            disabled={!canEdit || isProcessing}
             sx={{ mr: 1 }}
           >
             祝日を一括登録
@@ -227,12 +241,31 @@ const BlockedSlotManagementPage = () => {
               setEditingBlockedSlot(null);
               openBlockedSlotForm();
             }}
-            disabled={!canEdit}
+            disabled={!canEdit || isProcessing}
           >
             新規予約不可設定
           </Button>
         </Box>
       </Box>
+
+      {isProcessing && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            zIndex: 1000,
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      )}
 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
@@ -257,6 +290,7 @@ const BlockedSlotManagementPage = () => {
                           filteredBlockedSlots.length
                       }
                       onChange={handleSelectAllClick}
+                      disabled={isProcessing}
                     />
                   </TableCell>
                 )}
@@ -286,7 +320,7 @@ const BlockedSlotManagementPage = () => {
                   >
                     {bulkActionEnabled && (
                       <TableCell padding="checkbox">
-                        <Checkbox checked={isItemSelected} />
+                        <Checkbox checked={isItemSelected} disabled={isProcessing} />
                       </TableCell>
                     )}
                     <TableCell>{slot.id}</TableCell>
@@ -298,13 +332,13 @@ const BlockedSlotManagementPage = () => {
                     <TableCell>
                       <IconButton
                         onClick={() => handleEditBlockedSlot(slot)}
-                        disabled={!canEdit}
+                        disabled={!canEdit || isProcessing}
                       >
                         <Edit />
                       </IconButton>
                       <IconButton
                         onClick={() => handleDeleteBlockedSlot(slot.id)}
-                        disabled={!canEdit}
+                        disabled={!canEdit || isProcessing}
                       >
                         <Delete />
                       </IconButton>
@@ -325,10 +359,11 @@ const BlockedSlotManagementPage = () => {
           <BlockedSlotForm
             onFormSubmit={handleFormSubmit}
             blockedSlot={editingBlockedSlot}
+            isProcessing={isProcessing} // Pass isProcessing to the form
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeBlockedSlotForm}>キャンセル</Button>
+          <Button onClick={closeBlockedSlotForm} disabled={isProcessing}>キャンセル</Button>
         </DialogActions>
       </Dialog>
     </Container>

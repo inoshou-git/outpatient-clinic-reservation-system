@@ -91,6 +91,7 @@ const ForgotPasswordDialog: React.FC<ForgotPasswordDialogProps> = ({
                     margin="dense"
                     id="email"
                     label="メールアドレス"
+                    name="email"
                     type="email"
                     fullWidth
                     variant="standard"

@@ -61,14 +61,14 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
     return true;
   };
 
-  const validatePatientId = (id: string) => {
-    if (id && !/^[0-9]*$/.test(id)) {
-      setPatientIdError("患者IDは半角数字で入力してください。");
-      return false;
-    }
-    setPatientIdError("");
-    return true;
-  };
+  // const validatePatientId = (id: string) => {
+  //   if (id && !/^[0-9]*$/.test(id)) {
+  //     setPatientIdError("患者IDは半角数字で入力してください。");
+  //     return false;
+  //   }
+  //   setPatientIdError("");
+  //   return true;
+  // };
 
   const shouldDisableDate = (day: Dayjs) => {
     const isWeekend = day.day() === 0 || day.day() === 6; // Sunday (0) or Saturday (6)
@@ -95,14 +95,14 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
     setError(null);
 
     const isTimeFormatValid = validateTime(time);
-    const isPatientIdFormatValid = validatePatientId(patientId);
+    // const isPatientIdFormatValid = validatePatientId(patientId);
 
     if (!patientName || !date) {
       setError("患者名と日付は必須項目です。");
       return;
     }
 
-    if (!isTimeFormatValid || !isPatientIdFormatValid) {
+    if (!isTimeFormatValid) {
       setError("入力形式が正しくない項目があります。");
       return;
     }
