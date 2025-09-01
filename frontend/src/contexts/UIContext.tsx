@@ -182,8 +182,8 @@ export const UIProvider = ({ children }: { children: ReactNode }) => {
   const openBlockedSlotForm = () => setBlockedSlotFormOpen(true);
   const closeBlockedSlotForm = () => setBlockedSlotFormOpen(false);
 
-  const showLoader = () => setIsLoading(true);
-  const hideLoader = () => setIsLoading(false);
+  const showLoader = useCallback(() => setIsLoading(true), []);
+  const hideLoader = useCallback(() => setIsLoading(false), []);
 
   return (
     <UIContext.Provider

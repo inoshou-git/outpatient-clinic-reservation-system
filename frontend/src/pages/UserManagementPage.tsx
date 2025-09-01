@@ -62,10 +62,10 @@ const UserManagementPage = () => {
   }, [token, showLoader, hideLoader]);
 
   useEffect(() => {
-    if (!isAuthLoading && user?.role === 'admin') {
+    if (token) { // トークンがある場合のみ実行
         fetchUsers();
     }
-  }, [isAuthLoading, user, fetchUsers]);
+  }, [token, fetchUsers]); // user, isAuthLoading を削除し、token を追加
 
   const handleOpenForm = (user: Partial<User> | null, isNew: boolean) => {
     setCurrentUser(
@@ -122,19 +122,7 @@ const UserManagementPage = () => {
     }
   };
 
-  // 認証情報読み込み中
-  if (isAuthLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  // 管理者でない場合はホームページにリダイレクト
-  if (user?.role !== 'admin') {
-    return <Navigate to="/" replace />;
-  }
+  
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>

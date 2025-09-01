@@ -18,6 +18,53 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
+// --- Admin Route Component ---
+const AdminRoute = ({ children }: { children: JSX.Element }) => {
+  const { user, isAuthLoading, isAuthenticated } = useAuth();
+
+  if (isAuthLoading) {
+    return (
+      <Backdrop open={true} sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+// --- General or Admin Route Component ---
+const GeneralOrAdminRoute = ({ children }: { children: JSX.Element }) => {
+  const { user, isAuthLoading, isAuthenticated } = useAuth();
+
+  if (isAuthLoading) {
+    return (
+      <Backdrop open={true} sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role !== 'admin' && user?.role !== 'general') {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+
 // --- Main App Component (Routing) ---
 function App() {
   const { isLoading } = useUI();
@@ -39,17 +86,17 @@ function App() {
         <Route
           path="/blocked"
           element={
-            <ProtectedRoute>
+            <GeneralOrAdminRoute>
               <BlockedSlotManagementPage />
-            </ProtectedRoute>
+            </GeneralOrAdminRoute>
           }
         />
         <Route
           path="/users"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <UserManagementPage />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
         <Route
