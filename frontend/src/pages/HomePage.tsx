@@ -327,13 +327,15 @@ const HomePage = () => {
           )}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Button
-            variant="contained"
-            onClick={() => openSpecialReservationForm()}
-            sx={{ mr: 2 }}
-          >
-            特別予約登録
-          </Button>
+          {user?.role !== 'viewer' && (
+            <Button
+              variant="contained"
+              onClick={() => openSpecialReservationForm()}
+              sx={{ mr: 2 }}
+            >
+              特別予約登録
+            </Button>
+          )}
           <ButtonGroup variant="contained" aria-label="display mode button group">
             <Button
               onClick={() => setDisplayMode("weekly")}
