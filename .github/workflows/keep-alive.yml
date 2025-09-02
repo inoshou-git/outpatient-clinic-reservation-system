@@ -31,8 +31,8 @@ jobs:
             const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
             async function runQuery() {
               console.log("Pinging Supabase project to keep it active...");
-              // 常に存在しアクセス可能なシステムテーブルをクエリ
-              const { data, error } = await supabase.rpc("version");
+              // ユーザーが指定したusersテーブルのuseridカラムをクエリ
+              const { data, error } = await supabase.from("users").select("userid").limit(1);
               if (error) {
                 console.error("Error pinging Supabase:", error.message);
                 process.exit(1);
