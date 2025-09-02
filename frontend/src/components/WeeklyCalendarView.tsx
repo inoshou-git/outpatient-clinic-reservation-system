@@ -55,9 +55,7 @@ const generateTimeSlots = (displayPeriod: DisplayPeriod) => {
       time.hour() >= 13 || (time.hour() === 12 && time.minute() > 0);
 
     if (
-      time.isBefore(lunchStart) ||
-      time.isAfter(lunchEnd) ||
-      time.isSame(lunchEnd)
+      !time.isBetween(lunchStart, lunchEnd, null, "[)")
     ) {
       if (displayPeriod === "morning" && isMorning) {
         slots.push(time.format("HH:mm"));
@@ -303,7 +301,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                     sx={{
                       minWidth: 120,
                       backgroundColor: "#fff176", // Darker yellow
-                      borderRight: "1px solid #eee",
+                      borderRight: "1px solid #e0e0e0",
                     }}
                   >
                     {daySpecialAppointments.map((app) => (
@@ -371,7 +369,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                         key={day.toString()}
                         align="center"
                         sx={{
-                          border: "1px solid #eee",
+                          border: "1px solid #e0e0e0",
                           height: 60,
                           p: 0.5,
                           backgroundColor,

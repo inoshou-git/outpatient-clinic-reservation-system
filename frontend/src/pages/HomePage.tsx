@@ -64,8 +64,8 @@ const HomePage = () => {
   } = useUI();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  
+  
   const [view, setView] = useState<"all" | "daily" | "weekly" | "monthly">(
     "daily"
   );
@@ -95,7 +95,7 @@ const HomePage = () => {
   };
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    showLoader();
     try {
       const [appointmentData, blockedSlotData] = await Promise.all([
         getAppointments(token),
@@ -106,7 +106,7 @@ const HomePage = () => {
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
-      setLoading(false);
+      hideLoader();
     }
   }, [token]);
 
@@ -359,11 +359,7 @@ const HomePage = () => {
         </Box>
       </Box>
 
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
+      
         <>
           {displayMode === "list" && (
             <AppointmentListTable
@@ -406,7 +402,6 @@ const HomePage = () => {
             />
           )}
         </>
-      )}
 
       <Dialog open={isReservationFormOpen} onClose={closeReservationForm}>
         <DialogTitle>
@@ -431,19 +426,18 @@ const HomePage = () => {
         <DialogContent>
           <BlockedSlotForm
             onFormSubmit={async () => {
-              setIsProcessing(true);
+              showLoader();
               try {
                 await fetchData();
               } finally {
                 closeBlockedSlotForm();
-                setIsProcessing(false);
+                hideLoader();
               }
             }}
-            isProcessing={isProcessing}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeBlockedSlotForm} disabled={isProcessing}>キャンセル</Button>
+          <Button onClick={closeBlockedSlotForm}>キャンセル</Button>
         </DialogActions>
       </Dialog>
 

@@ -33,7 +33,7 @@ dayjs.extend(isBetween);
 interface BlockedSlotFormProps {
   onFormSubmit: () => void;
   blockedSlot?: BlockedSlot | null;
-  isProcessing: boolean;
+  
 }
 
 const generateTimeSlots = (
@@ -64,8 +64,7 @@ const generateTimeSlots = (
 const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
   onFormSubmit,
   blockedSlot,
-  isProcessing,
-}) => {
+  }) => {
   const { token } = useAuth();
   const { showLoader, hideLoader, closeBlockedSlotForm } = useUI();
   const [startDate, setStartDate] = useState<Dayjs | null>(dayjs());
@@ -368,14 +367,14 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
           onChange={(newValue) => setStartDate(newValue)}
           shouldDisableDate={shouldDisableDate}
           sx={{ mb: 2, width: "100%" }}
-          disabled={isProcessing}
+          
         />
         <FormControlLabel
           control={
             <Checkbox
               checked={isAllDay}
               onChange={(e) => setIsAllDay(e.target.checked)}
-              disabled={isProcessing}
+              
             />
           }
           label="終日予約不可"
@@ -389,7 +388,7 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
             shouldDisableDate={shouldDisableDate}
             minDate={startDate || undefined}
             sx={{ mb: 2, width: "100%" }}
-            disabled={isProcessing}
+            
           />
         )}
         {!isAllDay && (
@@ -406,7 +405,7 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
                   onChange={(e: SelectChangeEvent) => {
                     setStartTime(e.target.value);
                   }}
-                  disabled={isProcessing}
+                  
                 >
                   {availableTimeSlots.map((slot) => (
                     <MenuItem key={slot} value={slot}>
@@ -426,7 +425,7 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
                   onChange={(e: SelectChangeEvent) => {
                     setEndTime(e.target.value);
                   }}
-                  disabled={isProcessing}
+                  
                 >
                   {availableTimeSlots.map((slot) => (
                     <MenuItem key={slot} value={slot}>
@@ -454,20 +453,20 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
           fullWidth
           required
           sx={{ mb: 2 }}
-          disabled={isProcessing}
+          
         />
         <FormControlLabel
           control={
             <Checkbox
               checked={sendNotification}
               onChange={(e) => setSendNotification(e.target.checked)}
-              disabled={isProcessing}
+              
             />
           }
           label="関係者にメールで通知する"
           sx={{ mb: 2 }}
         />
-        <Button type="submit" variant="contained" fullWidth disabled={isProcessing}>
+        <Button type="submit" variant="contained" fullWidth >
           {blockedSlot ? "更新" : "登録"}
         </Button>
       </Box>
@@ -483,8 +482,8 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancel} disabled={isProcessing}>キャンセル</Button>
-          <Button onClick={handleConfirm} color="primary" autoFocus disabled={isProcessing}>
+          <Button onClick={handleCancel} >キャンセル</Button>
+          <Button onClick={handleConfirm} color="primary" autoFocus >
             続行
           </Button>
         </DialogActions>
