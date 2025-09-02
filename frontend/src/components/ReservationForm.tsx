@@ -452,8 +452,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       (slot) => dayjs(slot.date).isSame(date, "day") && slot.startTime !== null
     );
 
-    const lunchStart = dayjs().hour(11).minute(45).second(0); // 11:45
-    const lunchEnd = dayjs().hour(13).minute(30).second(0);   // 13:30
+    const lunchStart = date.hour(11).minute(45).second(0); // 11:45
+    const lunchEnd = date.hour(13).minute(30).second(0);   // 13:30
 
     return allTimeSlots.filter((slotTime) => {
       const currentSlotTime = dayjs(`${date.format("YYYY-MM-DD")}T${slotTime}`);
