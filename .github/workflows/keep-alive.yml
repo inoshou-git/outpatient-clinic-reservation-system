@@ -32,7 +32,7 @@ jobs:
             async function runQuery() {
               console.log("Pinging Supabase project to keep it active...");
               // 常に存在しアクセス可能なシステムテーブルをクエリ
-              const { data, error } = await supabase.from("pg_database").select("datname").limit(1);
+              const { data, error } = await supabase.rpc("version");
               if (error) {
                 console.error("Error pinging Supabase:", error.message);
                 process.exit(1);
