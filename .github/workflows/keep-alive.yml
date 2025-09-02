@@ -1,0 +1,43 @@
+name: Supabase Keep-Alive
+
+on:
+  workflow_dispatch: # 手動実行を許可
+  schedule:
+    - cron: '0 3 * * 0' # 毎週日曜日の午前3時(UTC)に実行
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Supabase client
+        run: npm install @supabase/supabase-js
+
+      - name: Run Supabase query
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          node -e '
+            const { createClient } = require("@supabase/supabase-js");
+            if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+              console.error("Supabase URL or Anon Key is not set.");
+              process.exit(1);
+            }
+            const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+            async function runQuery() {
+              console.log("Pinging Supabase project to keep it active...");
+              const { data, error } = await supabase.from("users").select("id").limit(1);
+              if (error) {
+                console.error("Error pinging Supabase:", error.message);
+                process.exit(1);
+              } else {
+                console.log("Supabase ping successful. Project is active.");
+              }
+            }
+            runQuery();
+          '
