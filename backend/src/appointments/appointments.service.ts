@@ -593,35 +593,6 @@ export const createSpecialAppointment = async (
     throw new Error("患者IDは半角数字のみで入力してください。");
   }
 
-  const { data: existingAppointments, error: fetchError } = await supabase
-    .from('appointments')
-    .select('*')
-    .eq('date', date)
-    .eq('isDeleted', false)
-    .neq('reservationType', 'special');
-
-  if (fetchError) {
-    console.error("Error fetching existing appointments:", fetchError);
-    throw new Error("既存の予約の確認に失敗しました。");
-  }
-
-  const conflicting = existingAppointments.find(a => {
-    const newTime = dayjs(`${date} ${time}`);
-    if (a.time) { // vs time-based
-      return newTime.isSame(dayjs(`${a.date} ${a.time}`));
-    }
-    if (a.startTimeRange && a.endTimeRange) { // vs range-based
-      const existingStart = dayjs(`${a.date} ${a.startTimeRange}`);
-      const existingEnd = dayjs(`${a.date} ${a.endTimeRange}`);
-      return newTime.isBetween(existingStart, existingEnd, 'minute', '[)');
-    }
-    return false;
-  });
-
-  if (conflicting) {
-    throw new Error("すでに予約が入っている為、登録できませんでした。再度やり直してください。");
-  }
-
   const newAppointmentData: Omit<Appointment, 'id' | 'createdAt' | 'lastUpdatedAt'> = {
     patientId,
     patientName,
@@ -690,38 +661,6 @@ export const updateSpecialAppointment = async (
     lastUpdatedBy,
     lastUpdatedAt: new Date().toISOString(),
   };
-
-    // ダブルブッキングチェック
-    const { date, time } = updatedAppointment;
-    const { data: existingAppointments, error: fetchError2 } = await supabase
-      .from('appointments')
-      .select('*')
-      .eq('date', date)
-      .eq('isDeleted', false)
-      .neq('reservationType', 'special')
-      .neq('id', id); // Exclude the current appointment being updated
-
-    if (fetchError2) {
-      console.error("Error fetching existing appointments:", fetchError2);
-      throw new Error("既存の予約の確認に失敗しました。");
-    }
-
-    const conflicting = existingAppointments?.find(a => {
-      const newTime = dayjs(`${date} ${time}`);
-      if (a.time) { // vs time-based
-        return newTime.isSame(dayjs(`${a.date} ${a.time}`));
-      }
-      if (a.startTimeRange && a.endTimeRange) { // vs range-based
-        const existingStart = dayjs(`${a.date} ${a.startTimeRange}`);
-        const existingEnd = dayjs(`${a.date} ${a.endTimeRange}`);
-        return newTime.isBetween(existingStart, existingEnd, 'minute', '[)');
-      }
-      return false;
-    });
-
-    if (conflicting) {
-      throw new Error("すでに予約が入っている為、登録できませんでした。再度やり直してください。");
-    }
 
     if (
       !updatedAppointment.patientName ||
