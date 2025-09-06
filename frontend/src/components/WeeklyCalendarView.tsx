@@ -319,120 +319,153 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
               })}
             </TableRow>
             {timeSlots.map((time) => (
-              <TableRow key={time} hover>
+              <TableRow key={time}>
                 <TableCell
-                  component="th"
-                  scope="row"
-                  sx={{ backgroundColor: "white", zIndex: 1000 }}
+                  sx={{
+                    position: "sticky",
+                    left: 0,
+                    backgroundColor: "white",
+                    zIndex: 1000,
+                    minWidth: 80,
+                  }}
                 >
                   {time}
                 </TableCell>
                 {weekDays.map((day) => {
                   const appointment = getAppointmentForSlot(day, time);
                   const blockedSlot = getBlockedSlotForSlot(day, time);
-                  const isWeekend = day.day() === 0 || day.day() === 6;
 
-                  let backgroundColor = "transparent";
-                  let cursor = "default";
-                  let clickable = canEdit; // Only clickable if canEdit is true
-                  if (isWeekend) {
-                    backgroundColor = "#f5f5f5";
-                    cursor = "not-allowed";
-                    clickable = false;
-                  } else if (blockedSlot) {
-                    backgroundColor = "#ffebee"; // Light red for blocked
-                    cursor = "not-allowed";
-                    clickable = false;
+                  const dayOfWeek = day.day();
+                  const [hour] = time.split(":").map(Number);
+                  const isFeverClinicTime = dayOfWeek === 1 && hour >= 15;
+                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                  const isDisabledByBlock = !!blockedSlot;
+
+                  const canClick =
+                    canEdit &&
+                    !isFeverClinicTime &&
+                    !isDisabledByBlock &&
+                    !appointment &&
+                    !isWeekend;
+
+                  let backgroundColor = "white";
+                  if (isFeverClinicTime || isDisabledByBlock) {
+                    backgroundColor = "rgb(255, 235, 238)";
+                  } else if (isWeekend) {
+                    backgroundColor = "rgb(245, 245, 245)";
                   } else if (appointment) {
-                    switch (appointment.reservationType) {
-                      case "visit":
-                        backgroundColor = "#e8f5e9"; // Light green
-                        break;
-                      case "rehab":
-                        backgroundColor = "#f3e5f5"; // Light purple
-                        break;
-                      case "special":
-                        backgroundColor = "#fffbe6"; // Light yellow
-                        break;
-                      default:
-                        backgroundColor = "#e3f2fd"; // Light blue
-                        break;
+                    if (appointment.reservationType === 'visit') {
+                      backgroundColor = 'rgb(232, 245, 233)';
+                    } else if (appointment.reservationType === 'rehab') {
+                      backgroundColor = 'rgb(243, 229, 245)';
+                    } else { // outpatient and special
+                      backgroundColor = '#e0f7fa';
                     }
-                    cursor = "pointer"; // Always allow clicking to view details
                   }
 
                   return (
-                    <Tooltip
-                      title={blockedSlot ? blockedSlot.reason : ""}
-                      arrow
+                    <TableCell
+                      key={day.toString()}
+                      align="center"
+                      onClick={() => {
+                        if (canClick) {
+                          onSlotClick(day, time);
+                        } else if (appointment) {
+                          handleAppointmentClick(appointment);
+                        }
+                      }}
+                      sx={{
+                        minWidth: 120,
+                        cursor: canClick || appointment ? "pointer" : "not-allowed",
+                        backgroundColor: backgroundColor,
+                        border: "1px solid rgb(224, 224, 224)",
+                        padding: "4px",
+                        "&:hover": {
+                          backgroundColor:
+                            canClick && !appointment ? "#f5f5f5" : undefined,
+                        },
+                      }}
                     >
-                      <TableCell
-                        key={day.toString()}
-                        align="center"
-                        sx={{
-                          border: "1px solid #e0e0e0",
-                          height: 60,
-                          p: 0.5,
-                          backgroundColor,
-                          cursor,
-                          "&:hover": {
-                            backgroundColor:
-                              isWeekend || blockedSlot || appointment
-                                ? backgroundColor
-                                : canEdit
-                                ? "#e0e0e0"
-                                : backgroundColor, // Lighter grey for hover on empty slots only if canEdit
-                          },
-                        }}
-                        onClick={() => {
-                          if (appointment) {
-                            handleAppointmentClick(appointment);
-                          } else if (canEdit && !isWeekend && !blockedSlot) {
-                            onSlotClick(day, time);
-                          }
-                        }}
-                      >
-                        {blockedSlot ? (
-                          <Box sx={{ fontSize: "0.75rem", color: "red" }}>
-                            <strong>予約不可</strong>
-                            <br />
+                      {isFeverClinicTime ? (
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "red", fontWeight: "bold" }}
+                        >
+                          発熱外来
+                        </Typography>
+                      ) : blockedSlot ? (
+                        <>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "red", fontWeight: "bold" }}
+                          >
+                            予約不可
+                          </Typography>
+                          {blockedSlot.reason && <Typography variant="caption" sx={{ color: "red", display: 'block' }}>
                             {blockedSlot.reason}
-                          </Box>
-                        ) : !isWeekend && appointment ? (
-                          <Box sx={{ fontSize: "0.75rem" }}>
-                            {appointment.reservationType === "outpatient" && (
-                              <>
-                                <strong>{appointment.patientId}</strong>
-                                <br />
-                                <strong>{appointment.patientName}</strong>
-                                <br />
+                          </Typography>}
+                        </>
+                      ) : appointment ? (
+                        <div>
+                          {appointment.reservationType === "outpatient" && (
+                            <>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{ fontSize: "0.75rem", fontWeight: "bold" }}
+                              >
+                                {appointment.patientId}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{ fontSize: "0.75rem", fontWeight: "bold" }}
+                              >
+                                {appointment.patientName}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{ fontSize: "0.75rem" }}
+                              >
                                 {formatConsultation(appointment.consultation)}
-                              </>
-                            )}
-                            {appointment.reservationType === "visit" && (
-                              <>
-                                <strong>訪問診療</strong>
-                                <br />
-                                <strong>{appointment.patientName}</strong>
-                                <br />
+                              </Typography>
+                            </>
+                          )}
+                          {(appointment.reservationType === "visit" ||
+                            appointment.reservationType === "rehab") && (
+                            <>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{ fontSize: "0.75rem", fontWeight: "bold" }}
+                              >
+                                {appointment.reservationType === "visit"
+                                  ? "訪問診療"
+                                  : "通所リハ会議"}
+                              </Typography>
+                              {appointment.patientName && (
+                                <Typography
+                                  variant="caption"
+                                  display="block"
+                                  sx={{ fontSize: "0.75rem", fontWeight: "bold" }}
+                                >
+                                  {appointment.patientName}
+                                </Typography>
+                              )}
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{ fontSize: "0.75rem" }}
+                              >
                                 {appointment.startTimeRange} -{" "}
                                 {appointment.endTimeRange}
-                                <br />
-                                {formatConsultation(appointment.consultation)}
-                              </>
-                            )}
-                            {appointment.reservationType === "rehab" && (
-                              <>
-                                <strong>通所リハ会議</strong>
-                                <br />
-                                {appointment.startTimeRange} -{" "}
-                                {appointment.endTimeRange}
-                              </>
-                            )}
-                          </Box>
-                        ) : null}
-                      </TableCell>
-                    </Tooltip>
+                              </Typography>
+                            </>
+                          )}
+                        </div>
+                      ) : null}
+                    </TableCell>
                   );
                 })}
               </TableRow>
