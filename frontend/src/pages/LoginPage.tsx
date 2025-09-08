@@ -9,6 +9,7 @@ import {
   Typography,
   Alert,
   Link,
+  Paper,
 } from "@mui/material";
 
 import { loginUser } from "../services/api";
@@ -107,6 +108,18 @@ const LoginPage = () => {
             パスワードを忘れた方へ
           </Link>
         </Box>
+      </Box>
+
+      {/* お知らせ */}
+      <Box sx={{ mt: 4, width: '100%' }}>
+        <Typography variant="subtitle1" component="h2" gutterBottom>
+          お知らせ
+        </Typography>
+        <Paper variant="outlined" sx={{ p: 2, backgroundColor: '#f8f9fa' }}>
+          <Typography variant="body2" color="text.secondary">
+            2025.10.1 システムリリースしました。（Ver1.0.0）
+          </Typography>
+        </Paper>
       </Box>
 
       {/* Forgot Password Dialog */}

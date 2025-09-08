@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理者向け操作マニュアル</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; line-height: 1.8; color: #333; margin: 20px; background-color: #f8f9fa; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; line-height: 1.8; color: #333; background-color: #f8f9fa; }
         h1, h2, h3 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 5px; }
         h1 { font-size: 2.5em; text-align: center; margin-bottom: 30px; }
         h2 { font-size: 1.8em; margin-top: 40px; }
@@ -25,6 +25,30 @@
     <section>
         <h2>1. 概要</h2>
         <p>このマニュアルは、外来診療予約システムの管理者向け機能について説明します。管理者アカウントでは、ユーザー管理、予約の追加・編集・削除、予約不可時間帯の設定など、システム全体の運用に関わる重要な操作が可能です。</p>
+    </section>
+
+    <section>
+        <h2>運用ルール</h2>
+        <p>以下は各部署共通認識としてシステム運用する為の最低限のルールとなります。迷いや判断に迷う場合は自己完結せずにすぐに報告・連絡・相談をすること！</p>
+        <div class="note">
+            <dl>
+                <dt>各部署共通</dt>
+                <dd>> 前日・当日の理事長の予定変更は聞いた人(部署)が変更するとともに関係部署に連絡を入れること。</dd>
+                <dd>> 予定の編集・削除をする際は「関係者に通知する」にチェックを入れ、メール通知すること。</dd>
+                <dd>> 調整が必要なものに関しては各部署連携をとりつつ調整が終わってから予定に反映すること。</dd>
+                <dd>> 水曜日午後は休診ですが予定は入力出来るようになっているので注意すること。</dd>
+                <dt>医事課</dt>
+                <dd>> 主な外来診療予約は医事課が行うこと。</dd>
+                <dt>外来</dt>
+                <dd>> 主な訪問診療の予定は外来が行うこと。</dd>
+                <dt>すまいる</dt>
+                <dd>> 主な通所リハ会議の予定はすまいるが行うこと。</dd>
+                <dd>> 毎月20日までに翌月の通所リハ会議の予定を入れること。</dd>
+                <dt>総務課</dt>
+                <dd>> 主な理事長の予定は総務課が行うこと。</dd>
+                <dd>> 理事長の予定は詳細まで入れなくてよい。</dd>
+            </dl>
+        </div>
     </section>
 
     <section>
@@ -51,8 +75,8 @@
                 <dd>他のユーザーが予約を変更すると、あなたの画面も自動的に更新されます。ページを再読み込みする必要はありません。</dd>
                 <dt>予約種別ごとの色分け (週表示)</dt>
                 <dd>週表示カレンダーで、予約の種類によって背景色が変わります。<br>
-                    <span style="color: #1e88e5; font-weight: bold;">■ 水色: 外来診療</span> / 
-                    <span style="color: #43a047; font-weight: bold;">■ 緑色: 訪問診療</span> / 
+                    <span style="color: #1e88e5; font-weight: bold;">■ 水色: 外来診療</span> /
+                    <span style="color: #43a047; font-weight: bold;">■ 緑色: 訪問診療</span> /
                     <span style="color: #8e24aa; font-weight: bold;">■ 紫色: 通所リハ会議</span>
                 </dd>
                 <dt>予約不可ルールの追加</dt>
