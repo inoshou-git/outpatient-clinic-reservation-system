@@ -209,7 +209,27 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
   }, [sortedAppointments, view, filterReservationType, filterStartDate, filterEndDate]);
 
   return (
-    <>
+    <div className="printable-area">
+      <style>
+        {`
+          @media print {
+            .MuiTableContainer-root {
+              max-height: none !important;
+              overflow: visible !important;
+            }
+            .MuiTableCell-stickyHeader, .MuiTableCell-sticky, th[style*='position: sticky'] {
+              position: static !important;
+            }
+            .MuiDialog-root {
+              display: none !important;
+            }
+            body {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+          }
+        `}
+      </style>
       <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
         <ButtonGroup
           variant="contained"
@@ -463,7 +483,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
           </Button>
         </DialogActions>
       </Dialog>
-    </>
+    </div>
   );
 };
 

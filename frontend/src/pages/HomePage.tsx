@@ -21,6 +21,7 @@ import {
 import ReservationForm from "../components/ReservationForm";
 import CalendarView from "../components/CalendarView";
 import WeeklyCalendarView from "../components/WeeklyCalendarView";
+import DailyCalendarView from "../components/DailyCalendarView";
 import BlockedSlotForm from "../components/BlockedSlotForm";
 import SpecialReservationForm from "../components/SpecialReservationForm";
 import AppointmentListTable from "../components/AppointmentListTable";
@@ -36,7 +37,7 @@ import {
   deleteAppointment,
 } from "../services/api";
 
-type DisplayMode = "list" | "calendar" | "weekly";
+type DisplayMode = "list" | "calendar" | "weekly" | "daily";
 type Order = "asc" | "desc";
 
 interface SortConfig {
@@ -152,17 +153,25 @@ const HomePage = () => {
   };
 
   const handlePrev = () => {
-    const newDate =
-      displayMode === "calendar"
-        ? currentDate.subtract(1, "month")
-        : currentDate.subtract(1, "week");
+    let newDate;
+    if (displayMode === "calendar") {
+      newDate = currentDate.subtract(1, "month");
+    } else if (displayMode === "weekly") {
+      newDate = currentDate.subtract(1, "week");
+    } else {
+      newDate = currentDate.subtract(1, "day");
+    }
     setCurrentDate(newDate);
   };
   const handleNext = () => {
-    const newDate =
-      displayMode === "calendar"
-        ? currentDate.add(1, "month")
-        : currentDate.add(1, "week");
+    let newDate;
+    if (displayMode === "calendar") {
+      newDate = currentDate.add(1, "month");
+    } else if (displayMode === "weekly") {
+      newDate = currentDate.add(1, "week");
+    } else {
+      newDate = currentDate.add(1, "day");
+    }
     setCurrentDate(newDate);
   };
   const handleToday = () => setCurrentDate(dayjs());
@@ -235,7 +244,7 @@ const HomePage = () => {
 
   const isSelected = (id: number) => selectedAppointments.indexOf(id) !== -1;
 
-  const handleWeeklySlotClick = (date: Dayjs, time: string) => {
+  const handleCalendarSlotClick = (date: Dayjs, time: string) => {
     if (!isAuthenticated) return alert("ログインしてください。");
     openReservationForm(null, date, time);
   };
@@ -286,6 +295,22 @@ const HomePage = () => {
     );
   });
 
+  const getHeaderText = () => {
+    if (displayMode === "calendar") {
+      return currentDate.format("YYYY年 M月");
+    } else if (displayMode === "weekly") {
+      return `${currentDate
+        .startOf("week")
+        .format("YYYY年 M月D日")} - ${currentDate
+        .endOf("week")
+        .format("M月D日")}`;
+    } else if (displayMode === "daily") {
+      return currentDate.format("YYYY年 M月D日");
+    } else {
+      return "予約リスト";
+    }
+  };
+
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Box
@@ -300,19 +325,15 @@ const HomePage = () => {
         <Box
           sx={{ display: "flex", alignItems: "center", mb: { xs: 2, md: 0 } }}
         >
-          {(displayMode === "calendar" || displayMode === "weekly") && (
+          {(displayMode === "calendar" ||
+            displayMode === "weekly" ||
+            displayMode === "daily") && (
             <>
               <IconButton onClick={handlePrev}>
                 <ArrowBackIos />
               </IconButton>
               <Typography variant="h5" sx={{ mx: 2 }}>
-                {displayMode === "calendar"
-                  ? currentDate.format("YYYY年 M月")
-                  : `${currentDate
-                      .startOf("week")
-                      .format("YYYY年 M月D日")} - ${currentDate
-                      .endOf("week")
-                      .format("M月D日")}`}
+                {getHeaderText()}
               </Typography>
               <IconButton onClick={handleNext}>
                 <ArrowForwardIos />
@@ -348,6 +369,12 @@ const HomePage = () => {
               disabled={displayMode === "calendar"}
             >
               月
+            </Button>
+            <Button
+              onClick={() => setDisplayMode("daily")}
+              disabled={displayMode === "daily"}
+            >
+              日
             </Button>
             <Button
               onClick={() => setDisplayMode("list")}
@@ -394,7 +421,20 @@ const HomePage = () => {
               appointments={appointments}
               blockedSlots={blockedSlots}
               currentDate={currentDate}
-              onSlotClick={handleWeeklySlotClick}
+              onSlotClick={handleCalendarSlotClick}
+              onEditAppointment={handleEditAppointment}
+              onEditSpecialAppointment={openSpecialReservationForm}
+              onDeleteAppointment={handleDeleteAppointment}
+              canEdit={user?.role !== "viewer"}
+            />
+          )}
+
+          {displayMode === "daily" && (
+            <DailyCalendarView
+              appointments={appointments}
+              blockedSlots={blockedSlots}
+              currentDate={currentDate}
+              onSlotClick={handleCalendarSlotClick}
               onEditAppointment={handleEditAppointment}
               onEditSpecialAppointment={openSpecialReservationForm}
               onDeleteAppointment={handleDeleteAppointment}
