@@ -128,7 +128,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <Box>
+    <Box className="printable-area">
+      <style>
+        {`
+          @media print {
+            .MuiPaper-root {
+              height: auto !important;
+              min-height: 100px !important;
+            }
+            .MuiDialog-root {
+              display: none !important;
+            }
+            body {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+          }
+        `}
+      </style>
       <Grid container spacing={1}>
         {WEEK_DAYS.map((dayName) => (
           <Grid item xs={12 / 7} key={dayName}>
