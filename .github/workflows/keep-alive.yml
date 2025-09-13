@@ -1,44 +1,14 @@
-name: Supabase Keep-Alive
+name: Keep Staging Alive
 
 on:
-  workflow_dispatch: # 手動実行を許可
   schedule:
-    - cron: '0 3 * * 0' # 毎週日曜日の午前3時(UTC)に実行
+    # 10分ごとに実行
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # 手動でも実行できるようにする
 
 jobs:
-  keep-alive:
+  ping-staging:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20' # Node.js 20 に更新
-
-      - name: Install Supabase client
-        run: npm install @supabase/supabase-js
-
-      - name: Run Supabase query
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: |
-          node -e '
-            const { createClient } = require("@supabase/supabase-js");
-            if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-              console.error("Supabase URL or Anon Key is not set.");
-              process.exit(1);
-            }
-            const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-            async function runQuery() {
-              console.log("Pinging Supabase project to keep it active...");
-              // ユーザーが指定したusersテーブルのuseridカラムをクエリ
-              const { data, error } = await supabase.from("users").select("userid").limit(1);
-              if (error) {
-                console.error("Error pinging Supabase:", error.message);
-                process.exit(1);
-              } else {
-                console.log("Supabase ping successful. Project is active.", data);
-              }
-            }
-            runQuery();
-          '
+      - name: Send request to staging URL
+        run: curl -s "${{ secrets.STAGING_URL }}" > /dev/null
