@@ -8,6 +8,7 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  connectionTimeout: 10000, // 10秒でタイムアウト
 });
 
 // メール送信関数
@@ -27,9 +28,9 @@ export const sendEmail = async (
     });
 
     console.log("Message sent: %s", info.messageId);
-    // 実際のメール送信サービスを使用する場合、EtherealのプレビューURLは表示されません
-    // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
   } catch (error) {
     console.error("Error sending email:", error);
+    // エラーを呼び出し元にスローして、そこで処理できるようにする
+    throw new Error("Failed to send email.");
   }
 };

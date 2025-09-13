@@ -88,7 +88,7 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
   try {
     const result = await userService.requestPasswordReset(email);
     // Always return 200 OK to prevent user enumeration, even if email not found
-    res.status(200).json({ message: result.message });
+    res.status(200).json(result);
   } catch (error) {
     console.error("Failed to request password reset:", error);
     res.status(500).json({ message: "Internal server error." });
