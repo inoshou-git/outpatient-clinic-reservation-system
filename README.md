@@ -25,21 +25,21 @@
 ```mermaid
 graph TD
     subgraph "クライアント"
-        A[ユーザーブラウザ]
+        A["ユーザーブラウザ"]
     end
 
     subgraph "インフラストラクチャ (Render)"
-        B[Frontend (React + Nginx)]
-        C[Backend (Node.js + Express)]
+        B["Frontend (React + Nginx)"]
+        C["Backend (Node.js + Express)"]
     end
 
     subgraph "データベース (Supabase)"
-        D[PostgreSQL データベース]
+        D["PostgreSQL データベース"]
     end
 
-    A -- HTTPS --> B
-    B -- APIリクエスト --> C
-    C -- DBアクセス --> D
+    A -- "HTTPS" --> B
+    B -- "APIリクエスト" --> C
+    C -- "DBアクセス" --> D
 ```
 
 -   **フロントエンド (Frontend):**
