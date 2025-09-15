@@ -18,6 +18,43 @@
 - **データベース**: Supabase (PostgreSQL)
 - **インフラストラクチャ**: Docker, Render
 
+## システム構成
+
+このシステムは、フロントエンド、バックエンド、データベースの3層で構成されています。アプリケーションはDockerコンテナとしてRender上にデプロイされています。
+
+```mermaid
+graph TD
+    subgraph "クライアント"
+        A[ユーザーブラウザ]
+    end
+
+    subgraph "インフラストラクチャ (Render)"
+        B[Frontend (React + Nginx)]
+        C[Backend (Node.js + Express)]
+    end
+
+    subgraph "データベース (Supabase)"
+        D[PostgreSQL データベース]
+    end
+
+    A -- HTTPS --> B
+    B -- APIリクエスト --> C
+    C -- DBアクセス --> D
+```
+
+-   **フロントエンド (Frontend):**
+    -   React (TypeScript) で構築されたSPA（シングルページアプリケーション）です。
+    -   Nginxコンテナ上で静的ファイルとしてホスティングされます。
+    -   ユーザー認証やデータの表示、操作のためのUIを提供します。
+
+-   **バックエンド (Backend):**
+    -   Node.jsとExpress (TypeScript) で構築されたAPIサーバーです。
+    -   ビジネスロジックを処理し、SupabaseのPostgreSQLデータベースにアクセスします。
+    -   JWT（JSON Web Token）を発行・検証し、APIの認証・認可を行います。
+
+-   **データベース (Database):**
+    -   Supabaseを利用し、PostgreSQLデータベースとして使用しています。
+
 ---
 
 ## 環境構築
