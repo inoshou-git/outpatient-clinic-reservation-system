@@ -596,17 +596,23 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       sendNotification,
     };
 
+    const finalConsultation = consultation.filter(c => c !== 'その他');
+    if (consultation.includes('その他') && otherConsultation.trim() !== '') {
+        const customOptions = otherConsultation.split(',').map(s => s.trim()).filter(s => s !== '');
+        finalConsultation.push(...customOptions);
+    }
+
     if (reservationType === "outpatient") {
       appointmentData.patientName = patientName;
       appointmentData.patientId = patientId;
       appointmentData.time = time;
-      appointmentData.consultation = consultation.includes("その他") ? otherConsultation : consultation;
+      appointmentData.consultation = finalConsultation;
     } else if (reservationType === "visit") {
       appointmentData.patientName = patientName;
       appointmentData.facilityName = patientName; // Use patientName for facilityName as well
       appointmentData.startTimeRange = startTimeRange;
       appointmentData.endTimeRange = endTimeRange;
-      appointmentData.consultation = consultation.includes("その他") ? otherConsultation : consultation;
+      appointmentData.consultation = finalConsultation;
     } else if (reservationType === "rehab") {
       appointmentData.startTimeRange = startTimeRange;
       appointmentData.endTimeRange = endTimeRange;
