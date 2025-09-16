@@ -33,6 +33,7 @@ import { useUI } from "../contexts/UIContext";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import 'dayjs/locale/ja';
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
@@ -294,17 +295,19 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
             <MenuItem value="special">特別予約</MenuItem>
           </Select>
         </FormControl>
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ja">
           <DatePicker
             label="開始日"
             value={filterStartDate}
             onChange={(newValue) => setFilterStartDate(newValue)}
+            format="YYYY/MM/DD"
             slotProps={{ textField: { size: 'small' } }}
           />
           <DatePicker
             label="終了日"
             value={filterEndDate}
             onChange={(newValue) => setFilterEndDate(newValue)}
+            format="YYYY/MM/DD"
             slotProps={{ textField: { size: 'small' } }}
           />
         </LocalizationProvider>

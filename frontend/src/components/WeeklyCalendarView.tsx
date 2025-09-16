@@ -162,7 +162,7 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
       // If it's a time-specific block, check if the time overlaps
       const slotStartTime = dayjs(`${slot.date}T${slot.startTime}`);
       const slotEndTime = dayjs(`${slot.date}T${slot.endTime}`);
-      return dateTime.isBetween(slotStartTime, slotEndTime, null, "[)");
+      return dateTime.isBetween(slotStartTime, slotEndTime, null, "[]");
     });
   };
 

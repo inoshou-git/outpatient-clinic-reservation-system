@@ -17,6 +17,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { useUI } from "../contexts/UIContext";
 import dayjs, { Dayjs } from "dayjs";
+import 'dayjs/locale/ja';
 import { Appointment, BlockedSlot } from "../types";
 
 interface SpecialReservationFormProps {
@@ -136,7 +137,7 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
   };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ja">
       <form onSubmit={handleSubmit} noValidate>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
           {error && (
@@ -161,6 +162,7 @@ const SpecialReservationForm: React.FC<SpecialReservationFormProps> = ({
             value={date}
             onChange={(newDate) => setDate(newDate)}
             shouldDisableDate={shouldDisableDate}
+            format="YYYY/MM/DD"
             sx={{ width: "100%" }}
           />
           <TextField
