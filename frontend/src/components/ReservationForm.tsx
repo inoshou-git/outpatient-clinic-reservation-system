@@ -713,6 +713,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
           value={date}
           onChange={(newValue) => setDate(newValue)}
           shouldDisableDate={shouldDisableDate}
+          format="YYYY/MM/DD"
           sx={{ mb: 2, width: "100%" }}
           slotProps={{
             actionBar: {

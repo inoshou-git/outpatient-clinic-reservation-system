@@ -29,8 +29,12 @@ import AppointmentListTable from "../components/AppointmentListTable";
 import { useAuth } from "../contexts/AuthContext";
 import { useUI } from "../contexts/UIContext";
 import dayjs, { Dayjs } from "dayjs";
+import 'dayjs/locale/ja';
 
 import { Appointment, BlockedSlot } from "../types";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import {
   getAppointments,
   getBlockedSlots,
@@ -341,6 +345,19 @@ const HomePage = () => {
               <Button variant="outlined" onClick={handleToday} sx={{ ml: 2 }}>
                 今日
               </Button>
+              {displayMode !== 'calendar' && (
+                <Box sx={{ ml: 2 }}>
+                  <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ja">
+                    <DatePicker
+                      label="日付選択"
+                      value={currentDate}
+                      onChange={(newDate) => newDate && setCurrentDate(newDate)}
+                      format="YYYY/MM/DD"
+                      slotProps={{ textField: { size: 'small' } }}
+                    />
+                  </LocalizationProvider>
+                </Box>
+              )}
             </>
           )}
           {displayMode === "list" && (

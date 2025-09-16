@@ -27,6 +27,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useUI } from "../contexts/UIContext";
 import { createBlockedSlot, updateBlockedSlot, getAppointments, getBlockedSlots } from "../services/api";
 import { BlockedSlot, Appointment } from "../types";
+import 'dayjs/locale/ja';
 
 dayjs.extend(isBetween);
 
@@ -351,7 +352,7 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
   };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ja">
       <Box component="form" onSubmit={handleSubmit} noValidate>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -366,6 +367,7 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
           value={startDate}
           onChange={(newValue) => setStartDate(newValue)}
           shouldDisableDate={shouldDisableDate}
+          format="YYYY/MM/DD"
           sx={{ mb: 2, width: "100%" }}
           
         />
@@ -387,6 +389,7 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
             onChange={(newValue) => setEndDate(newValue)}
             shouldDisableDate={shouldDisableDate}
             minDate={startDate || undefined}
+            format="YYYY/MM/DD"
             sx={{ mb: 2, width: "100%" }}
             
           />
