@@ -67,9 +67,13 @@ const generateTimeSlots = (
   const slots = [];
   let time = dayjs().hour(startHour).minute(startMinute).second(0);
   const endTime = dayjs().hour(endHour).minute(endMinute).second(0);
+  const lunchStart = dayjs().hour(11).minute(45).second(0);
+  const lunchEnd = dayjs().hour(13).minute(30).second(0);
 
   while (time.isBefore(endTime) || time.isSame(endTime)) {
-    slots.push(time.format("HH:mm"));
+    if (!time.isBetween(lunchStart, lunchEnd, null, "[)")) {
+        slots.push(time.format("HH:mm"));
+    }
     time = time.add(15, "minute");
   }
   return slots;
@@ -164,7 +168,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
             `${blockedSlot.date}T${blockedSlot.endTime}`
           );
           const slotTime = dayjs(`${selectedDate}T${slot}`);
-          return slotTime.isBetween(blockedStart, blockedEnd, null, "[)");
+          return slotTime.isBetween(blockedStart, blockedEnd, null, "[]");
         }
       });
 
@@ -172,69 +176,65 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     });
   }, [date, allTimeSlots, existingAppointments, blockedSlots, appointment?.id]);
 
-  const availableVisitRehabTimeSlots = useMemo(() => {
+  
+
+  const availableEndTimeSlots = useMemo(() => {
     if (!date) return [];
-    const selectedDate = date.format("YYYY-MM-DD");
 
-    return allTimeSlots.filter((slot) => {
-      // Check against existing outpatient appointments
-      const isConflictWithOutpatient = existingAppointments.some(
-        (appt) =>
-          appt.reservationType === "outpatient" &&
-          appt.date === selectedDate &&
-          appt.time === slot &&
-          appt.id !== appointment?.id
-      );
+    if (!startTimeRange) {
+        return allTimeSlots;
+    }
 
-      // Check against existing visit/rehab appointments
-      const isConflictWithVisitRehab = existingAppointments.some((appt) => {
-        if (
-          (appt.reservationType === "visit" ||
-            appt.reservationType === "rehab") &&
-          appt.date === selectedDate &&
-          appt.startTimeRange &&
-          appt.endTimeRange &&
-          appt.id !== appointment?.id
-        ) {
-          const apptStart = dayjs(`${selectedDate}T${appt.startTimeRange}`);
-          const apptEnd = dayjs(`${selectedDate}T${appt.endTimeRange}`);
-          const slotTime = dayjs(`${selectedDate}T${slot}`);
-          return slotTime.isBetween(apptStart, apptEnd, null, "[)");
+    const selectedDateStr = date.format("YYYY-MM-DD");
+    const startDateTime = dayjs(`${selectedDateStr}T${startTimeRange}`);
+
+    let firstConflictTime: Dayjs | null = null;
+
+    const appointmentsOnDate = existingAppointments.filter(
+        appt => appt.date === selectedDateStr && appt.id !== appointment?.id
+    );
+    const blockedSlotsOnDate = blockedSlots.filter(
+        bs => (bs.date === selectedDateStr || (bs.endDate && dayjs(selectedDateStr).isBetween(bs.date, bs.endDate, null, '[]')))
+    );
+
+    for (const appt of appointmentsOnDate) {
+        const conflictStartCandidate = appt.time ? appt.time : appt.startTimeRange;
+        if (!conflictStartCandidate) continue;
+
+        const conflictStart = dayjs(`${selectedDateStr}T${conflictStartCandidate}`);
+        if (conflictStart.isAfter(startDateTime)) {
+            if (firstConflictTime === null || conflictStart.isBefore(firstConflictTime)) {
+                firstConflictTime = conflictStart;
+            }
         }
-        return false;
-      });
+    }
 
-      // Check against blocked slots
-      const isBlocked = blockedSlots.some((blockedSlot) => {
-        const blockedStartDate = dayjs(blockedSlot.date);
-        const blockedEndDate = blockedSlot.endDate
-          ? dayjs(blockedSlot.endDate)
-          : blockedStartDate;
-
-        if (blockedSlot.startTime === null) {
-          // All-day blocked
-          return dayjs(selectedDate).isBetween(
-            blockedStartDate.startOf("day"),
-            blockedEndDate.endOf("day"),
-            null,
-            "[]"
-          );
+    for (const bs of blockedSlotsOnDate) {
+        if (bs.startTime) {
+            const conflictStart = dayjs(`${selectedDateStr}T${bs.startTime}`);
+            if (conflictStart.isAfter(startDateTime)) {
+                if (firstConflictTime === null || conflictStart.isBefore(firstConflictTime)) {
+                    firstConflictTime = conflictStart;
+                }
+            }
         } else {
-          // Time-specific blocked
-          const blockedStart = dayjs(
-            `${blockedSlot.date}T${blockedSlot.startTime}`
-          );
-          const blockedEnd = dayjs(
-            `${blockedSlot.date}T${blockedSlot.endTime}`
-          );
-          const slotTime = dayjs(`${selectedDate}T${slot}`);
-          return slotTime.isBetween(blockedStart, blockedEnd, null, "[)");
+            firstConflictTime = startDateTime.add(1, 'minute'); 
+            break;
         }
-      });
+    }
 
-      return !isConflictWithOutpatient && !isConflictWithVisitRehab && !isBlocked;
-    });
-  }, [date, allTimeSlots, existingAppointments, blockedSlots, appointment?.id]);
+    let possibleEndTimes = allTimeSlots.filter(slot =>
+        dayjs(`${selectedDateStr}T${slot}`).isAfter(startDateTime)
+    );
+
+    if (firstConflictTime) {
+        possibleEndTimes = possibleEndTimes.filter(slot =>
+            !dayjs(`${selectedDateStr}T${slot}`).isAfter(firstConflictTime)
+        );
+    }
+
+    return possibleEndTimes;
+  }, [startTimeRange, date, allTimeSlots, existingAppointments, blockedSlots, appointment?.id]);
 
      const isFeverClinicTime = useCallback((currentDate: Dayjs | null, currentTime: string | null, currentStartTimeRange: string | null, currentReservationType: "outpatient" | "visit" | "rehab" | "special"): boolean => {
     if (!currentDate) {
@@ -639,7 +639,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     // 単にavailableTimeSlotsやavailableVisitRehabTimeSlotsが更新されることで、
     // UI上の選択肢が適切にフィルタリングされるようにすることに限定します。
     // 警告メッセージを設定したり、時間をクリアしたりする役割は持ちません。
-  }, [date, availableTimeSlots, availableVisitRehabTimeSlots, time, startTimeRange, reservationType]);
+  }, [date, availableTimeSlots, time, startTimeRange, reservationType]);
 
 
 
@@ -762,7 +762,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                     setStartTimeRange(e.target.value);
                   }}
                 >
-                  {availableVisitRehabTimeSlots.map((slot) => (
+                  {availableTimeSlots.map((slot) => (
                     <MenuItem key={slot} value={slot}>
                       {slot}
                     </MenuItem>
@@ -780,8 +780,9 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                   onChange={(e: SelectChangeEvent) => {
                     setEndTimeRange(e.target.value);
                   }}
+                  disabled={!startTimeRange}
                 >
-                  {availableVisitRehabTimeSlots.map((slot) => (
+                  {availableEndTimeSlots.map((slot) => (
                     <MenuItem key={slot} value={slot}>
                       {slot}
                     </MenuItem>
