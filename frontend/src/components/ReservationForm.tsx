@@ -254,6 +254,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
 
   useEffect(() => {
+    setExistingAppointments([]); // Clear stale data immediately on date change
     const fetchAppointments = async () => {
       if (date && token) {
         try {

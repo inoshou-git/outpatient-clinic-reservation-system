@@ -84,7 +84,23 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
   >([]);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [timeResetWarning, setTimeResetWarning] = useState("");
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const isInitialMount = useRef(true);
+
+  useEffect(() => {
+    setAppointments([]);
+    const fetchAppointments = async () => {
+      if (startDate && token) {
+        try {
+          const fetched = await getAppointments(token, startDate.format("YYYY-MM-DD"));
+          setAppointments(fetched);
+        } catch (err) {
+          console.error("Failed to fetch appointments for blocked slot form", err);
+        }
+      }
+    };
+    fetchAppointments();
+  }, [startDate, token]);
 
   useEffect(() => {
     const fetchBlockedSlots = async () => {
@@ -252,15 +268,33 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
 
     return slots.filter((slotTime) => {
       const currentSlot = dayjs(`${startDate.format("YYYY-MM-DD")}T${slotTime}`);
-      const isBlocked = dayBlockedSlots.some((blocked) => {
+      
+      const isBlockedByOtherSlot = dayBlockedSlots.some((blocked) => {
         if (!blocked.startTime || !blocked.endTime) return false;
         const start = dayjs(`${blocked.date}T${blocked.startTime}`);
         const end = dayjs(`${blocked.date}T${blocked.endTime}`);
-        return currentSlot.isBetween(start, end, null, "[)");
+        // 予約不可時間の終了時刻（endTime）もブロック範囲に含めるように修正
+        // これにより、例えば16:00-16:30の予約不可がある場合、16:30のスロットが利用不可になる
+        return currentSlot.isBetween(start, end, null, "[]");
       });
-      return !isBlocked;
+
+      const isBlockedByAppointment = appointments.some(appt => {
+        if (!dayjs(appt.date).isSame(startDate, "day")) return false;
+        if (appt.reservationType === "outpatient" || appt.reservationType === "special") {
+          return appt.time === slotTime;
+        }
+        if (appt.reservationType === "visit" || appt.reservationType === "rehab") {
+          if (!appt.startTimeRange || !appt.endTimeRange) return false;
+          const apptStart = dayjs(`${appt.date}T${appt.startTimeRange}`);
+          const apptEnd = dayjs(`${appt.date}T${appt.endTimeRange}`);
+          return currentSlot.isBetween(apptStart, apptEnd, null, "[)");
+        }
+        return false;
+      });
+
+      return !isBlockedByOtherSlot && !isBlockedByAppointment;
     });
-  }, [startDate, existingBlockedSlots, allTimeSlots, blockedSlot]);
+  }, [startDate, existingBlockedSlots, allTimeSlots, blockedSlot, appointments]);
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -430,11 +464,21 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
                   }}
                   
                 >
-                  {availableTimeSlots.map((slot) => (
-                    <MenuItem key={slot} value={slot}>
-                      {slot}
-                    </MenuItem>
-                  ))}
+                  {availableTimeSlots
+                    .filter(
+                      (slot) =>
+                        !startTime ||
+                        dayjs(
+                          `${startDate?.format("YYYY-MM-DD")}T${slot}`
+                        ).isAfter(
+                          dayjs(`${startDate?.format("YYYY-MM-DD")}T${startTime}`)
+                        )
+                    )
+                    .map((slot) => (
+                      <MenuItem key={slot} value={slot}>
+                        {slot}
+                      </MenuItem>
+                    ))}
                 </Select>
               </FormControl>
             </Box>
