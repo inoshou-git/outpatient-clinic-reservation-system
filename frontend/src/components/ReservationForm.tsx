@@ -62,7 +62,7 @@ const generateTimeSlots = (
   startHour: number = 9,
   startMinute: number = 30,
   endHour: number = 16,
-  endMinute: number = 30
+  endMinute: number = 45
 ) => {
   const slots = [];
   let time = dayjs().hour(startHour).minute(startMinute).second(0);
@@ -71,9 +71,7 @@ const generateTimeSlots = (
   const lunchEnd = dayjs().hour(13).minute(30).second(0);
 
   while (time.isBefore(endTime) || time.isSame(endTime)) {
-    if (!time.isBetween(lunchStart, lunchEnd, null, "[)")) {
-        slots.push(time.format("HH:mm"));
-    }
+    slots.push(time.format("HH:mm"));
     time = time.add(15, "minute");
   }
   return slots;
@@ -112,11 +110,20 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
   const allTimeSlots = useMemo(() => generateTimeSlots(), []);
 
+  const filteredTimeSlotsForStart = useMemo(() => {
+    const lunchStart = dayjs().hour(12).minute(0).second(0);
+    const lunchEnd = dayjs().hour(13).minute(30).second(0);
+    return allTimeSlots.filter(slot => {
+      const slotTime = dayjs().hour(parseInt(slot.substring(0, 2))).minute(parseInt(slot.substring(3, 5))).second(0);
+      return !slotTime.isBetween(lunchStart, lunchEnd, null, "[)");
+    });
+  }, [allTimeSlots]);
+
   const availableTimeSlots = useMemo(() => {
     if (!date) return [];
     const selectedDate = date.format("YYYY-MM-DD");
 
-    return allTimeSlots.filter((slot) => {
+    return filteredTimeSlotsForStart.filter((slot) => {
       // Check against existing outpatient appointments
       const isConflictWithOutpatient = existingAppointments.some(
         (appt) =>
@@ -174,7 +181,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
       return !isConflictWithOutpatient && !isConflictWithVisitRehab && !isBlocked;
     });
-  }, [date, allTimeSlots, existingAppointments, blockedSlots, appointment?.id]);
+  }, [date, filteredTimeSlotsForStart, existingAppointments, blockedSlots, appointment?.id]);
 
   
 
@@ -226,6 +233,14 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     let possibleEndTimes = allTimeSlots.filter(slot =>
         dayjs(`${selectedDateStr}T${slot}`).isAfter(startDateTime)
     );
+
+    // Exclude lunch times (12:00 to 13:15) from end time options
+    const lunchStartExclude = dayjs().hour(12).minute(0).second(0);
+    const lunchEndExclude = dayjs().hour(13).minute(30).second(0);
+    possibleEndTimes = possibleEndTimes.filter(slot => {
+      const slotTime = dayjs().hour(parseInt(slot.substring(0, 2))).minute(parseInt(slot.substring(3, 5))).second(0);
+      return !slotTime.isBetween(lunchStartExclude, lunchEndExclude, null, "[)");
+    });
 
     if (firstConflictTime) {
         possibleEndTimes = possibleEndTimes.filter(slot =>

@@ -41,20 +41,16 @@ const generateTimeSlots = (
   startHour: number = 9,
   startMinute: number = 30,
   endHour: number = 16,
-  endMinute: number = 30
+  endMinute: number = 45
 ) => {
   const slots = [];
   let time = dayjs().hour(startHour).minute(startMinute).second(0);
   const endTime = dayjs().hour(endHour).minute(endMinute).second(0);
-  const lunchStart = dayjs().hour(11).minute(45).second(0);
+  const lunchStart = dayjs().hour(12).minute(0).second(0);
   const lunchEnd = dayjs().hour(13).minute(30).second(0);
 
   while (time.isBefore(endTime) || time.isSame(endTime)) {
-    if (
-      time.isBefore(lunchStart) ||
-      time.isAfter(lunchEnd) ||
-      time.isSame(lunchEnd)
-    ) {
+    if (!time.isBetween(lunchStart, lunchEnd, null, "[)")) {
       slots.push(time.format("HH:mm"));
     }
     time = time.add(15, "minute");
