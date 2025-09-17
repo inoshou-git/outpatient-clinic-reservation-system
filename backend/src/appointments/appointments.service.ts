@@ -63,8 +63,11 @@ export const createAppointment = async (
   // }
 
   if (reservationType === "outpatient") {
-    if (!patientName || !time) {
-      throw new Error("外来診療の場合、患者名、時間は必須項目です。");
+    if (!patientName) {
+      throw new Error("外来診療の場合、患者名は必須項目です。");
+    }
+    if (!time && (!startTimeRange || !endTimeRange)) {
+      throw new Error("外来診療の場合、時間または開始時間と終了時間は必須項目です。");
     }
   } else if (reservationType === "visit" || reservationType === "rehab") {
     if (!startTimeRange || !endTimeRange) {
@@ -185,11 +188,12 @@ export const createAppointment = async (
     const consultationText = Array.isArray(consultation) ? consultation.join(', ') : consultation;
 
     if (reservationType === "outpatient") {
+      const timeDisplay = (startTimeRange && endTimeRange) ? `${startTimeRange} - ${endTimeRange}` : time;
       subject = "新規予約登録のお知らせ (外来診療)";
-      text = `新しい外来診療の予約が登録されました。\n患者名: ${patientName}\n日時: ${date} ${time}\n診察内容: ${
+      text = `新しい外来診療の予約が登録されました。\n患者名: ${patientName}\n日時: ${date} ${timeDisplay}\n診察内容: ${
         consultationText || "未入力"
       }\n担当: ${lastUpdatedBy}`;
-      html = `<p>新しい外来診療の予約が登録されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${time}</li><li>診察内容: ${
+      html = `<p>新しい外来診療の予約が登録されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${timeDisplay}</li><li>診察内容: ${
         consultationText || "未入力"
       }</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
          process.env.SYSTEM_URL
@@ -321,15 +325,20 @@ export const updateAppointment = async (
     // }
 
     if (updatedAppointment.reservationType === "outpatient") {
-      if (
-        !updatedAppointment.patientName ||
-        !updatedAppointment.time
-      ) {
-        throw new Error("外来診療の場合、患者名、時間は必須項目です。");
+      if (!updatedAppointment.patientName) {
+        throw new Error("外来診療の場合、患者名は必須項目です。");
+      }
+      if (!updatedAppointment.time && (!updatedAppointment.startTimeRange || !updatedAppointment.endTimeRange)) {
+        throw new Error("外来診療の場合、時間または開始時間と終了時間は必須項目です。");
       }
       updatedAppointment.facilityName = undefined;
-      updatedAppointment.startTimeRange = undefined;
-      updatedAppointment.endTimeRange = undefined;
+      // If a single time is provided, clear range fields
+      if (updatedAppointment.time) {
+        updatedAppointment.startTimeRange = undefined;
+        updatedAppointment.endTimeRange = undefined;
+      } else { // If time is not provided, ensure range fields are used
+        updatedAppointment.time = undefined;
+      }
     } else if (
       updatedAppointment.reservationType === "visit" ||
       updatedAppointment.reservationType === "rehab"
@@ -390,6 +399,7 @@ export const updateAppointment = async (
         changes += `<li>予約種別: ${oldAppointment.reservationType} → ${updatedAppointmentResult.reservationType}</li>`;
 
       if (updatedAppointmentResult.reservationType === "outpatient") {
+        const timeDisplay = (updatedAppointmentResult.startTimeRange && updatedAppointmentResult.endTimeRange) ? `${updatedAppointmentResult.startTimeRange} - ${updatedAppointmentResult.endTimeRange}` : updatedAppointmentResult.time;
         if (oldAppointment.patientId !== updatedAppointmentResult.patientId)
           changes += `<li>患者ID: ${oldAppointment.patientId || "未入力"} → ${
             updatedAppointmentResult.patientId || "未入力"
@@ -398,10 +408,10 @@ export const updateAppointment = async (
           changes += `<li>患者名: ${oldAppointment.patientName || "未入力"} → ${
             updatedAppointmentResult.patientName || "未入力"
           }</li>`;
-        if (oldAppointment.time !== updatedAppointmentResult.time)
-          changes += `<li>時間: ${oldAppointment.time || "未入力"} → ${
-            updatedAppointmentResult.time || "未入力"
-          }</li>`;
+        // Check for changes in time or time range
+        const oldTimeDisplay = (oldAppointment.startTimeRange && oldAppointment.endTimeRange) ? `${oldAppointment.startTimeRange} - ${oldAppointment.endTimeRange}` : oldAppointment.time;
+        if (oldTimeDisplay !== timeDisplay)
+          changes += `<li>時間: ${oldTimeDisplay || "未入力"} → ${timeDisplay || "未入力"}</li>`;
         const oldConsultationText = Array.isArray(oldAppointment.consultation) ? oldAppointment.consultation.join(', ') : oldAppointment.consultation;
         const newConsultationText = Array.isArray(updatedAppointmentResult.consultation) ? updatedAppointmentResult.consultation.join(', ') : updatedAppointmentResult.consultation;
         if (oldConsultationText !== newConsultationText)
@@ -410,11 +420,11 @@ export const updateAppointment = async (
         text = `外来診療の予約が更新されました.\n患者名: ${
           updatedAppointmentResult.patientName
         }\n日時: ${updatedAppointmentResult.date} ${
-          updatedAppointmentResult.time
+          timeDisplay
         }\n担当: ${lastUpdatedBy}\n\n変更点:\n${changes
           .replace(/<li>/g, "")
           .replace(/<\/li>/g, "\n")}`;
-        html = `<p>外来診療の予約が更新されました。</p><ul><li>患者名: ${updatedAppointmentResult.patientName}</li><li>日時: ${updatedAppointmentResult.date} ${updatedAppointmentResult.time}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}<\/a><\/p>`;
+        html = `<p>外来診療の予約が更新されました。</p><ul><li>患者名: ${updatedAppointmentResult.patientName}</li><li>日時: ${updatedAppointmentResult.date} ${timeDisplay}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}<\/a><\/p>`;
       } else if (updatedAppointmentResult.reservationType === "visit") {
         if (oldAppointment.facilityName !== updatedAppointmentResult.facilityName)
           changes += `<li>施設名: ${oldAppointment.facilityName || "未入力"} → ${updatedAppointmentResult.facilityName || "未入力"}</li>`;
