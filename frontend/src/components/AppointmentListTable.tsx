@@ -134,14 +134,12 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
         if (sortConfig.key === "date" || sortConfig.key === "time") {
           // Determine the time to use for comparison based on reservation type
           const getTimeForSort = (appt: Appointment) => {
-            if (appt.reservationType === "outpatient" || appt.reservationType === "special") {
-              return appt.time;
-            }
-            // For visit/rehab, use startTimeRange for time-based sorting
-            if (appt.reservationType === "visit" || appt.reservationType === "rehab") {
+            // For any appointment with a start time range, use that for sorting.
+            if (appt.startTimeRange) {
               return appt.startTimeRange;
             }
-            return undefined; // Should not happen if types are correct
+            // Otherwise, use the single time field.
+            return appt.time;
           };
 
           const aTime = getTimeForSort(a);
@@ -428,12 +426,9 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
                   )}
                   <TableCell>{row.date}</TableCell>
                   <TableCell>
-                    {(row.reservationType === "outpatient" ||
-                      row.reservationType === "special") &&
-                      row.time}
-                    {(row.reservationType === "visit" ||
-                      row.reservationType === "rehab") &&
-                      `${row.startTimeRange} - ${row.endTimeRange}`}
+                    {row.startTimeRange && row.endTimeRange
+                      ? `${row.startTimeRange} - ${row.endTimeRange}`
+                      : row.time}
                   </TableCell>
                   <TableCell>
                     {row.reservationType === "outpatient"

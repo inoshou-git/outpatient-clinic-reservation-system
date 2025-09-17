@@ -110,21 +110,13 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
     const currentSlotDateTime = dayjs(`${day.format("YYYY-MM-DD")}T${time}`);
 
     return appointments.find((app) => {
-      if (app.isDeleted) return false;
+      if (app.isDeleted || app.reservationType === 'special') return false;
       if (!dayjs(app.date).isSame(day, "day")) return false;
 
-      if (app.reservationType === "outpatient") {
-        return app.time === time;
-      } else if (app.reservationType === "special") {
-        return false; // Handled separately
-      } else if (
-        app.reservationType === "visit" ||
-        app.reservationType === "rehab"
-      ) {
-        if (!app.startTimeRange || !app.endTimeRange) return false;
+      // Handle appointments with a time range (e.g., VF, Visit, Rehab)
+      if (app.startTimeRange && app.endTimeRange) {
         const startDateTime = dayjs(`${app.date}T${app.startTimeRange}`);
         const endDateTime = dayjs(`${app.date}T${app.endTimeRange}`);
-        // Check if the current 15-minute slot falls within the appointment's time range
         return currentSlotDateTime.isBetween(
           startDateTime,
           endDateTime,
@@ -132,6 +124,12 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
           "[)"
         );
       }
+
+      // Handle single-slot appointments
+      if (app.time) {
+        return app.time === time;
+      }
+
       return false;
     });
   };
@@ -450,6 +448,16 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                                 >
                                   {formatConsultation(appointment.consultation)}
                                 </Typography>
+                                {appointment.startTimeRange && (
+                                  <Typography
+                                    variant="caption"
+                                    display="block"
+                                    sx={{ fontSize: "0.75rem" }}
+                                  >
+                                    {appointment.startTimeRange} -{" "}
+                                    {appointment.endTimeRange}
+                                  </Typography>
+                                )}
                               </>
                             )}
                             {(appointment.reservationType === "visit" ||
@@ -523,9 +531,16 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                     <Typography variant="subtitle1">
                       <strong>患者名:</strong> {selectedAppointment.patientName}
                     </Typography>
-                    <Typography variant="subtitle1">
-                      <strong>時間:</strong> {selectedAppointment.time}
-                    </Typography>
+                    {selectedAppointment.startTimeRange && selectedAppointment.endTimeRange ? (
+                      <Typography variant="subtitle1">
+                        <strong>時間帯:</strong> {selectedAppointment.startTimeRange} -{" "}
+                        {selectedAppointment.endTimeRange}
+                      </Typography>
+                    ) : (
+                      <Typography variant="subtitle1">
+                        <strong>時間:</strong> {selectedAppointment.time}
+                      </Typography>
+                    )}
                   </>
                 )}
                 {selectedAppointment.reservationType === "visit" && (

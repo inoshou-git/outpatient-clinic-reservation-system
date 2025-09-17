@@ -36,7 +36,10 @@ interface CalendarViewProps {
 const formatAppointmentPrimaryText = (app: Appointment): string => {
   switch (app.reservationType) {
     case "outpatient":
-      return `${app.time} - ${app.patientName} (${app.patientId})`;
+      const timeDisplay = app.startTimeRange && app.endTimeRange
+        ? `${app.startTimeRange} - ${app.endTimeRange}`
+        : app.time;
+      return `${timeDisplay} - ${app.patientName} (${app.patientId})`;
     case "visit":
       return `訪問診療: ${app.startTimeRange} - ${app.endTimeRange} (${
         app.facilityName || ""
@@ -228,7 +231,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         })}
       </Grid>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="lg">
         <DialogTitle>
           {selectedDay ? selectedDay.format("YYYY年 M月D日") + "の予約" : ""}
         </DialogTitle>

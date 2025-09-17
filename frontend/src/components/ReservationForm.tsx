@@ -402,6 +402,24 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   }, [appointment, initialDate, initialTime]);
 
   useEffect(() => {
+    // When VF is selected for an outpatient appointment,
+    // use the single `time` slot as the start time and clear it.
+    if (reservationType === 'outpatient' && consultation.includes('VF') && time) {
+      setStartTimeRange(time);
+      setTime('');
+    }
+  }, [reservationType, consultation, time]);
+
+  useEffect(() => {
+    // Automatically set end time for VF outpatient appointments
+    if (reservationType === 'outpatient' && consultation.includes('VF') && startTimeRange) {
+      const startTime = dayjs(`1970-01-01T${startTimeRange}`);
+      const endTimeString = startTime.add(45, 'minute').format('HH:mm');
+      setEndTimeRange(endTimeString);
+    }
+  }, [reservationType, consultation, startTimeRange]);
+
+  useEffect(() => {
     // When switching to visit or rehab from outpatient,
     // and a time was already selected (from the calendar slot click),
     // set the startTimeRange to that time.
@@ -565,8 +583,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
     if (reservationType === "outpatient") {
       // if (!validatePatientId(patientId)) return;
-      if (!time) {
-        setError("時間は必須項目です。");
+      if (!time && (!startTimeRange || !endTimeRange)) {
+        setError("時間または開始時間と終了時間は必須項目です。");
         return;
       }
     } else if (reservationType === "visit" || reservationType === "rehab") {
@@ -622,8 +640,14 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     if (reservationType === "outpatient") {
       appointmentData.patientName = patientName;
       appointmentData.patientId = patientId;
-      appointmentData.time = time;
       appointmentData.consultation = finalConsultation;
+      if (consultation.includes("VF")) {
+        appointmentData.startTimeRange = startTimeRange;
+        appointmentData.endTimeRange = endTimeRange;
+        appointmentData.time = null;
+      } else {
+        appointmentData.time = time;
+      }
     } else if (reservationType === "visit") {
       appointmentData.patientName = patientName;
       appointmentData.facilityName = patientName; // Use patientName for facilityName as well
@@ -745,7 +769,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
           }}
         />
 
-        {reservationType === "outpatient" && (
+        {reservationType === "outpatient" && !consultation.includes("VF") && (
           <>
             <FormControl fullWidth required sx={{ mb: 2 }}>
               <InputLabel id="time-select-label">時間</InputLabel>
@@ -771,7 +795,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
           </>
         )}
 
-        {(reservationType === "visit" || reservationType === "rehab") && (
+        {(reservationType === "visit" || reservationType === "rehab" || (reservationType === "outpatient" && consultation.includes("VF"))) && (
           <>
             <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
               <FormControl fullWidth required>
@@ -804,7 +828,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                   onChange={(e: SelectChangeEvent) => {
                     setEndTimeRange(e.target.value);
                   }}
-                  disabled={!startTimeRange}
+                  disabled={!startTimeRange || (reservationType === 'outpatient' && consultation.includes('VF'))}
                 >
                   {availableEndTimeSlots.map((slot) => (
                     <MenuItem key={slot} value={slot}>
