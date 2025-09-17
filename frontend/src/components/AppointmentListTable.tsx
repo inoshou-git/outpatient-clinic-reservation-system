@@ -160,6 +160,20 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
           return 0;
         }
 
+        if (sortConfig.key === "lastUpdatedAt") {
+          if (!a.lastUpdatedAt) return 1;
+          if (!b.lastUpdatedAt) return -1;
+          const aDate = dayjs(a.lastUpdatedAt);
+          const bDate = dayjs(b.lastUpdatedAt);
+          if (aDate.isBefore(bDate)) {
+            return sortConfig.direction === "asc" ? -1 : 1;
+          }
+          if (aDate.isAfter(bDate)) {
+            return sortConfig.direction === "asc" ? 1 : -1;
+          }
+          return 0;
+        }
+
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
 
@@ -374,7 +388,21 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
               <TableCell>患者名/施設名</TableCell>
               <TableCell>診察内容</TableCell>
               {userRole !== "viewer" && <TableCell>最終更新者</TableCell>}
-              {userRole !== "viewer" && <TableCell>最終更新日</TableCell>}
+              {userRole !== "viewer" && <TableCell
+                sortDirection={
+                  sortConfig?.key === "lastUpdatedAt" ? sortConfig.direction : false
+                }
+              >
+                <TableSortLabel
+                  active={sortConfig?.key === "lastUpdatedAt"}
+                  direction={
+                    sortConfig?.key === "lastUpdatedAt" ? sortConfig.direction : "asc"
+                  }
+                  onClick={() => handleRequestSort("lastUpdatedAt")}
+                >
+                  最終更新日
+                </TableSortLabel>
+              </TableCell>}
               {userRole !== "viewer" && <TableCell>操作</TableCell>}
             </TableRow>
           </TableHead>

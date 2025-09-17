@@ -54,6 +54,7 @@ const consultationOptions = [
   "特定健診",
   "企業健診",
   "健康診断",
+  "VF",
   "その他",
 ];
 
@@ -183,7 +184,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     });
   }, [date, filteredTimeSlotsForStart, existingAppointments, blockedSlots, appointment?.id]);
 
-  
+
 
   const availableEndTimeSlots = useMemo(() => {
     if (!date) return [];
@@ -225,7 +226,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                 }
             }
         } else {
-            firstConflictTime = startDateTime.add(1, 'minute'); 
+            firstConflictTime = startDateTime.add(1, 'minute');
             break;
         }
     }

@@ -226,6 +226,10 @@ const DailyCalendarView: React.FC<DailyCalendarViewProps> = ({
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
+            .appointment-content {
+              text-align: left;
+              padding-left: 4px;
+            }
           }
         `}
       </style>
@@ -326,6 +330,7 @@ const DailyCalendarView: React.FC<DailyCalendarViewProps> = ({
                   {getSpecialAppointmentsForDay(day).map((app) => (
                     <Box
                       key={app.id}
+                      className="appointment-content"
                       sx={{ fontSize: "0.75rem", cursor: "pointer" }}
                       onClick={() => handleAppointmentClick(app)}
                     >
@@ -420,7 +425,7 @@ const DailyCalendarView: React.FC<DailyCalendarViewProps> = ({
                           </Typography>}
                         </>
                       ) : appointment ? (
-                        <div>
+                        <div className="appointment-content">
                           {appointment.reservationType === "outpatient" && (
                             <>
                               <Typography
