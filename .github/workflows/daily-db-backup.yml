@@ -1,0 +1,33 @@
+name: Daily Supabase DB Backup
+
+on:
+  schedule:
+    # Run daily at 18:00 JST (09:00 UTC)
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump Supabase Database
+        run: |
+          supabase db dump --data-only --schema-only > supabase_backup_$(date +%Y%m%d_%H%M%S).sql
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+      - name: Upload Backup Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-db-backup
+          path: supabase_backup_*.sql
+          retention-days: 7 # Keep artifacts for 7 days
