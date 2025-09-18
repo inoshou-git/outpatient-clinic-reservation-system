@@ -56,7 +56,6 @@ const consultationOptions = [
   "企業健診",
   "健康診断",
   "VF",
-  "その他",
 ];
 
 interface AppointmentListTableProps {
@@ -75,6 +74,13 @@ interface AppointmentListTableProps {
   userRole?: string;
   view: "all" | "daily" | "weekly" | "monthly";
   setView: (view: "all" | "daily" | "weekly" | "monthly") => void;
+  filterReservationType: string;
+  setFilterReservationType: (value: string) => void;
+  filterStartDate: Dayjs | null;
+  setFilterStartDate: (value: Dayjs | null) => void;
+  filterEndDate: Dayjs | null;
+  setFilterEndDate: (value: Dayjs | null) => void;
+  handleClearFilters: () => void;
 }
 
 const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
@@ -93,6 +99,13 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
   userRole,
   view,
   setView,
+  filterReservationType,
+  setFilterReservationType,
+  filterStartDate,
+  setFilterStartDate,
+  filterEndDate,
+  setFilterEndDate,
+  handleClearFilters,
 }): JSX.Element => {
   const { showLoader, hideLoader } = useUI();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -101,9 +114,6 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [newConsultation, setNewConsultation] = useState<string[]>([]);
   const [consultationSelectOpen, setConsultationSelectOpen] = useState(false);
-  const [filterReservationType, setFilterReservationType] = useState<string>("all");
-  const [filterStartDate, setFilterStartDate] = useState<Dayjs | null>(null);
-  const [filterEndDate, setFilterEndDate] = useState<Dayjs | null>(null);
 
   const formatConsultation = (consultation: string | undefined | null): string => {
     if (!consultation) return "-";
@@ -170,106 +180,6 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
       handleCloseUpdateDialog();
     }
   };
-
-  const handleClearFilters = () => {
-    setFilterReservationType("all");
-    setFilterStartDate(null);
-    setFilterEndDate(null);
-  };
-
-  const sortedAppointments = React.useMemo(() => {
-    let sortableItems = [...appointments.filter((app) => !app.isDeleted)];
-    if (sortConfig !== null) {
-      sortableItems.sort((a, b) => {
-        if (sortConfig.key === "date" || sortConfig.key === "time") {
-          // Determine the time to use for comparison based on reservation type
-          const getTimeForSort = (appt: Appointment) => {
-            // For any appointment with a start time range, use that for sorting.
-            if (appt.startTimeRange) {
-              return appt.startTimeRange;
-            }
-            // Otherwise, use the single time field.
-            return appt.time;
-          };
-
-          const aTime = getTimeForSort(a);
-          const bTime = getTimeForSort(b);
-
-          // Construct dayjs objects, handling cases where time might be missing
-          const aDateTime = dayjs(`${a.date} ${aTime || '00:00'}`); // Default to '00:00' if time is missing
-          const bDateTime = dayjs(`${b.date} ${bTime || '00:00'}`); // Default to '00:00' if time is missing
-
-          if (aDateTime.isBefore(bDateTime)) {
-            return sortConfig.direction === "asc" ? -1 : 1;
-          }
-          if (aDateTime.isAfter(bDateTime)) {
-            return sortConfig.direction === "asc" ? 1 : -1;
-          }
-          return 0;
-        }
-
-        if (sortConfig.key === "lastUpdatedAt") {
-          if (!a.lastUpdatedAt) return 1;
-          if (!b.lastUpdatedAt) return -1;
-          const aDate = dayjs(a.lastUpdatedAt);
-          const bDate = dayjs(b.lastUpdatedAt);
-          if (aDate.isBefore(bDate)) {
-            return sortConfig.direction === "asc" ? -1 : 1;
-          }
-          if (aDate.isAfter(bDate)) {
-            return sortConfig.direction === "asc" ? 1 : -1;
-          }
-          return 0;
-        }
-
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
-
-        if (aValue === undefined || aValue === null) return 1;
-        if (bValue === undefined || bValue === null) return -1;
-
-        if (aValue < bValue) {
-          return sortConfig.direction === "asc" ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === "asc" ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sortableItems;
-  }, [appointments, sortConfig]);
-
-  const filteredAppointments = React.useMemo(() => {
-    return sortedAppointments.filter((app) => {
-      // Existing view filter
-      const matchesView =
-        !app.isDeleted &&
-        (view === "all" ||
-          (view === "daily" && dayjs(app.date).isSame(dayjs(), "day")) ||
-          (view === "weekly" &&
-            dayjs(app.date).isAfter(dayjs().startOf("week")) &&
-            dayjs(app.date).isBefore(dayjs().endOf("week"))) ||
-          (view === "monthly" && dayjs(app.date).isSame(dayjs(), "month")));
-
-      if (!matchesView) return false;
-
-      // Filter by Reservation Type
-      const matchesReservationType =
-        filterReservationType === "all" ||
-        app.reservationType === filterReservationType;
-
-      if (!matchesReservationType) return false;
-
-      // Filter by Date Range
-      const appDate = dayjs(app.date);
-      const matchesDateRange =
-        (!filterStartDate || appDate.isSameOrAfter(filterStartDate, "day")) &&
-        (!filterEndDate || appDate.isSameOrBefore(filterEndDate, "day"));
-
-      return matchesDateRange;
-    });
-  }, [sortedAppointments, view, filterReservationType, filterStartDate, filterEndDate]);
 
   return (
     <div className="printable-area">
@@ -391,11 +301,11 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
                   <Checkbox
                     indeterminate={
                       selectedAppointments.length > 0 &&
-                      selectedAppointments.length < sortedAppointments.length
+                      selectedAppointments.length < appointments.length
                     }
                     checked={
-                      sortedAppointments.length > 0 &&
-                      selectedAppointments.length === sortedAppointments.length
+                      appointments.length > 0 &&
+                      selectedAppointments.length === appointments.length
                     }
                     onChange={handleSelectAllClick}
                   />
@@ -455,7 +365,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredAppointments.map((row) => {
+            {appointments.map((row) => {
               const isItemSelected = isSelected(row.id);
               return (
                 <TableRow

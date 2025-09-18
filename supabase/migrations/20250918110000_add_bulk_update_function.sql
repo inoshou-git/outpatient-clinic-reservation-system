@@ -13,14 +13,17 @@ BEGIN
     LOOP
         UPDATE appointments
         SET
-            consultation = (
-                SELECT string_agg(DISTINCT item, ', ')
-                FROM (
-                    SELECT trim(unnest(string_to_array(COALESCE(consultation, ''), ','))) AS item
-                    UNION
-                    SELECT unnest(p_new_consultations)
-                ) AS combined
-                WHERE item <> ''
+            consultation = COALESCE(
+                (
+                    SELECT string_agg(DISTINCT item, ', ')
+                    FROM (
+                        SELECT trim(unnest(string_to_array(COALESCE(consultation, ''), ','))) AS item
+                        UNION
+                        SELECT unnest(p_new_consultations)
+                    ) AS combined
+                    WHERE item <> ''
+                ),
+                '' -- string_agg が NULL を返した場合に空文字列を返す
             ),
             "lastUpdatedBy" = p_last_updated_by,
             "lastUpdatedAt" = now()
