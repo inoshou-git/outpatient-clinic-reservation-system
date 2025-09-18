@@ -90,6 +90,11 @@ const HomePage = () => {
   const [editingSpecialAppointment, setEditingSpecialAppointment] =
     useState<Appointment | null>(null);
 
+  // Filters for AppointmentListTable
+  const [filterReservationType, setFilterReservationType] = useState<string>("all");
+  const [filterStartDate, setFilterStartDate] = useState<Dayjs | null>(null);
+  const [filterEndDate, setFilterEndDate] = useState<Dayjs | null>(null);
+
   const openSpecialReservationForm = (appointment: Appointment | null = null) => {
     setEditingSpecialAppointment(appointment);
     setIsSpecialReservationFormOpen(true);
@@ -236,6 +241,12 @@ const HomePage = () => {
     }
   };
 
+  const handleClearFilters = () => {
+    setFilterReservationType("all");
+    setFilterStartDate(null);
+    setFilterEndDate(null);
+  };
+
   const isSelected = (id: number) => selectedAppointments.indexOf(id) !== -1;
 
   const handleCalendarSlotClick = (date: Dayjs, time: string) => {
@@ -277,17 +288,37 @@ const HomePage = () => {
     return sortableItems;
   }, [appointments, sortConfig]);
 
-  const filteredAppointments = sortedAppointments.filter((app) => {
-    return (
-      !app.isDeleted &&
-      (view === "all" ||
+  const filteredAppointments = useMemo(() => {
+    return sortedAppointments.filter((app) => {
+      if (app.isDeleted) return false;
+
+      // View filter (daily, weekly, etc.)
+      const matchesView =
+        view === "all" ||
         (view === "daily" && dayjs(app.date).isSame(dayjs(), "day")) ||
         (view === "weekly" &&
           dayjs(app.date).isAfter(dayjs().startOf("week")) &&
           dayjs(app.date).isBefore(dayjs().endOf("week"))) ||
-        (view === "monthly" && dayjs(app.date).isSame(dayjs(), "month")))
-    );
-  });
+        (view === "monthly" && dayjs(app.date).isSame(dayjs(), "month"));
+
+      if (!matchesView) return false;
+
+      // Reservation Type filter
+      const matchesReservationType =
+        filterReservationType === "all" ||
+        app.reservationType === filterReservationType;
+
+      if (!matchesReservationType) return false;
+
+      // Date Range filter
+      const appDate = dayjs(app.date);
+      const matchesDateRange =
+        (!filterStartDate || appDate.isSameOrAfter(filterStartDate, "day")) &&
+        (!filterEndDate || appDate.isSameOrBefore(filterEndDate, "day"));
+
+      return matchesDateRange;
+    });
+  }, [sortedAppointments, view, filterReservationType, filterStartDate, filterEndDate]);
 
   const getHeaderText = () => {
     if (displayMode === "calendar") {
@@ -412,6 +443,13 @@ const HomePage = () => {
               userRole={user?.role}
               view={view}
               setView={setView}
+              filterReservationType={filterReservationType}
+              setFilterReservationType={setFilterReservationType}
+              filterStartDate={filterStartDate}
+                            setFilterStartDate={setFilterStartDate}
+              filterEndDate={filterEndDate}
+              setFilterEndDate={setFilterEndDate}
+              handleClearFilters={handleClearFilters}
             />
           )}
 

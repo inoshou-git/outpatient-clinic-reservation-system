@@ -56,7 +56,6 @@ const consultationOptions = [
   "企業健診",
   "健康診断",
   "VF",
-  "その他",
 ];
 
 interface AppointmentListTableProps {
@@ -75,6 +74,13 @@ interface AppointmentListTableProps {
   userRole?: string;
   view: "all" | "daily" | "weekly" | "monthly";
   setView: (view: "all" | "daily" | "weekly" | "monthly") => void;
+  filterReservationType: string;
+  setFilterReservationType: (value: string) => void;
+  filterStartDate: Dayjs | null;
+  setFilterStartDate: (value: Dayjs | null) => void;
+  filterEndDate: Dayjs | null;
+  setFilterEndDate: (value: Dayjs | null) => void;
+  handleClearFilters: () => void;
 }
 
 const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
@@ -93,6 +99,13 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
   userRole,
   view,
   setView,
+  filterReservationType,
+  setFilterReservationType,
+  filterStartDate,
+  setFilterStartDate,
+  filterEndDate,
+  setFilterEndDate,
+  handleClearFilters,
 }): JSX.Element => {
   const { showLoader, hideLoader } = useUI();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -101,9 +114,6 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [newConsultation, setNewConsultation] = useState<string[]>([]);
   const [consultationSelectOpen, setConsultationSelectOpen] = useState(false);
-  const [filterReservationType, setFilterReservationType] = useState<string>("all");
-  const [filterStartDate, setFilterStartDate] = useState<Dayjs | null>(null);
-  const [filterEndDate, setFilterEndDate] = useState<Dayjs | null>(null);
 
   const formatConsultation = (consultation: string | undefined | null): string => {
     if (!consultation) return "-";
@@ -169,12 +179,6 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
       hideLoader();
       handleCloseUpdateDialog();
     }
-  };
-
-  const handleClearFilters = () => {
-    setFilterReservationType("all");
-    setFilterStartDate(null);
-    setFilterEndDate(null);
   };
 
   return (
