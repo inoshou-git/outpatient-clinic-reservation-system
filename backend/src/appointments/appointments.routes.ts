@@ -6,6 +6,7 @@ import {
   deleteAppointment,
   createSpecialAppointment,
   updateSpecialAppointment,
+  bulkUpdateAppointments,
 } from "./appointments.controller";
 import { authenticateToken } from "../middleware/auth";
 
@@ -15,6 +16,7 @@ router.get("/", getAllAppointments);
 router.post("/", authenticateToken, createAppointment);
 router.post("/special", authenticateToken, createSpecialAppointment);
 router.put("/special/:id", authenticateToken, updateSpecialAppointment);
+router.put("/bulk-update", authenticateToken, bulkUpdateAppointments);
 router.put("/:id", authenticateToken, updateAppointment);
 router.delete("/:id", authenticateToken, deleteAppointment);
 

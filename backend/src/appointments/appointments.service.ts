@@ -713,3 +713,38 @@ export const updateSpecialAppointment = async (
 
     return updatedAppointmentResult;
 };
+
+export const bulkUpdateAppointments = async (
+  appointmentIds: number[],
+  consultationText: string, // "新患,定期処方" のような文字列
+  lastUpdatedBy: string
+): Promise<{ count: number }> => {
+  if (!appointmentIds || appointmentIds.length === 0 || !consultationText) {
+    return { count: 0 };
+  }
+
+  const newConsultations = consultationText.split(',').map(s => s.trim()).filter(Boolean);
+  if (newConsultations.length === 0) {
+    return { count: 0 };
+  }
+
+  const { data, error } = await supabase.rpc('bulk_update_consultations', {
+    p_ids: appointmentIds,
+    p_new_consultations: newConsultations,
+    p_last_updated_by: lastUpdatedBy
+  });
+
+  if (error) {
+    console.error("Error bulk updating appointments via RPC:", error);
+    throw new Error("予約の一括更新に失敗しました。");
+  }
+
+  const updatedCount = data?.length || 0;
+
+  // WebSocket event
+  if (data && data.length > 0) {
+      io.emit("appointmentsBulkUpdated", data);
+  }
+
+  return { count: updatedCount };
+};

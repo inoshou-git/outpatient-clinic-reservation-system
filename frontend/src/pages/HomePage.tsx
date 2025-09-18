@@ -39,6 +39,7 @@ import {
   getAppointments,
   getBlockedSlots,
   deleteAppointment,
+  bulkUpdateAppointments,
 } from "../services/api";
 
 type DisplayMode = "list" | "calendar" | "weekly" | "daily";
@@ -220,29 +221,18 @@ const HomePage = () => {
     setSelectedAppointments(newSelected as number[]);
   };
 
-  const handleBulkDelete = async () => {
-    if (
-      window.confirm(
-        `${selectedAppointments.length}件の予約を削除してもよろしいですか？`
-      )
-    ) {
-      showLoader(); // ローディング開始
-      try {
-        // For bulk deletes, we'll default to sending notifications.
-        // A more advanced implementation could have a checkbox for this too.
-        const promises = selectedAppointments.map((id) =>
-          deleteAppointment(id, true, token)
-        );
-        await Promise.all(promises);
-        fetchData();
-        setSelectedAppointments([]);
-        setBulkActionEnabled(false);
-      } catch (error: any) {
-        console.error("Failed to bulk delete appointments", error.message);
-        alert("予約の一括削除中にエラーが発生しました。");
-      } finally {
-        hideLoader(); // ローディング終了
-      }
+  const handleBulkUpdate = async (consultation: string) => {
+    showLoader();
+    try {
+      await bulkUpdateAppointments(selectedAppointments, consultation, token);
+      fetchData(); // データを再取得してテーブルを更新
+      setSelectedAppointments([]); // 選択をクリア
+      setBulkActionEnabled(false); // 一括操作モードを終了
+    } catch (error: any) {
+      console.error("Failed to bulk update appointments", error.message);
+      alert("予約の一括更新中にエラーが発生しました。");
+    } finally {
+      hideLoader();
     }
   };
 
@@ -413,7 +403,7 @@ const HomePage = () => {
               selectedAppointments={selectedAppointments}
               handleSelectAllClick={handleSelectAllClick}
               handleSelectClick={handleSelectClick}
-              handleBulkDelete={handleBulkDelete}
+              handleBulkUpdate={handleBulkUpdate}
               bulkActionEnabled={bulkActionEnabled}
               setBulkActionEnabled={setBulkActionEnabled}
               handleEditAppointment={handleEditAppointment}

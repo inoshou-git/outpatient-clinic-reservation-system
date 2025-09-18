@@ -130,6 +130,13 @@ export const UIProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
+    socket.on("appointmentsBulkUpdated", (data: { ids: number[] }) => {
+      console.log("Appointments bulk updated:", data.ids);
+      if (appointmentChangeCallbackRef.current) {
+        appointmentChangeCallbackRef.current();
+      }
+    });
+
     socket.on("blockedSlotCreated", (newBlockedSlot: BlockedSlot) => {
       console.log("Blocked slot created:", newBlockedSlot);
       if (blockedSlotChangeCallbackRef.current) {

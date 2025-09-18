@@ -106,3 +106,22 @@ export const updateSpecialAppointment = async (req: Request, res: Response) => {
     }
   }
 };
+
+export const bulkUpdateAppointments = async (req: Request, res: Response) => {
+  if ((req as any).user.role === "viewer") {
+    return res
+      .status(403)
+      .json({ message: "閲覧ユーザーは予約を更新できません。" });
+  }
+  try {
+    const { appointmentIds, consultation } = req.body;
+    const count = await appointmentService.bulkUpdateAppointments(
+      appointmentIds,
+      consultation,
+      (req as any).user.name
+    );
+    res.json({ count });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
