@@ -195,7 +195,7 @@ const HomePage = () => {
 
   const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) {
-      const newSelecteds = sortedAppointments.map((n) => n.id);
+      const newSelecteds = filteredAppointments.map((n) => n.id);
       setSelectedAppointments(newSelecteds);
       return;
     }
@@ -397,7 +397,7 @@ const HomePage = () => {
         <>
           {displayMode === "list" && (
             <AppointmentListTable
-              appointments={appointments}
+              appointments={filteredAppointments}
               sortConfig={sortConfig}
               handleRequestSort={handleRequestSort}
               selectedAppointments={selectedAppointments}
