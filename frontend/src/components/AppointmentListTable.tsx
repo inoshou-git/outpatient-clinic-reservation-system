@@ -23,6 +23,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  ListItemText,
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
 import dayjs, { Dayjs } from "dayjs";
@@ -38,6 +39,26 @@ import 'dayjs/locale/ja';
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
+const consultationOptions = [
+  "新患",
+  "定期処方",
+  "生活習慣",
+  "入職時健診",
+  "インフルエンザ",
+  "肺炎球菌",
+  "コロナ",
+  "帯状疱疹(生ワクチン)",
+  "帯状疱疹(シングリックス1回目)",
+  "帯状疱疹(シングリックス2回目)",
+  "採血のみ",
+  "整形",
+  "特定健診",
+  "企業健診",
+  "健康診断",
+  "VF",
+  "その他",
+];
+
 interface AppointmentListTableProps {
   appointments: Appointment[];
   sortConfig: { key: keyof Appointment; direction: "asc" | "desc" } | null;
@@ -45,7 +66,7 @@ interface AppointmentListTableProps {
   selectedAppointments: number[];
   handleSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handleSelectClick: (event: React.MouseEvent<unknown>, id: number) => void;
-  handleBulkDelete: () => void;
+  handleBulkUpdate: (consultation: string) => void;
   bulkActionEnabled: boolean;
   setBulkActionEnabled: (enabled: boolean) => void;
   handleEditAppointment: (appointment: Appointment) => void;
@@ -63,7 +84,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
   selectedAppointments,
   handleSelectAllClick,
   handleSelectClick,
-  handleBulkDelete,
+  handleBulkUpdate,
   bulkActionEnabled,
   setBulkActionEnabled,
   handleEditAppointment,
@@ -77,6 +98,9 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
   const [sendNotification, setSendNotification] = useState(false);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [newConsultation, setNewConsultation] = useState<string[]>([]);
+  const [consultationSelectOpen, setConsultationSelectOpen] = useState(false);
   const [filterReservationType, setFilterReservationType] = useState<string>("all");
   const [filterStartDate, setFilterStartDate] = useState<Dayjs | null>(null);
   const [filterEndDate, setFilterEndDate] = useState<Dayjs | null>(null);
@@ -118,6 +142,32 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
     } finally {
       hideLoader();
       handleCloseDialog();
+    }
+  };
+
+  const handleOpenUpdateDialog = () => {
+    setNewConsultation([]); // ダイアログを開くときにクリア
+    setUpdateDialogOpen(true);
+  };
+
+  const handleCloseUpdateDialog = () => {
+    setUpdateDialogOpen(false);
+  };
+
+  const handleConfirmBulkUpdate = async () => {
+    if (newConsultation.length === 0) {
+      // 何か通知するか、UIでフィードバック
+      console.log("診察内容を選択してください。");
+      return;
+    }
+    showLoader();
+    try {
+      await handleBulkUpdate(newConsultation.join(', '));
+    } catch (error) {
+      console.error("Failed to bulk update appointments", error);
+    } finally {
+      hideLoader();
+      handleCloseUpdateDialog();
     }
   };
 
@@ -273,11 +323,11 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
             selectedAppointments.length > 0 && (
               <Button
                 variant="contained"
-                color="secondary"
-                onClick={handleBulkDelete}
+                color="primary"
+                onClick={handleOpenUpdateDialog}
                 sx={{ mr: 1 }}
               >
-                選択した項目を削除
+                選択した項目を更新
               </Button>
             )}
           {userRole !== "viewer" && (
@@ -506,6 +556,44 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
           <Button onClick={handleCloseDialog}>キャンセル</Button>
           <Button onClick={handleConfirmDelete} color="secondary">
             削除
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={updateDialogOpen} onClose={handleCloseUpdateDialog}>
+        <DialogTitle>診察内容の一括更新</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            選択したすべての予約の診察内容を更新します。
+          </DialogContentText>
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>新しい診察内容</InputLabel>
+            <Select
+              multiple
+              value={newConsultation}
+              label="新しい診察内容"
+              open={consultationSelectOpen}
+              onOpen={() => setConsultationSelectOpen(true)}
+              onClose={() => setConsultationSelectOpen(false)}
+              onChange={(e) => setNewConsultation(e.target.value as string[])}
+              renderValue={(selected) => selected.join(', ')}
+            >
+              {consultationOptions.map((option) => (
+                <MenuItem key={option} value={option}>
+                  <Checkbox checked={newConsultation.indexOf(option) > -1} />
+                  <ListItemText primary={option} />
+                </MenuItem>
+              ))}
+              <Box sx={{ position: 'sticky', bottom: 0, background: 'white', p: 1, display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #ddd' }}>
+                  <Button size="small" onClick={() => setConsultationSelectOpen(false)}>閉じる</Button>
+              </Box>
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseUpdateDialog}>キャンセル</Button>
+          <Button onClick={handleConfirmBulkUpdate} color="primary">
+            更新
           </Button>
         </DialogActions>
       </Dialog>

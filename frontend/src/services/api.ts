@@ -108,6 +108,17 @@ export const updateSpecialAppointment = (
   });
 };
 
+export const bulkUpdateAppointments = (
+  appointmentIds: number[],
+  consultation: string,
+  token: string | null
+): Promise<{ count: number }> => {
+  return callApi<{ count: number }>("/appointments/bulk-update", token, {
+    method: "PUT",
+    body: JSON.stringify({ appointmentIds, consultation }),
+  });
+};
+
 // Blocked Slots
 export const getBlockedSlots = (
   token: string | null
