@@ -27,8 +27,14 @@ jobs:
 
       - name: Run backup
         run: |
+          DATABASE_URL_TO_USE=""
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            DATABASE_URL_TO_USE="${{ secrets.DATABASE_URL_PRODUCTION }}"
+          else
+            DATABASE_URL_TO_USE="${{ secrets.DATABASE_URL_STAGING }}"
+          fi
           TIMESTAMP=$(date +'%Y-%m-%d_%H%M%S')
-          npx supabase db dump --db-url ${{ secrets.DATABASE_URL }} -f ./backup/backup-$TIMESTAMP.sql
+          npx supabase db dump --db-url "$DATABASE_URL_TO_USE" -f ./backup/backup-$TIMESTAMP.sql
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
