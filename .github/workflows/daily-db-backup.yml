@@ -10,21 +10,26 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Dump Supabase Database
+      - name: Install Supabase CLI
         run: |
-          supabase db dump --db-url "${{ secrets.DATABASE_URL }}" > supabase_backup_$(date +%Y%m%d_%H%M%S).sql
+          curl -fsSL https://get.supabase.com/install.sh | sh
+          echo "$HOME/.supabase/bin" >> $GITHUB_PATH
 
-      - name: Upload Backup Artifact
+      - name: Create backup directory
+        run: mkdir -p ./backup
+
+      - name: Run backup
+        run: |
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} --token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TIMESTAMP=$(date +'%Y-%m-%d_%H%M%S')
+          supabase db dump -f ./backup/backup-$TIMESTAMP.sql
+
+      - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
-          name: supabase-db-backup
-          path: supabase_backup_*.sql
-          retention-days: 7 # Keep artifacts for 7 days
+          name: supabase-backup
+          path: ./backup/backup-*.sql
+          retention-days: 7 # Keep backups for 7 days
