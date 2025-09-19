@@ -18,6 +18,9 @@ jobs:
           curl -fsSL https://get.supabase.com/install.sh | sh
           echo "$HOME/.supabase/bin" >> $GITHUB_PATH
 
+      - name: Debug PATH
+        run: echo $PATH
+
       - name: Create backup directory
         run: mkdir -p ./backup
 
