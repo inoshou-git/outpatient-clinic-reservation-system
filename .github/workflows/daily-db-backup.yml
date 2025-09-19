@@ -34,11 +34,13 @@ jobs:
             DATABASE_URL_TO_USE="${{ secrets.DATABASE_URL_STAGING }}"
           fi
           TIMESTAMP=$(date +'%Y-%m-%d_%H%M%S')
-          npx supabase db dump --db-url "$DATABASE_URL_TO_USE" -f ./backup/backup-$TIMESTAMP.sql
+          npx supabase db dump --db-url "$DATABASE_URL_TO_USE" -f ./backup/backup-roles-$TIMESTAMP.sql --role-only
+          npx supabase db dump --db-url "$DATABASE_URL_TO_USE" -f ./backup/backup-schema-$TIMESTAMP.sql
+          npx supabase db dump --db-url "$DATABASE_URL_TO_USE" -f ./backup/backup-data-$TIMESTAMP.sql --use-copy --data-only
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
           name: supabase-backup
-          path: ./backup/backup-*.sql
+          path: ./backup/backup-*-*.sql
           retention-days: 7 # Keep backups for 7 days
