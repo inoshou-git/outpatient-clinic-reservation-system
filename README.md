@@ -176,6 +176,73 @@ graph TD
     -   `develop`ブランチでの動作確認後、変更を`main`ブランチにマージしてプッシュします。
     -   `main`ブランチにプッシュされると、本番環境に自動でデプロイが実行されます。
 
--   **SupabaseプロジェクトのKeep-Alive**:
-    -   GitHub Actionsを利用し、開発・ステージング環境のSupabaseプロジェクトが非アクティブにより休止されるのを防ぎます。
-    -   毎週日曜日の午前3時(UTC)に自動でSupabaseデータベースにアクセスし、プロジェクトをアクティブに保ちます。
+## データベースバックアップ (Database Backup)
+
+このプロジェクトでは、GitHub Actionsを利用してSupabaseデータベースの自動バックアップを毎日実行しています。
+
+### バックアップの概要
+
+-   **実行頻度**: 毎日、日本時間18時 (UTC 9時)
+-   **保存期間**: バックアップファイルは7日間保持されます。
+-   **対象**: データベースのロール、スキーマ、データが完全にバックアップされます。
+-   **環境別設定**:
+    -   `main`ブランチからの実行時: 本番環境のデータベース (`DATABASE_URL_PRODUCTION`) をバックアップします。
+    -   `develop`ブランチからの実行時: ステージング環境のデータベース (`DATABASE_URL_STAGING`) をバックアップします。
+
+### バックアップファイルの取得方法
+
+バックアップファイルは、GitHub Actionsの実行結果ページから**アーティファクト**としてダウンロードできます。
+
+1.  GitHubリポジトリの「**Actions**」タブに移動します。
+2.  「Daily Supabase DB Backup」ワークフローの最新の（成功した）実行を選択します。
+3.  実行結果ページの右側にある「**Artifacts**」セクションから「**supabase-backup**」をダウンロードします。
+4.  ダウンロードしたZIPファイルには、以下の3つのSQLファイルが含まれています。
+    -   `backup-roles-YYYYMMDD_HHMMSS.sql`
+    -   `backup-schema-YYYYMMDD_HHMMSS.sql`
+    -   `backup-data-YYYYMMDD_HHMMSS.sql`
+
+### データベースの復元手順
+
+バックアップファイルからデータベースを復元する際は、以下の手順に従ってください。**本番環境で実行する前に、必ずステージング環境や開発環境で十分にテストしてください。**
+
+1.  **psqlコマンドラインツールのインストール**:
+    `psql`はPostgreSQLのクライアントツールであり、データベースの復元に必要です。お使いのOSに合わせてインストールしてください。
+
+    -   **macOS**: Homebrewを使用
+        ```bash
+        brew install libpq
+        # psqlをPATHに追加する必要がある場合があります
+        echo 'export PATH="/opt/homebrew/opt/libpq/bin:$PATH"' >> ~/.zshrc # または ~/.bashrc
+        source ~/.zshrc # または ~/.bashrc
+        ```
+    -   **Debian/Ubuntu**:
+        ```bash
+        sudo apt update
+        sudo apt install postgresql-client
+        ```
+    -   **Fedora/CentOS**:
+        ```bash
+        sudo dnf install postgresql
+        ```
+    -   **Windows**:
+        PostgreSQLの公式インストーラーをダウンロードし、インストール時に「Command Line Tools」を選択してください。または、Chocolateyを使用できます。
+        ```bash
+        choco install postgresql-client
+        ```
+
+2.  **バックアップファイルの準備**: ダウンロードしたZIPファイルを解凍し、3つのSQLファイルをローカルに配置します。
+3.  **データベース接続情報の準備**: 復元先のSupabaseプロジェクトのデータベース接続文字列 (`DATABASE_URL`) を用意します。パスワードに特殊文字が含まれる場合は、URLエンコードされていることを確認してください。
+4.  **`psql`コマンドでの復元**: 以下のコマンドを順番に実行します。`$DATABASE_URL`は実際の接続文字列に、`YYYYMMDD_HHMMSS`はバックアップファイルのタイムスタンプに置き換えてください。
+
+    ```bash
+    # 1. ロールの復元
+    # 既存のSupabaseプロジェクトに復元する場合、ロールの競合に注意してください。
+    # 必要に応じて、このステップをスキップするか、内容を確認して調整してください。
+    psql "$DATABASE_URL" -f backup-roles-YYYYMMDD_HHMMSS.sql
+
+    # 2. スキーマの復元
+    psql "$DATABASE_URL" -f backup-schema-YYYYMMSS_HHMMSS.sql
+
+    # 3. データの復元
+    psql "$DATABASE_URL" -f backup-data-YYYYMMSS_HHMMSS.sql
+    ```
