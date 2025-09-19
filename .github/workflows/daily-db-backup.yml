@@ -10,21 +10,29 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          version: latest
+          node-version: '18'
 
-      - name: Dump Supabase Database
+      - name: Install Supabase CLI as dev dependency
+        run: npm i supabase --save-dev
+        working-directory: ./backend
+
+      - name: Create backup directory
+        run: mkdir -p ./backup
+
+      - name: Run backup
         run: |
-          supabase db dump --db-url "${{ secrets.DATABASE_URL }}" > supabase_backup_$(date +%Y%m%d_%H%M%S).sql
+          TIMESTAMP=$(date +'%Y-%m-%d_%H%M%S')
+          npx supabase db dump --db-url ${{ secrets.DATABASE_URL }} -f ./backup/backup-$TIMESTAMP.sql
 
-      - name: Upload Backup Artifact
+      - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
-          name: supabase-db-backup
-          path: supabase_backup_*.sql
-          retention-days: 7 # Keep artifacts for 7 days
+          name: supabase-backup
+          path: ./backup/backup-*.sql
+          retention-days: 7 # Keep backups for 7 days
