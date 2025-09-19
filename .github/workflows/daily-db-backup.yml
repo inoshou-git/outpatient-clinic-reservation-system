@@ -13,19 +13,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
       - name: Install Supabase CLI
-        run: |
-          set -e
-          curl -fsSL https://get.supabase.com/install.sh | sh
-          echo "$HOME/.supabase/bin" >> $GITHUB_PATH
-
-      - name: Verify Supabase CLI installation
-        run: |
-          ls -la $HOME/.supabase/bin
-          supabase --version
-
-      - name: Debug PATH
-        run: echo $PATH
+        run: npm install -g supabase
 
       - name: Create backup directory
         run: mkdir -p ./backup
