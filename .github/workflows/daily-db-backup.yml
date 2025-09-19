@@ -18,17 +18,17 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Supabase CLI
-        run: npm install -g supabase
+      - name: Install Supabase CLI as dev dependency
+        run: npm i supabase --save-dev
+        working-directory: ./backend
 
       - name: Create backup directory
         run: mkdir -p ./backup
 
       - name: Run backup
         run: |
-          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} --token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           TIMESTAMP=$(date +'%Y-%m-%d_%H%M%S')
-          supabase db dump -f ./backup/backup-$TIMESTAMP.sql
+          npx supabase db dump --db-url ${{ secrets.DATABASE_URL }} -f ./backup/backup-$TIMESTAMP.sql
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
