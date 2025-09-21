@@ -18,42 +18,56 @@
 - **データベース**: Supabase (PostgreSQL)
 - **インフラストラクチャ**: Docker, Render
 
-## システム構成
+## アーキテクチャ
 
-このシステムは、フロントエンド、バックエンド、データベースの3層で構成されています。アプリケーションはDockerコンテナとしてRender上にデプロイされています。
+このシステムは、[C4 Model](https://c4model.com/) の考え方を参考にしてアーキテクチャを可視化しています。
+
+### レベル1: システムコンテキスト図 (System Context)
+
+システムの全体像です。システムがどのユーザーと関わり、どの外部システムと連携するかを示します。
 
 ```mermaid
 graph TD
-    subgraph "クライアント"
-        A["ユーザーブラウザ"]
+    subgraph "登場人物"
+        admin[管理者]
+        staff[一般スタッフ]
+        viewer[閲覧者]
     end
-
-    subgraph "インフラストラクチャ (Render)"
-        B["Frontend (React + Nginx)"]
-        C["Backend (Node.js + Express)"]
+    subgraph "システム"
+        system[外来予約システム]
     end
-
-    subgraph "データベース (Supabase)"
-        D["PostgreSQL データベース"]
+    subgraph "外部システム"
+        email[メールサーバー SMTP]
+        gh[GitHub]
     end
-
-    A -- "HTTPS" --> B
-    B -- "APIリクエスト" --> C
-    C -- "DBアクセス" --> D
+    admin -- "予約/ユーザー/予約不可枠を管理" --> system
+    staff -- "予約を管理" --> system
+    viewer -- "予約を閲覧" --> system
+    system -- "通知を送信" --> email
+    gh -- "コードを管理" --> system
 ```
 
--   **フロントエンド (Frontend):**
-    -   React (TypeScript) で構築されたSPA（シングルページアプリケーション）です。
-    -   Nginxコンテナ上で静的ファイルとしてホスティングされます。
-    -   ユーザー認証やデータの表示、操作のためのUIを提供します。
+### レベル2: コンテナ図 (Containers)
 
--   **バックエンド (Backend):**
-    -   Node.jsとExpress (TypeScript) で構築されたAPIサーバーです。
-    -   ビジネスロジックを処理し、SupabaseのPostgreSQLデータベースにアクセスします。
-    -   JWT（JSON Web Token）を発行・検証し、APIの認証・認可を行います。
+システムを構成する技術的な要素（コンテナ）と、それらの関係を示します。
 
--   **データベース (Database):**
-    -   Supabaseを利用し、PostgreSQLデータベースとして使用しています。
+```mermaid
+graph TD
+    user[ユーザー] -- "HTTPS" --> fe[Frontend: React SPA on Render]
+
+    subgraph "外来予約システム"
+        fe -- "APIリクエスト (JSON/HTTPS)" --> be[Backend: Node.js API on Render]
+        be -- "DBアクセス (SQL)" --> db[Database: PostgreSQL on Supabase]
+        be -- "メール送信" --> smtp[外部SMTPサーバー]
+    end
+
+    subgraph "CI/CD"
+        github[GitHub] -- "Push" --> actions[GitHub Actions]
+        actions -- "Deploy" --> fe
+        actions -- "Deploy" --> be
+        actions -- "DB Backup" --> db
+    end
+```
 
 ---
 
