@@ -20,7 +20,7 @@ app.use("/api/appointments", appointmentsRouter);
 app.use("/api/blocked-slots", blockedSlotsRouter);
 app.use("/api", usersRouter);
 
-app.get("/health", (req, res) => {
+app.get("/api/health", (req, res) => {
   res.status(200).send("OK");
 });
 
