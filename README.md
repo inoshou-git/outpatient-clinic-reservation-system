@@ -211,10 +211,20 @@ graph TD
     -   **macOS**: Homebrewを使用
         ```bash
         brew install libpq
-        # psqlをPATHに追加する必要がある場合があります
-        echo 'export PATH="/opt/homebrew/opt/libpq/bin:$PATH"' >> ~/.zshrc # または ~/.bashrc
-        source ~/.zshrc # または ~/.bashrc
         ```
+        インストール後、`psql`コマンドへのパスを通す必要がある場合があります。お使いのMacのCPUによってパスが異なります。
+
+        -   **Appleシリコン (M1/M2/M3など) の場合:**
+            ```bash
+            echo 'export PATH="/opt/homebrew/opt/libpq/bin:$PATH"' >> ~/.zshrc
+            source ~/.zshrc
+            ```
+        -   **Intel Mac の場合:**
+            ```bash
+            echo 'export PATH="/usr/local/opt/libpq/bin:$PATH"' >> ~/.zshrc
+            source ~/.zshrc
+            ```
+        *お使いのシェルがBashの場合は、`~/.zshrc`を`~/.bashrc`に置き換えてください。*
     -   **Debian/Ubuntu**:
         ```bash
         sudo apt update
@@ -231,8 +241,48 @@ graph TD
         ```
 
 2.  **バックアップファイルの準備**: ダウンロードしたZIPファイルを解凍し、3つのSQLファイルをローカルに配置します。
-3.  **データベース接続情報の準備**: 復元先のSupabaseプロジェクトのデータベース接続文字列 (`DATABASE_URL`) を用意します。パスワードに特殊文字が含まれる場合は、URLエンコードされていることを確認してください。
-4.  **`psql`コマンドでの復元**: 以下のコマンドを順番に実行します。`$DATABASE_URL`は実際の接続文字列に、`YYYYMMDD_HHMMSS`はバックアップファイルのタイムスタンプに置き換えてください。
+3.  **データベース接続情報の準備**:
+    作業対象の環境（ステージングまたは本番）に応じて、データベース接続URLを環境変数として設定します。この手順により、`psql`コマンド実行時にURLを毎回入力する手間を省き、誤った環境への接続を防ぎます。
+
+    a. **設定ファイルの作成**
+    プロジェクトのルートディレクトリに、以下の2つのファイルを作成します。
+    - `.env.staging`
+    - `.env.production`
+
+    b. **接続URLの記述**
+    Supabaseのプロジェクト管理画面にアクセスし、それぞれの環境のデータベース接続文字列（`psql`用の`URI`）をコピーします。そして、作成したファイルに以下のように貼り付けます。
+
+    - `.env.staging`ファイルの中身:
+      ```
+      export DATABASE_URL="postgres://postgres:[YOUR-PASSWORD]@db.<...>.supabase.co:5432/postgres"
+      ```
+    - `.env.production`ファイルの中身:
+      ```
+      export DATABASE_URL="postgres://postgres:[YOUR-PASSWORD]@db.<...>.supabase.co:5432/postgres"
+      ```
+    *これらのファイルは`.gitignore`によりGitの管理対象外となっているため、パスワードなどの機密情報がリポジトリに登録されることはありません。*
+
+    c. **環境変数の読み込み**
+    データベースを操作するターミナルで、作業したい環境のファイルを`source`コマンドで読み込みます。
+
+    - **ステージング環境**に接続する場合:
+      ```bash
+      source .env.staging
+      ```
+    - **本番環境**に接続する場合:
+      ```bash
+      source .env.production
+      ```
+
+    実行後、`echo $DATABASE_URL`コマンドでURLが正しく設定されたか確認できます。これで、現在のターミナルセッション内で`$DATABASE_URL`が有効になります。
+4.  **データベースの初期化（推奨）**:
+    復元先のデータベースに既存のデータやスキーマが残っていると、リストア時にコンフリクトが発生する可能性があります。以下のコマンドで`public`スキーマを一度削除し、再作成することをお勧めします。
+
+    ```bash
+    psql "$DATABASE_URL" -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
+    ```
+
+5.  **`psql`コマンドでの復元**: 以下のコマンドを順番に実行します。`$DATABASE_URL`は実際の接続文字列に、`YYYYMMDD_HHMMSS`はバックアップファイルのタイムスタンプに置き換えてください。
 
     ```bash
     # 1. ロールの復元
