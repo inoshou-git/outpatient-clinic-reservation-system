@@ -38,13 +38,13 @@ graph TD
     end
     subgraph "外部システム"
         email[メールサーバー(SMTP)]
-        github[GitHub]
+        gh[GitHub]
     end
     admin -- "予約/ユーザー/予約不可枠を管理" --> system
     staff -- "予約を管理" --> system
     viewer -- "予約を閲覧" --> system
     system -- "通知を送信" --> email
-    github -- "コードを管理" --> system
+    gh -- "コードを管理" --> system
 ```
 
 ### レベル2: コンテナ図 (Containers)
