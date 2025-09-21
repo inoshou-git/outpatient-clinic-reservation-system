@@ -37,7 +37,7 @@ graph TD
         system[外来予約システム]
     end
     subgraph "外部システム"
-        email[メールサーバー(SMTP)]
+        email[メールサーバー SMTP]
         gh[GitHub]
     end
     admin -- "予約/ユーザー/予約不可枠を管理" --> system
