@@ -259,8 +259,12 @@ const HomePage = () => {
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         if (sortConfig.key === "date" || sortConfig.key === "time") {
-          const aDateTime = dayjs(`${a.date} ${a.time}`);
-          const bDateTime = dayjs(`${b.date} ${b.time}`);
+          const aTime = a.time || a.startTimeRange || '00:00';
+          const bTime = b.time || b.startTimeRange || '00:00';
+
+          const aDateTime = dayjs(`${a.date} ${aTime}`);
+          const bDateTime = dayjs(`${b.date} ${bTime}`);
+          
           if (aDateTime.isBefore(bDateTime)) {
             return sortConfig.direction === "asc" ? -1 : 1;
           }
