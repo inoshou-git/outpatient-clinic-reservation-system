@@ -150,9 +150,8 @@ export const createAppointment = async (
   if (reservationType === "outpatient") {
     newAppointmentData.patientId = patientId;
     newAppointmentData.patientName = patientName;
-    newAppointmentData.time = time;
-    newAppointmentData.consultation = consultation;
-  } else if (reservationType === "visit") {
+              newAppointmentData.time = time;
+              newAppointmentData.consultation = Array.isArray(consultation) ? consultation.join(', ') : consultation;  } else if (reservationType === "visit") {
     newAppointmentData.patientId = patientId;
     newAppointmentData.facilityName = facilityName;
     newAppointmentData.startTimeRange = startTimeRange;
