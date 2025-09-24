@@ -443,6 +443,14 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
        return 0;
      }
 
+    // 時間情報がまだ選択されていない場合は、競合チェックを行わない
+    if (currentReservationType === "outpatient" && !currentTime) {
+        return 0;
+    }
+    if ((currentReservationType === "visit" || currentReservationType === "rehab") && (!currentStartTimeRange || !currentEndTimeRange)) {
+        return 0;
+    }
+
      let conflicts = 0;
 
      // Check against existing appointments
