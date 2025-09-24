@@ -270,9 +270,10 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
 
   useEffect(() => {
-    setExistingAppointments([]); // Clear stale data immediately on date change
     const fetchAppointments = async () => {
       if (date && token) {
+        setExistingAppointments([]); // フェッチ開始時にクリア
+        setConflictWarning(null); // フェッチ開始時に警告をクリア
         try {
           const fetchedAppointments = await getAppointments(
             token,
@@ -305,17 +306,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       if (conflicts > 0) {
         setConflictWarning(`この期間には${conflicts}件の予約が既に存在します。`);
       } else {
-        // 時間が選択されており、かつ競合がない場合にのみ警告をクリアします。
-        // timeが空の場合は、無効な時間としてクリアされた可能性があるため、
-        // 「無効な時間」の警告を消さないようにします。
-        if (
-          (reservationType === "outpatient" && time) ||
-          ((reservationType === "visit" || reservationType === "rehab") &&
-            startTimeRange &&
-            endTimeRange)
-        ) {
-          setConflictWarning(null);
-        }
+        // 競合がない場合は、常に警告をクリアする
+        setConflictWarning(null);
       }
     } else {
       setConflictWarning(null); // Clear warning if date is not selected
@@ -450,6 +442,14 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     if (!currentDate) {
        return 0;
      }
+
+    // 時間情報がまだ選択されていない場合は、競合チェックを行わない
+    if (currentReservationType === "outpatient" && !currentTime) {
+        return 0;
+    }
+    if ((currentReservationType === "visit" || currentReservationType === "rehab") && (!currentStartTimeRange || !currentEndTimeRange)) {
+        return 0;
+    }
 
      let conflicts = 0;
 
