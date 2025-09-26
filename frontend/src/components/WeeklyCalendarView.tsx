@@ -381,75 +381,78 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({
                       }
                     }
 
-                    return (
-                      <TableCell
-                        key={day.toString()}
-                        align="center"
-                        onClick={() => {
-                          if (canClick) {
-                            onSlotClick(day, time);
-                          } else if (appointment) {
-                            handleAppointmentClick(appointment);
-                          }
-                        }}
-                        sx={{
-                          minWidth: 120,
-                          cursor: canClick || appointment ? "pointer" : "not-allowed",
-                          backgroundColor: backgroundColor,
-                          border: "1px solid rgb(224, 224, 224)",
-                          padding: "4px",
-                          "&:hover": {
-                            backgroundColor:
-                              canClick && !appointment ? "#f5f5f5" : undefined,
-                          },
-                        }}
-                      >
-                        {isFeverClinicTime ? (
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "red", fontWeight: "bold" }}
-                          >
-                            発熱外来
-                          </Typography>
-                        ) : blockedSlot ? (
-                          <>
-                            <Typography
-                              variant="caption"
-                              sx={{ color: "red", fontWeight: "bold" }}
-                            >
-                              予約不可
-                            </Typography>
-                            {blockedSlot.reason && <Typography variant="caption" sx={{ color: "red", display: 'block' }}>
-                              {blockedSlot.reason}
-                            </Typography>}
-                          </>
-                        ) : appointment ? (
-                          <div>
-                            {appointment.reservationType === "outpatient" && (
-                              <>
-                                <Typography
-                                  variant="caption"
-                                  display="block"
-                                  sx={{ fontSize: "0.75rem", fontWeight: "bold" }}
-                                >
-                                  {appointment.patientId}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  display="block"
-                                  sx={{ fontSize: "0.75rem", fontWeight: "bold" }}
-                                >
-                                  {appointment.patientName}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  display="block"
-                                  sx={{ fontSize: "0.75rem" }}
-                                >
-                                  {formatConsultation(appointment.consultation)}
-                                </Typography>
-                                {appointment.startTimeRange && (
-                                  <Typography
+                                        return (
+                                          <TableCell
+                                            key={day.toString()}
+                                            align="center"
+                                            onClick={() => {
+                                              if (canClick) {
+                                                onSlotClick(day, time);
+                                              } else if (appointment) {
+                                                handleAppointmentClick(appointment);
+                                              }
+                                            }}
+                                                                    sx={{
+                                                                      minWidth: 120,
+                                                                      maxWidth: '180px',
+                                                                      cursor: canClick || appointment ? "pointer" : "not-allowed",
+                                                                      backgroundColor: backgroundColor,
+                                                                      border: "1px solid rgb(224, 224, 224)",                                              padding: "4px",
+                                              "&:hover": {
+                                                backgroundColor:
+                                                  canClick && !appointment ? "#f5f5f5" : undefined,
+                                              },
+                                            }}
+                                          >
+                                            {isFeverClinicTime ? (
+                                              <Typography
+                                                variant="caption"
+                                                sx={{ color: "red", fontWeight: "bold" }}
+                                              >
+                                                発熱外来
+                                              </Typography>
+                                            ) : blockedSlot ? (
+                                              <>
+                                                <Typography
+                                                  variant="caption"
+                                                  sx={{ color: "red", fontWeight: "bold" }}
+                                                >
+                                                  予約不可
+                                                </Typography>
+                                                {blockedSlot.reason && <Typography variant="caption" sx={{ color: "red", display: 'block' }}>
+                                                  {blockedSlot.reason}
+                                                </Typography>}
+                                              </>
+                                            ) : appointment ? (
+                                              <div>
+                                                {appointment.reservationType === "outpatient" && (
+                                                  <>
+                                                    <Typography
+                                                      variant="caption"
+                                                      display="block"
+                                                      sx={{ fontSize: "0.75rem", fontWeight: "bold" }}
+                                                    >
+                                                      {appointment.patientId}
+                                                    </Typography>
+                                                    <Typography
+                                                      variant="caption"
+                                                      display="block"
+                                                      sx={{ fontSize: "0.75rem", fontWeight: "bold" }}
+                                                    >
+                                                      {appointment.patientName}
+                                                    </Typography>
+                                                    <Typography
+                                                      variant="caption"
+                                                      display="block"
+                                                      sx={{
+                                                        fontSize: "0.75rem",
+                                                        wordBreak: 'break-word',
+                                                        whiteSpace: 'normal',
+                                                      }}
+                                                    >
+                                                      {formatConsultation(appointment.consultation)}
+                                                    </Typography>
+                                                    {appointment.startTimeRange && (                                  <Typography
                                     variant="caption"
                                     display="block"
                                     sx={{ fontSize: "0.75rem" }}
