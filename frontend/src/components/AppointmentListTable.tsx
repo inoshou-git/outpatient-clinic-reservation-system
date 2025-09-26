@@ -24,8 +24,9 @@ import {
   Select,
   MenuItem,
   ListItemText,
+  Tooltip,
 } from "@mui/material";
-import { Edit, Delete } from "@mui/icons-material";
+import { Edit, Delete, FileDownload as FileDownloadIcon } from "@mui/icons-material";
 import dayjs, { Dayjs } from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
@@ -35,6 +36,8 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import 'dayjs/locale/ja';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
@@ -126,6 +129,50 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
       }
     }
     return consultation;
+  };
+
+  const handleDownloadExcel = () => {
+    const selectedData = appointments.filter(appointment =>
+      selectedAppointments.includes(appointment.id)
+    );
+
+    if (selectedData.length === 0) {
+      return;
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(selectedData.map(appointment => ({
+      '日付': appointment.date,
+      '時間': appointment.startTimeRange && appointment.endTimeRange ? `${appointment.startTimeRange} - ${appointment.endTimeRange}` : appointment.time,
+      '予約種別': appointment.reservationType === "outpatient" ? "外来診療" : appointment.reservationType === "visit" ? "訪問診療" : appointment.reservationType === "rehab" ? "通所リハ会議" : appointment.reservationType === "special" ? "特別予約" : "-",
+      '患者ID': appointment.patientId || "-",
+      '患者名/施設名': appointment.patientName || "-",
+      '診察内容': appointment.reservationType === "special" ? appointment.reason : formatConsultation(appointment.consultation),
+      '最終更新者': appointment.lastUpdatedBy || "-",
+      '最終更新日': appointment.lastUpdatedAt ? dayjs(appointment.lastUpdatedAt).format("YYYY-MM-DD HH:mm") : "-",
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '選択された予約');
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+    saveAs(data, 'selected_appointments.xlsx');
+  };
+
+  const handleBulkDownloadExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(appointments.map(appointment => ({
+      '日付': appointment.date,
+      '時間': appointment.startTimeRange && appointment.endTimeRange ? `${appointment.startTimeRange} - ${appointment.endTimeRange}` : appointment.time,
+      '予約種別': appointment.reservationType === "outpatient" ? "外来診療" : appointment.reservationType === "visit" ? "訪問診療" : appointment.reservationType === "rehab" ? "通所リハ会議" : appointment.reservationType === "special" ? "特別予約" : "-",
+      '患者ID': appointment.patientId || "-",
+      '患者名/施設名': appointment.patientName || "-",
+      '診察内容': appointment.reservationType === "special" ? appointment.reason : formatConsultation(appointment.consultation),
+      '最終更新者': appointment.lastUpdatedBy || "-",
+      '最終更新日': appointment.lastUpdatedAt ? dayjs(appointment.lastUpdatedAt).format("YYYY-MM-DD HH:mm") : "-",
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '全予約リスト');
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+    saveAs(data, 'all_filtered_appointments.xlsx');
   };
 
   const isSelected = (id: number) => selectedAppointments.indexOf(id) !== -1;
@@ -227,26 +274,42 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
             全て
           </Button>
         </ButtonGroup>
-        <Box>
-          {userRole !== "viewer" &&
-            bulkActionEnabled &&
-            selectedAppointments.length > 0 && (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {!bulkActionEnabled && userRole !== "viewer" && (
+            <>
+              <Button variant="outlined" onClick={() => setBulkActionEnabled(true)}>
+                一括操作
+              </Button>
+              <Tooltip title="表示中のリストを全てダウンロード">
+                <IconButton color="primary" onClick={handleBulkDownloadExcel}>
+                  <FileDownloadIcon />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+          {bulkActionEnabled && userRole !== "viewer" && (
+            <>
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleOpenUpdateDialog}
-                sx={{ mr: 1 }}
+                disabled={selectedAppointments.length === 0}
               >
                 選択した項目を更新
               </Button>
-            )}
-          {userRole !== "viewer" && (
-            <Button
-              variant="outlined"
-              onClick={() => setBulkActionEnabled(!bulkActionEnabled)}
-            >
-              {bulkActionEnabled ? "キャンセル" : "一括操作"}
-            </Button>
+              <Button variant="outlined" onClick={() => setBulkActionEnabled(false)}>
+                キャンセル
+              </Button>
+              <Tooltip title="選択した項目をダウンロード">
+                <IconButton
+                  color="primary"
+                  onClick={handleDownloadExcel}
+                  disabled={selectedAppointments.length === 0}
+                >
+                  <FileDownloadIcon />
+                </IconButton>
+              </Tooltip>
+            </>
           )}
         </Box>
       </Box>
