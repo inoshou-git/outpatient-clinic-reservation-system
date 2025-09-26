@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "外来診療予約アプリ",
+  "name": "外来診療予約アプリ",
   "icons": [
     {
       "src": "favicon.ico",
