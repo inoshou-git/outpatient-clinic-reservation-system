@@ -400,17 +400,17 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         parsedConsultation = [];
       }
 
-      const knownOptions = parsedConsultation.filter(c => consultationOptions.includes(c) && c !== "その他");
+      const knownOptions = parsedConsultation.filter(c => consultationOptions.includes(c) && c !== "その他(直接入力)");
       const customTextOptions = parsedConsultation.filter(c => !consultationOptions.includes(c));
 
       let finalConsultationSelection: string[] = [...knownOptions];
       let finalOtherConsultationText: string = "";
 
       if (customTextOptions.length > 0) {
-        finalConsultationSelection.push("その他");
+        finalConsultationSelection.push("その他(直接入力)");
         finalOtherConsultationText = customTextOptions.join(', ');
-      } else if (parsedConsultation.includes("その他")) {
-        finalConsultationSelection.push("その他");
+      } else if (parsedConsultation.includes("その他(直接入力)")) {
+        finalConsultationSelection.push("その他(直接入力)");
       }
 
       setConsultation(finalConsultationSelection);
@@ -526,8 +526,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       sendNotification,
     };
 
-    const finalConsultation = consultation.filter(c => c !== 'その他');
-    if (consultation.includes('その他') && otherConsultation.trim() !== '') {
+    const finalConsultation = consultation.filter(c => c !== 'その他(直接入力)');
+    if (consultation.includes('その他(直接入力)') && otherConsultation.trim() !== '') {
         const customOptions = otherConsultation.split(',').map(s => s.trim()).filter(s => s !== '');
         finalConsultation.push(...customOptions);
     }
@@ -772,7 +772,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                 </Box>
               </Select>
             </FormControl>
-            {consultation.includes("その他") && (
+            {consultation.includes("その他(直接入力)") && (
               <TextField
                 id="other-consultation"
                 name="otherConsultation"
