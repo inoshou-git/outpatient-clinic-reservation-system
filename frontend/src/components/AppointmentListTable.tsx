@@ -38,28 +38,10 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import 'dayjs/locale/ja';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { bulkUpdateConsultationOptions } from './ConsultationSelect';
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
-
-const consultationOptions = [
-  "VF",
-  "生活習慣",
-  "入職時健診",
-  "健康診断",
-  "企業健診",
-  "特定健診",
-  "帯状疱疹(生ワクチン)",
-  "帯状疱疹(シングリックス1回目)",
-  "帯状疱疹(シングリックス2回目)",
-  "コロナ",
-  "肺炎球菌",
-  "インフルエンザ",
-  "定期処方",
-  "整形",
-  "採血のみ",
-  "新患",
-];
 
 interface AppointmentListTableProps {
   appointments: Appointment[];
@@ -551,7 +533,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
               onChange={(e) => setNewConsultation(e.target.value as string[])}
               renderValue={(selected) => selected.join(', ')}
             >
-              {consultationOptions.map((option) => (
+              {bulkUpdateConsultationOptions.map((option) => (
                 <MenuItem key={option} value={option}>
                   <Checkbox checked={newConsultation.indexOf(option) > -1} />
                   <ListItemText primary={option} />

@@ -11,7 +11,6 @@ import {
   Alert,
   Checkbox,
   FormControlLabel,
-  ListItemText,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -20,6 +19,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { useAuth } from "../contexts/AuthContext";
 import { useUI } from "../contexts/UIContext";
 import { getAppointments, createAppointment, updateAppointment } from "../services/api";
+import ConsultationSelect, { allConsultationOptions } from './ConsultationSelect';
 
 import { Appointment, BlockedSlot } from "../types";
 
@@ -37,26 +37,6 @@ interface ReservationFormProps {
   initialTime?: string | null;
 }
 
-const consultationOptions = [
-  "VF",
-  "生活習慣",
-  "入職時健診",
-  "健康診断",
-  "企業健診",
-  "特定健診",
-  "帯状疱疹(生ワクチン)",
-  "帯状疱疹(シングリックス1回目)",
-  "帯状疱疹(シングリックス2回目)",
-  "コロナ",
-  "肺炎球菌",
-  "インフルエンザ",
-  "定期処方",
-  "整形",
-  "採血のみ",
-  "新患",
-  "その他(直接入力)",
-];
-
 const generateTimeSlots = (
   startHour: number = 9,
   startMinute: number = 30,
@@ -66,8 +46,6 @@ const generateTimeSlots = (
   const slots = [];
   let time = dayjs().hour(startHour).minute(startMinute).second(0);
   const endTime = dayjs().hour(endHour).minute(endMinute).second(0);
-  const lunchStart = dayjs().hour(11).minute(45).second(0);
-  const lunchEnd = dayjs().hour(13).minute(30).second(0);
 
   while (time.isBefore(endTime) || time.isSame(endTime)) {
     slots.push(time.format("HH:mm"));
@@ -98,12 +76,11 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const [otherConsultation, setOtherConsultation] = useState("");
   const [sendNotification, setSendNotification] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [patientIdError, setPatientIdError] = useState("");
   const [existingAppointments, setExistingAppointments] = useState<Appointment[]>([]);
   const [feverClinicWarning, setFeverClinicWarning] = useState<string | null>(null);
-  const [consultationSelectOpen, setConsultationSelectOpen] = useState(false);
   const [isCheckingConflicts, setIsCheckingConflicts] = useState(false);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [editingAppointmentId, setEditingAppointmentId] = useState<number | undefined>(undefined);
 
   const allTimeSlots = useMemo(() => generateTimeSlots(), []);
 
@@ -346,7 +323,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       endTimeRange,
       existingAppointments,
       blockedSlots,
-      appointment?.id
+      editingAppointmentId
     );
   }, [
     hasUserInteracted,
@@ -358,7 +335,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     reservationType,
     existingAppointments,
     blockedSlots,
-    appointment?.id,
+    editingAppointmentId,
     checkConflicts,
   ]);
 
@@ -372,6 +349,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
   useEffect(() => {
     if (appointment) {
+      setEditingAppointmentId(appointment.id);
       setReservationType(appointment.reservationType || "outpatient");
       setPatientId(appointment.patientId || "");
       setPatientName(appointment.patientName || "");
@@ -400,8 +378,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         parsedConsultation = [];
       }
 
-      const knownOptions = parsedConsultation.filter(c => consultationOptions.includes(c) && c !== "その他(直接入力)");
-      const customTextOptions = parsedConsultation.filter(c => !consultationOptions.includes(c));
+      const knownOptions = parsedConsultation.filter(c => allConsultationOptions.includes(c) && c !== "その他(直接入力)");
+      const customTextOptions = parsedConsultation.filter(c => !allConsultationOptions.includes(c));
 
       let finalConsultationSelection: string[] = [...knownOptions];
       let finalOtherConsultationText: string = "";
@@ -613,8 +591,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
               onChange={handlePatientIdChange}
               fullWidth
               sx={{ mb: 2 }}
-              error={!!patientIdError}
-              helperText={patientIdError}
             />
 
             <TextField
@@ -742,50 +718,13 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         )}
 
         {(reservationType === "outpatient" || reservationType === "visit") && (
-          <>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel id="consultation-label">診察内容</InputLabel>
-              <Select
-                labelId="consultation-label"
-                id="consultation-select"
-                name="consultation"
-                multiple
-                value={consultation}
-                label="診察内容"
-                open={consultationSelectOpen}
-                onOpen={() => setConsultationSelectOpen(true)}
-                onClose={() => setConsultationSelectOpen(false)}
-                onChange={(e: SelectChangeEvent<typeof consultation>) => {
-                  setConsultation(e.target.value as string[]);
-                  setHasUserInteracted(true);
-                }}
-                renderValue={(selected) => (Array.isArray(selected) ? selected.join(', ') : selected)}
-              >
-                {consultationOptions.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    <Checkbox checked={consultation.indexOf(option) > -1} />
-                    <ListItemText primary={option} />
-                  </MenuItem>
-                ))}
-                <Box sx={{ position: 'sticky', bottom: 0, background: 'white', p: 1, display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #ddd' }}>
-                  <Button size="small" onClick={() => setConsultationSelectOpen(false)}>閉じる</Button>
-                </Box>
-              </Select>
-            </FormControl>
-            {consultation.includes("その他(直接入力)") && (
-              <TextField
-                id="other-consultation"
-                name="otherConsultation"
-                label="診察内容 (その他)"
-                value={otherConsultation}
-                onChange={(e) => setOtherConsultation(e.target.value)}
-                fullWidth
-                multiline
-                rows={4}
-                sx={{ mb: 2 }}
-              />
-            )}
-          </>
+          <ConsultationSelect
+            consultation={consultation}
+            setConsultation={setConsultation}
+            otherConsultation={otherConsultation}
+            setOtherConsultation={setOtherConsultation}
+            setHasUserInteracted={setHasUserInteracted}
+          />
         )}
 
         <FormControlLabel
