@@ -80,6 +80,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const [feverClinicWarning, setFeverClinicWarning] = useState<string | null>(null);
   const [isCheckingConflicts, setIsCheckingConflicts] = useState(false);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [editingAppointmentId, setEditingAppointmentId] = useState<number | undefined>(undefined);
 
   const allTimeSlots = useMemo(() => generateTimeSlots(), []);
 
@@ -322,7 +323,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       endTimeRange,
       existingAppointments,
       blockedSlots,
-      appointment?.id
+      editingAppointmentId
     );
   }, [
     hasUserInteracted,
@@ -334,7 +335,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     reservationType,
     existingAppointments,
     blockedSlots,
-    appointment?.id,
+    editingAppointmentId,
     checkConflicts,
   ]);
 
@@ -348,6 +349,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
   useEffect(() => {
     if (appointment) {
+      setEditingAppointmentId(appointment.id);
       setReservationType(appointment.reservationType || "outpatient");
       setPatientId(appointment.patientId || "");
       setPatientName(appointment.patientName || "");
