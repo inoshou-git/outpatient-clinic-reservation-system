@@ -269,9 +269,7 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
         if (!blocked.startTime || !blocked.endTime) return false;
         const start = dayjs(`${blocked.date}T${blocked.startTime}`);
         const end = dayjs(`${blocked.date}T${blocked.endTime}`);
-        // 予約不可時間の終了時刻（endTime）もブロック範囲に含めるように修正
-        // これにより、例えば16:00-16:30の予約不可がある場合、16:30のスロットが利用不可になる
-        return currentSlot.isBetween(start, end, null, "[]");
+        return currentSlot.isBetween(start, end, null, "[)");
       });
 
       const isBlockedByAppointment = appointments.some(appt => {
@@ -291,6 +289,62 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
       return !isBlockedByOtherSlot && !isBlockedByAppointment;
     });
   }, [startDate, existingBlockedSlots, allTimeSlots, blockedSlot, appointments]);
+
+  const endTimeOptions = useMemo(() => {
+    if (!startTime || !startDate) {
+      return [];
+    }
+
+    const selectedDateStr = startDate.format("YYYY-MM-DD");
+    const startDateTime = dayjs(`${selectedDateStr}T${startTime}`);
+    let firstConflictTime: Dayjs | null = null;
+
+    const appointmentsOnDate = appointments.filter(
+        appt => appt.date === selectedDateStr && appt.id !== blockedSlot?.id
+    );
+
+    const blockedSlotsOnDate = existingBlockedSlots.filter(bs => 
+        bs.id !== blockedSlot?.id &&
+        (bs.date === selectedDateStr || (bs.endDate && dayjs(selectedDateStr).isBetween(bs.date, bs.endDate, null, '[]')))
+    );
+
+    for (const appt of appointmentsOnDate) {
+        const conflictStartCandidate = appt.time ? appt.time : appt.startTimeRange;
+        if (!conflictStartCandidate) continue;
+        const conflictStart = dayjs(`${selectedDateStr}T${conflictStartCandidate}`);
+        if (conflictStart.isAfter(startDateTime)) {
+            if (firstConflictTime === null || conflictStart.isBefore(firstConflictTime)) {
+                firstConflictTime = conflictStart;
+            }
+        }
+    }
+
+    for (const bs of blockedSlotsOnDate) {
+        if (bs.startTime) {
+            const conflictStart = dayjs(`${selectedDateStr}T${bs.startTime}`);
+            if (conflictStart.isAfter(startDateTime)) {
+                if (firstConflictTime === null || conflictStart.isBefore(firstConflictTime)) {
+                    firstConflictTime = conflictStart;
+                }
+            }
+        } else { // All-day block
+            firstConflictTime = startDateTime.add(1, 'minute'); // Effectively blocks everything after start
+            break;
+        }
+    }
+
+    let possibleEndTimes = allTimeSlots.filter(slot =>
+        dayjs(`${selectedDateStr}T${slot}`).isAfter(startDateTime)
+    );
+
+    if (firstConflictTime) {
+        possibleEndTimes = possibleEndTimes.filter(slot =>
+            !dayjs(`${selectedDateStr}T${slot}`).isAfter(firstConflictTime)
+        );
+    }
+
+    return possibleEndTimes;
+  }, [startTime, startDate, allTimeSlots, existingBlockedSlots, appointments, blockedSlot]);
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -460,21 +514,11 @@ const BlockedSlotForm: React.FC<BlockedSlotFormProps> = ({
                   }}
                   
                 >
-                  {availableTimeSlots
-                    .filter(
-                      (slot) =>
-                        !startTime ||
-                        dayjs(
-                          `${startDate?.format("YYYY-MM-DD")}T${slot}`
-                        ).isAfter(
-                          dayjs(`${startDate?.format("YYYY-MM-DD")}T${startTime}`)
-                        )
-                    )
-                    .map((slot) => (
-                      <MenuItem key={slot} value={slot}>
-                        {slot}
-                      </MenuItem>
-                    ))}
+                  {endTimeOptions.map((slot) => (
+                    <MenuItem key={slot} value={slot}>
+                      {slot}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Box>
