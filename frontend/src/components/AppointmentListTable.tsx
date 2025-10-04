@@ -339,8 +339,8 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
         </Button>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }} aria-label="simple table">
+      <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 280px)' }}>
+        <Table stickyHeader sx={{ minWidth: 650 }} aria-label="simple table">
           <TableHead>
             <TableRow>
               {bulkActionEnabled && (
