@@ -241,13 +241,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               <ListItem key={app.id}>
                 <ListItemText
                   primary={formatAppointmentPrimaryText(app)}
-                  secondary={formatConsultation(
-                    app.reservationType === "outpatient"
-                      ? app.consultation
-                      : app.reservationType === "visit"
-                      ? app.consultation
-                      : null
-                  )}
+                  secondary={<>
+                    {formatConsultation(
+                      app.reservationType === "outpatient"
+                        ? app.consultation
+                        : app.reservationType === "visit"
+                        ? app.consultation
+                        : null
+                    )}
+                    {app.notes && <Typography variant="caption" display="block">備考: {app.notes}</Typography>}
+                  </>}
                 />
               </ListItem>
             ))}

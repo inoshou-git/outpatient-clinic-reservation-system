@@ -73,7 +73,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   const [startTimeRange, setStartTimeRange] = useState("");
   const [endTimeRange, setEndTimeRange] = useState("");
   const [consultation, setConsultation] = useState<string[]>([]);
-  const [otherConsultation, setOtherConsultation] = useState("");
+  const [notes, setNotes] = useState("");
   const [sendNotification, setSendNotification] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existingAppointments, setExistingAppointments] = useState<Appointment[]>([]);
@@ -357,6 +357,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       setTime(appointment.time || "");
       setStartTimeRange(appointment.startTimeRange || "");
       setEndTimeRange(appointment.endTimeRange || "");
+      setNotes(appointment.notes || "");
 
       const existingConsultation = appointment.consultation;
       let parsedConsultation: string[] = [];
@@ -374,25 +375,9 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         }
       } else if (Array.isArray(existingConsultation)) {
         parsedConsultation = existingConsultation;
-      } else {
-        parsedConsultation = [];
       }
 
-      const knownOptions = parsedConsultation.filter(c => allConsultationOptions.includes(c) && c !== "その他(直接入力)");
-      const customTextOptions = parsedConsultation.filter(c => !allConsultationOptions.includes(c));
-
-      let finalConsultationSelection: string[] = [...knownOptions];
-      let finalOtherConsultationText: string = "";
-
-      if (customTextOptions.length > 0) {
-        finalConsultationSelection.push("その他(直接入力)");
-        finalOtherConsultationText = customTextOptions.join(', ');
-      } else if (parsedConsultation.includes("その他(直接入力)")) {
-        finalConsultationSelection.push("その他(直接入力)");
-      }
-
-      setConsultation(finalConsultationSelection);
-      setOtherConsultation(finalOtherConsultationText);
+      setConsultation(parsedConsultation);
     } else {
       setReservationType("outpatient");
       setPatientId("");
@@ -402,7 +387,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       setStartTimeRange("");
       setEndTimeRange("");
       setConsultation([]);
-      setOtherConsultation("");
+      setNotes("");
     }
     setHasUserInteracted(false);
   }, [appointment, initialDate, initialTime]);
@@ -502,13 +487,10 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       date: date.format("YYYY-MM-DD"),
       reservationType,
       sendNotification,
+      notes,
     };
 
-    const finalConsultation = consultation.filter(c => c !== 'その他(直接入力)');
-    if (consultation.includes('その他(直接入力)') && otherConsultation.trim() !== '') {
-        const customOptions = otherConsultation.split(',').map(s => s.trim()).filter(s => s !== '');
-        finalConsultation.push(...customOptions);
-    }
+    const finalConsultation = consultation;
 
     if (reservationType === "outpatient") {
       appointmentData.patientName = patientName;
@@ -721,11 +703,21 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
           <ConsultationSelect
             consultation={consultation}
             setConsultation={setConsultation}
-            otherConsultation={otherConsultation}
-            setOtherConsultation={setOtherConsultation}
             setHasUserInteracted={setHasUserInteracted}
           />
         )}
+
+        <TextField
+          id="notes"
+          name="notes"
+          label="備考"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          fullWidth
+          multiline
+          rows={4}
+          sx={{ mb: 2 }}
+        />
 
         <FormControlLabel
           control={

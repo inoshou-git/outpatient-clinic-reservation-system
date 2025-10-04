@@ -129,6 +129,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
       '患者ID': appointment.patientId || "-",
       '患者名/施設名': appointment.patientName || "-",
       '診察内容': appointment.reservationType === "special" ? appointment.reason : formatConsultation(appointment.consultation),
+      '備考': appointment.notes || "-",
       '最終更新者': appointment.lastUpdatedBy || "-",
       '最終更新日': appointment.lastUpdatedAt ? dayjs(appointment.lastUpdatedAt).format("YYYY-MM-DD HH:mm") : "-",
     })));
@@ -147,6 +148,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
       '患者ID': appointment.patientId || "-",
       '患者名/施設名': appointment.patientName || "-",
       '診察内容': appointment.reservationType === "special" ? appointment.reason : formatConsultation(appointment.consultation),
+      '備考': appointment.notes || "-",
       '最終更新者': appointment.lastUpdatedBy || "-",
       '最終更新日': appointment.lastUpdatedAt ? dayjs(appointment.lastUpdatedAt).format("YYYY-MM-DD HH:mm") : "-",
     })));
@@ -390,6 +392,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
               <TableCell>患者ID</TableCell>
               <TableCell>患者名/施設名</TableCell>
               <TableCell>診察内容</TableCell>
+              <TableCell>備考</TableCell>
               {userRole !== "viewer" && <TableCell>最終更新者</TableCell>}
               {userRole !== "viewer" && <TableCell
                 sortDirection={
@@ -457,6 +460,7 @@ const AppointmentListTable: React.FC<AppointmentListTableProps> = ( {
                       ? row.reason
                       : formatConsultation(row.consultation)}
                   </TableCell>
+                  <TableCell>{row.notes || "-"}</TableCell>
                   {userRole !== "viewer" && (
                     <TableCell>{row.lastUpdatedBy || "-"}</TableCell>
                   )}
