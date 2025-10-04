@@ -12,8 +12,7 @@ import {
   TextField,
 } from '@mui/material';
 
-// 「その他」を表す文字列を定数として定義
-export const OTHER_OPTION = "その他(直接入力)";
+
 
 // 全ての診察内容のマスターリスト
 export const allConsultationOptions = [
@@ -33,27 +32,20 @@ export const allConsultationOptions = [
   "整形",
   "採血のみ",
   "新患",
-  OTHER_OPTION,
 ];
 
-// 一括更新用のリスト（「その他」を除外）
-export const bulkUpdateConsultationOptions = allConsultationOptions.filter(
-  option => option !== OTHER_OPTION
-);
+// 一括更新用のリスト
+export const bulkUpdateConsultationOptions = allConsultationOptions;
 
 interface ConsultationSelectProps {
   consultation: string[];
   setConsultation: (value: string[]) => void;
-  otherConsultation: string;
-  setOtherConsultation: (value: string) => void;
   setHasUserInteracted: (value: boolean) => void;
 }
 
 const ConsultationSelect: React.FC<ConsultationSelectProps> = ({
   consultation,
   setConsultation,
-  otherConsultation,
-  setOtherConsultation,
   setHasUserInteracted,
 }) => {
   const [consultationSelectOpen, setConsultationSelectOpen] = useState(false);
@@ -89,22 +81,6 @@ const ConsultationSelect: React.FC<ConsultationSelectProps> = ({
           </Box>
         </Select>
       </FormControl>
-      {consultation.includes(OTHER_OPTION) && (
-        <TextField
-          id="other-consultation"
-          name="otherConsultation"
-          label="診察内容 (その他)"
-          value={otherConsultation}
-          onChange={(e) => {
-            setOtherConsultation(e.target.value);
-            setHasUserInteracted(true);
-          }}
-          fullWidth
-          multiline
-          rows={4}
-          sx={{ mb: 2 }}
-        />
-      )}
     </>
   );
 };

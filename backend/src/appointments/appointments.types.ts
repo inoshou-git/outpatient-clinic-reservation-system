@@ -12,6 +12,7 @@ export interface Appointment {
   startTimeRange?: string;
   endTimeRange?: string;
   reason?: string;
+  notes?: string;
   createdAt?: string;
   lastUpdatedAt?: string;
 }

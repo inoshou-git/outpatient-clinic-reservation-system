@@ -51,6 +51,7 @@ export const createAppointment = async (
     startTimeRange,
     endTimeRange,
     sendNotification,
+    notes,
   } = appointmentData;
 
   if (!reservationType || !date) {
@@ -145,6 +146,7 @@ export const createAppointment = async (
     startTimeRange: startTimeRange || undefined,
     endTimeRange: endTimeRange || undefined,
     reason: undefined, // reason is not part of the form for these types
+    notes: notes || undefined,
   };
 
   if (reservationType === "outpatient") {
@@ -191,10 +193,10 @@ export const createAppointment = async (
       subject = "新規予約登録のお知らせ (外来診療)";
       text = `新しい外来診療の予約が登録されました。\n患者名: ${patientName}\n日時: ${date} ${timeDisplay}\n診察内容: ${
         consultationText || "未入力"
-      }\n担当: ${lastUpdatedBy}`;
+      }\n備考: ${notes || "未入力"}\n担当: ${lastUpdatedBy}`;
       html = `<p>新しい外来診療の予約が登録されました。</p><ul><li>患者名: ${patientName}</li><li>日時: ${date} ${timeDisplay}</li><li>診察内容: ${
         consultationText || "未入力"
-      }</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
+      }</li><li>備考: ${notes || "未入力"}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
          process.env.SYSTEM_URL
        }">${process.env.SYSTEM_URL}</a></p>`;
     } else if (reservationType === "visit") {
@@ -203,12 +205,12 @@ export const createAppointment = async (
         facilityName || "未入力"
       }\n日時: ${date} ${startTimeRange} - ${endTimeRange}\n診察内容: ${
         consultationText || "未入力"
-      }\n担当: ${lastUpdatedBy}`;
+      }\n備考: ${notes || "未入力"}\n担当: ${lastUpdatedBy}`;
       html = `<p>新しい訪問診療の予約が登録されました。</p><ul><li>施設名: ${
         facilityName || "未入力"
       }</li><li>日時: ${date} ${startTimeRange} - ${endTimeRange}</li><li>診察内容: ${
         consultationText || "未入力"
-      }</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
+      }</li><li>備考: ${notes || "未入力"}</li><li>担当: ${lastUpdatedBy}</li></ul><p>システムURL: <a href="${
          process.env.SYSTEM_URL
        }">${process.env.SYSTEM_URL}</a></p>`;
     } else if (reservationType === "rehab") {
@@ -415,6 +417,8 @@ export const updateAppointment = async (
         const newConsultationText = Array.isArray(updatedAppointmentResult.consultation) ? updatedAppointmentResult.consultation.join(', ') : updatedAppointmentResult.consultation;
         if (oldConsultationText !== newConsultationText)
           changes += `<li>診察内容: ${oldConsultationText || "未入力"} → ${newConsultationText || "未入力"}</li>`;
+        if (oldAppointment.notes !== updatedAppointmentResult.notes)
+          changes += `<li>備考: ${oldAppointment.notes || "未入力"} → ${updatedAppointmentResult.notes || "未入力"}</li>`;
         subject = "予約更新のお知らせ (外来診療)";
         text = `外来診療の予約が更新されました.\n患者名: ${
           updatedAppointmentResult.patientName
@@ -435,6 +439,8 @@ export const updateAppointment = async (
         const newConsultationText = Array.isArray(updatedAppointmentResult.consultation) ? updatedAppointmentResult.consultation.join(', ') : updatedAppointmentResult.consultation;
         if (oldConsultationText !== newConsultationText)
           changes += `<li>診察内容: ${oldConsultationText || "未入力"} → ${newConsultationText || "未入力"}</li>`;
+        if (oldAppointment.notes !== updatedAppointmentResult.notes)
+          changes += `<li>備考: ${oldAppointment.notes || "未入力"} → ${updatedAppointmentResult.notes || "未入力"}</li>`;
         subject = "予約更新のお知らせ (訪問診療)";
         text = `訪問診療の予約が更新されました.\n施設名: ${updatedAppointmentResult.facilityName || "未入力"}\n日時: ${updatedAppointmentResult.date} ${updatedAppointmentResult.startTimeRange} - ${updatedAppointmentResult.endTimeRange}\n診察内容: ${newConsultationText || "未入力"}\n担当: ${lastUpdatedBy}\n\n変更点:\n${changes.replace(/<li>/g, "").replace(/<\/li>/g, "\n")}`;
         html = `<p>訪問診療の予約が更新されました。</p><ul><li>施設名: ${updatedAppointmentResult.facilityName || "未入力"}</li><li>日時: ${updatedAppointmentResult.date} ${updatedAppointmentResult.startTimeRange} - ${updatedAppointmentResult.endTimeRange}</li><li>診察内容: ${newConsultationText || "未入力"}</li><li>担当: ${lastUpdatedBy}</li></ul><p>変更点：</p><ul>${changes}</ul><p>システムURL: <a href="${process.env.SYSTEM_URL}">${process.env.SYSTEM_URL}</a></p>`;

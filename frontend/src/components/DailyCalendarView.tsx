@@ -447,6 +447,20 @@ const DailyCalendarView: React.FC<DailyCalendarViewProps> = ({
                               >
                                 {formatConsultation(appointment.consultation)}
                               </Typography>
+                              {appointment.notes && (
+                                <Typography
+                                  variant="caption"
+                                  display="block"
+                                  sx={{
+                                    fontSize: "0.75rem",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                >
+                                  {appointment.notes}
+                                </Typography>
+                              )}
                               {appointment.startTimeRange && (
                                 <Typography
                                   variant="caption"
@@ -488,6 +502,29 @@ const DailyCalendarView: React.FC<DailyCalendarViewProps> = ({
                                 {appointment.startTimeRange} -{" "}
                                 {appointment.endTimeRange}
                               </Typography>
+                              {appointment.reservationType === "visit" && appointment.consultation && (
+                                <Typography
+                                  variant="caption"
+                                  display="block"
+                                  sx={{ fontSize: "0.75rem" }}
+                                >
+                                  {formatConsultation(appointment.consultation)}
+                                </Typography>
+                              )}
+                              {appointment.notes && (
+                                <Typography
+                                  variant="caption"
+                                  display="block"
+                                  sx={{
+                                    fontSize: "0.75rem",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                >
+                                  {appointment.notes}
+                                </Typography>
+                              )}
                             </>
                           )}
                         </div>
@@ -579,6 +616,11 @@ const DailyCalendarView: React.FC<DailyCalendarViewProps> = ({
                       <strong>理由:</strong> {selectedAppointment.reason}
                     </Typography>
                   )}
+                {selectedAppointment.notes && (
+                  <Typography variant="subtitle1">
+                    <strong>備考:</strong> {selectedAppointment.notes}
+                  </Typography>
+                )}
               </Box>
             )}
           </DialogContent>

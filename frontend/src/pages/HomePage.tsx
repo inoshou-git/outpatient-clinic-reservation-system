@@ -78,8 +78,8 @@ const HomePage = () => {
   const [displayMode, setDisplayMode] = useState<DisplayMode>("weekly");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
   const [sortConfig, setSortConfig] = useState<SortConfig | null>({
-    key: "date",
-    direction: "asc",
+    key: "lastUpdatedAt",
+    direction: "desc",
   });
   const [selectedAppointments, setSelectedAppointments] = useState<number[]>(
     []
